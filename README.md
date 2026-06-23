@@ -100,7 +100,7 @@ src/
 │   ├── wsAgent.js         # 连接代理
 │   └── batch/             # 批量/定时任务工厂与调度
 │
-├── 📱 views/               # 主要页面（文件路由源）
+├── 📱 views/               # 主要页面目录
 │   ├── TokenImport/       # Token导入管理（含 manual/url/bin 等子页）
 │   ├── Dashboard.vue      # 主控制台
 │   ├── DailyTasks.vue     # 日常任务
