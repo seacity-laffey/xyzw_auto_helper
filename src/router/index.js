@@ -1,9 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import * as autoRoutes from "vue-router/auto-routes";
 import { useTokenStore } from '@/stores/tokenStore'
 import { isNowInLegionWarTime } from "@/utils/clubBattleUtils"
-
-const generatedRoutes = autoRoutes.routes ?? [];
 
 const my_routes = [
   {
@@ -58,7 +55,7 @@ const my_routes = [
       {
         path: 'message-test',
         name: 'MessageTest',
-        component: () => import('@/components/Test/MessageTester.vue'),
+        component: () => import('@/views/Tools/MessageTester.vue'),
         meta: {
           title: '消息测试',
           requiresToken: true
@@ -100,14 +97,12 @@ const my_routes = [
           requiresToken: true
         }
       },
-      // 增加自动路由引用
-      ...generatedRoutes,
     ]
   },
   {
     path: '/websocket-test',
     name: 'WebSocketTest',
-    component: () => import('@/components/Test/WebSocketTester.vue'),
+    component: () => import('@/views/Tools/WebSocketTester.vue'),
     meta: {
       title: 'WebSocket测试',
       requiresToken: true
@@ -126,8 +121,6 @@ const my_routes = [
     path: '/game-roles',
     redirect: '/tokens'
   },
-  // 增加自动路由引用
-  ...generatedRoutes,
   {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
@@ -149,9 +142,6 @@ const router = createRouter({
     }
   }
 })
-
-// 热更新路由
-autoRoutes.handleHotUpdate?.(router);
 
 // 导航守卫
 router.beforeEach((to, from, next) => {

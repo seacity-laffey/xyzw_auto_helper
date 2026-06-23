@@ -50,7 +50,7 @@
     <HangUpStatusCard v-show="activeSection === 'daily'" />
 
     <!-- 无限阵容助手（提取组件） -->
-    <Unlimitedlineup v-show="activeSection === 'tools'" />
+    <UnlimitedLineup v-show="activeSection === 'tools'" />
 
     <!-- 宝箱助手（提取组件） -->
     <BoxHelperCard v-show="activeSection === 'tools'" />
@@ -201,7 +201,7 @@
       </div>
 
       <div class="warrank-full-container" v-if="saltFieldSubTab === 'warrank'">
-        <ClubWarrank />
+        <ClubWarRank />
       </div>
 
       <div
@@ -300,7 +300,7 @@
       </div>
     </div>
     <!-- 切磋（提取组件） -->
-    <FightPvp v-if="activeSection === 'fightPvp'" />
+    <FightPvP v-if="activeSection === 'fightPvp'" />
   </div>
 </template>
 
@@ -312,37 +312,37 @@ import {
   preloadQuestions,
   getQuestionCount,
 } from "@/utils/studyQuestionsFromJSON.js";
-import BottleHelperCard from "./cards/BottleHelperCard.vue";
-import BoxHelperCard from "./cards/BoxHelperCard.vue";
-import FishHelperCard from "./cards/FishHelperCard.vue";
-import RecruitHelperCard from "./cards/RecruitHelperCard.vue";
-import StarUpgradeCard from "./cards/StarUpgradeCard.vue";
-import HangUpStatusCard from "./cards/HangUpStatusCard.vue";
-import MonthlyTasksCard from "./cards/MonthlyTasksCard.vue";
-import StudyChallengeCard from "./cards/StudyChallengeCard.vue";
-import SkinChallengeCard from "./cards/SkinChallengeCard.vue";
-import ClubWarrank from "./Club/ClubWarrank.vue";
-import ClubMonthBattleRecords from "./Club/ClubMonthBattleRecords.vue";
-import ClubBattleRecords from "./Club/ClubBattleRecords.vue";
-import PeachBattleRecords from "./Club/PeachBattleRecords.vue";
-import TopRankList from "./cards/TopRankListPageCard.vue";
-import TopClubList from "./cards/TopClubListPageCard.vue";
-import GreatRouteRankList from "./Club/GreatRouteRankListPageCard.vue";
-import GoldClubList from "./cards/GoldRankListPageCard.vue";
-import FightPvp from "./cards/FightPvp.vue";
-import FightHelperCard from "./cards/FightHelperCard.vue";
-import DreamHelperCard from "./cards/DreamHelperCard.vue";
-import HeroUpgradeCard from "./cards/HeroUpgradeCard.vue";
-import ConsumptionProgressCard from "./cards/ConsumptionProgressCard.vue";
-import RefineHelperCard from "./cards/RefineHelperCard.vue";
-import TowerStatus from "./Tower/TowerStatus.vue";
-import WeirdTowerStatus from "./Tower/WeirdTowerStatus.vue";
-import BossTower from "./Tower/BossTower.vue";
-import PeachInfo from "./Club/PeachInfo.vue";
-import ServerRankList from "./cards/ServerRankListPageCard.vue";
-import LegionWarMap from "./Club/LegionWarMap.vue";
-import LegionWarStatistics from "./Club/LegionWarStatistics.vue";
-import Unlimitedlineup from "./cards/Unlimitedlineup.vue";
+import BottleHelperCard from "../Cards/Helper/BottleHelperCard.vue";
+import BoxHelperCard from "../Cards/Helper/BoxHelperCard.vue";
+import FishHelperCard from "../Cards/Helper/FishHelperCard.vue";
+import RecruitHelperCard from "../Cards/Helper/RecruitHelperCard.vue";
+import StarUpgradeCard from "../Cards/Upgrade/StarUpgradeCard.vue";
+import HangUpStatusCard from "../Cards/Activity/HangUpStatusCard.vue";
+import MonthlyTasksCard from "../Cards/Activity/MonthlyTasksCard.vue";
+import StudyChallengeCard from "../Cards/Activity/StudyChallengeCard.vue";
+import SkinChallengeCard from "../Cards/Activity/SkinChallengeCard.vue";
+import ClubWarRank from "../Club/ClubWarRank.vue";
+import ClubMonthBattleRecords from "../Club/ClubMonthBattleRecords.vue";
+import ClubBattleRecords from "../Club/ClubBattleRecords.vue";
+import PeachBattleRecords from "../Club/PeachBattleRecords.vue";
+import TopRankList from "../Cards/Rank/TopRankListPageCard.vue";
+import TopClubList from "../Cards/Rank/TopClubListPageCard.vue";
+import GreatRouteRankList from "../Club/GreatRouteRankListPageCard.vue";
+import GoldClubList from "../Cards/Rank/GoldRankListPageCard.vue";
+import FightPvP from "../Cards/Activity/FightPvP.vue";
+import FightHelperCard from "../Cards/Helper/FightHelperCard.vue";
+import DreamHelperCard from "../Cards/Helper/DreamHelperCard.vue";
+import HeroUpgradeCard from "../Cards/Upgrade/HeroUpgradeCard.vue";
+import ConsumptionProgressCard from "../Cards/Activity/ConsumptionProgressCard.vue";
+import RefineHelperCard from "../Cards/Helper/RefineHelperCard.vue";
+import TowerStatus from "../Tower/TowerStatus.vue";
+import WeirdTowerStatus from "../Tower/WeirdTowerStatus.vue";
+import BossTower from "../Tower/BossTower.vue";
+import PeachInfo from "../Club/PeachInfo.vue";
+import ServerRankList from "../Cards/Rank/ServerRankListPageCard.vue";
+import LegionWarMap from "../Club/LegionWarMap.vue";
+import LegionWarStatistics from "../Club/LegionWarStatistics.vue";
+import UnlimitedLineup from "../Cards/Activity/UnlimitedLineup.vue";
 
 const tokenStore = useTokenStore();
 const message = useMessage();

@@ -567,7 +567,7 @@
 import { ref, computed, onMounted, watch, h } from "vue";
 import { useMessage, useDialog, NInput } from "naive-ui";
 import { useTokenStore } from "@/stores/tokenStore";
-import MyCard from "../Common/MyCard.vue";
+import MyCard from "../../Common/MyCard.vue";
 import {
   HERO_DICT,
   FishMap,

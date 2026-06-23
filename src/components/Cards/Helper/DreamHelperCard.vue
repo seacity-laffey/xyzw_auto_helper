@@ -123,7 +123,7 @@
 import { ref, computed, watch, onMounted, onUnmounted, watchEffect } from "vue";
 import { useMessage } from "naive-ui";
 import { useTokenStore } from "@/stores/tokenStore";
-import MyCard from "../Common/MyCard.vue";
+import MyCard from "../../Common/MyCard.vue";
 import {
   merchantConfig,
   goldItemsConfig,

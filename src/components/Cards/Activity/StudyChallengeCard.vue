@@ -63,7 +63,7 @@ import {
   getQuestionCount,
 } from "@/utils/studyQuestionsFromJSON.js";
 import { useTokenStore } from "@/stores/tokenStore";
-import MyCard from "../Common/MyCard.vue";
+import MyCard from "../../Common/MyCard.vue";
 
 const tokenStore = useTokenStore();
 const message = useMessage();

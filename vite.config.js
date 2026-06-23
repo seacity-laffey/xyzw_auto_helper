@@ -33,10 +33,6 @@ export default defineConfig(async () => {
     );
   }
 
-  const routerModule = await safeImport(
-    "unplugin-vue-router/vite",
-    "file-based routing",
-  );
   const autoImportModule = await safeImport(
     "unplugin-auto-import/vite",
     "auto-imports",
@@ -60,14 +56,6 @@ export default defineConfig(async () => {
     "@intlify/unplugin-vue-i18n/vite",
     "Vue I18n pre-compiler",
   );
-
-  const routerPlugin = routerModule?.default?.({
-    routesFolder: "src/views",
-    logs: true,
-    exclude: ["**/components/**", "**/test**.vue", "**/**Modal.vue"],
-    importMode: "async",
-    dts: "src/typed-router.d.ts",
-  });
 
   const autoImportPlugin = autoImportModule?.default?.({
     imports: ["vue", "vue-router", "vue-i18n"],
@@ -94,7 +82,6 @@ export default defineConfig(async () => {
   });
 
   const plugins = [
-    routerPlugin && { ...routerPlugin, enforce: "pre" },
     vue(),
     vueDevToolsPlugin,
     basicSsl && basicSsl(),

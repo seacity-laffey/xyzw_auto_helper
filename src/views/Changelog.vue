@@ -100,7 +100,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from "vue";
-import ChangelogCard from "@/components/ChangelogCard.vue";
+import ChangelogCard from "@/components/Changelog/ChangelogCard.vue";
 import { useChangelogStore } from "@/stores/changelogStore";
 
 const changelogStore = useChangelogStore();

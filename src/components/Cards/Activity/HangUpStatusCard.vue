@@ -44,7 +44,7 @@
 import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import { useMessage } from "naive-ui";
 import { useTokenStore } from "@/stores/tokenStore";
-import MyCard from "../Common/MyCard.vue";
+import MyCard from "../../Common/MyCard.vue";
 
 const tokenStore = useTokenStore();
 const message = useMessage();
