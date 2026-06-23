@@ -83,10 +83,12 @@ Pinia 2.1+        # 状态管理
 
 ```
 src/
-├── 🎯 stores/              # Pinia状态管理
-│   ├── tokenStore.js      # Token管理核心
+├── 🎯 stores/              # Pinia状态管理 + 事件总线
+│   ├── tokenStore.ts      # Token管理核心（TypeScript）
 │   ├── gameRoles.js       # 游戏角色数据
-│   └── localTokenManager.js # 本地存储管理
+│   ├── localTokenManager.js # 本地存储管理
+│   ├── legionWarStore.js  # 实时盐场/军团战状态
+│   └── events/            # 按 cmd 分发的游戏消息事件插件
 │
 ├── 🔧 composables/         # Vue 3组合式函数
 │   └── useTheme.js        # 主题管理系统
@@ -95,22 +97,24 @@ src/
 │   ├── bonProtocol.js     # BON协议实现
 │   ├── xyzwWebSocket.js   # WebSocket客户端
 │   ├── gameCommands.js    # 游戏命令封装
-│   └── wsAgent.js         # 连接代理
+│   ├── wsAgent.js         # 连接代理
+│   └── batch/             # 批量/定时任务工厂与调度
 │
-├── 📱 views/               # 主要页面
-│   ├── TokenImport.vue    # Token导入管理
+├── 📱 views/               # 主要页面（文件路由源）
+│   ├── TokenImport/       # Token导入管理（含 manual/url/bin 等子页）
 │   ├── Dashboard.vue      # 主控制台
 │   ├── DailyTasks.vue     # 日常任务
+│   ├── BatchDailyTasks.vue # 批量日常
+│   ├── LegionWar.vue      # 实时盐场
 │   ├── GameFeatures.vue   # 游戏功能
 │   └── Profile.vue        # 用户设置
 │
-└── 🧩 components/         # 可复用组件
+└── 🧩 components/         # 可复用组件（按 feature 分组，自动注册）
+    ├── Common/            # ThemeToggle / MyCard / IdentityCard
     ├── TokenManager.vue   # Token管理器
-    ├── ThemeToggle.vue    # 主题切换按钮
     ├── GameStatus.vue     # 游戏状态组件
-    ├── DailyTaskCard.vue  # 任务卡片
-    ├── MessageTester.vue  # 消息测试器
-    └── WebSocketTester.vue # WebSocket调试器
+    ├── Daily/  Club/  Team/  Tower/  Setting/  cards/
+    └── Test/              # MessageTester / WebSocketTester 调试工具
 ```
 
 ---
@@ -418,7 +422,7 @@ const decrypted = getEnc('x').decrypt(encrypted);
 ### 状态管理架构
 
 ```javascript
-// tokenStore.js - 核心Token管理
+// tokenStore.ts - 核心Token管理（TypeScript）
 const useTokenStore = defineStore('tokens', () => {
   const gameTokens = ref([]);           // Token列表
   const selectedTokenId = ref(null);    // 当前选中Token
