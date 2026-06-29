@@ -637,7 +637,7 @@ import { NIcon, NAlert, useDialog, useMessage } from "naive-ui";
 import { h, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { transformToken, scheduleAuthUserRequest } from "@/utils/token";
-import { $emit } from "@/stores/events/index.ts";
+import { $emit } from "@/stores/events/index";
 import useIndexedDB from "@/hooks/useIndexedDB";
 const { getArrayBuffer, storeArrayBuffer, deleteArrayBuffer, clearAll } =
   useIndexedDB();

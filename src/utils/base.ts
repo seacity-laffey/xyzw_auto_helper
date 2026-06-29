@@ -5,7 +5,7 @@ export const isInCurrentWeek = (timestamp: number, weekStart = 1) => {
   // 设置周一为一周的开始
   moment.locale("zh-cn", {
     week: {
-      dow: 1, // 周一为一周的第一天
+      dow: weekStart, // 一周的第一天
       doy: 4,
     },
   });
@@ -15,7 +15,8 @@ export const isInCurrentWeek = (timestamp: number, weekStart = 1) => {
 };
 
 /** 生成 [min,max] 的随机整数 */
-export const randInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
+export const randInt = (min: number, max: number) =>
+  Math.floor(Math.random() * (max - min + 1)) + min;
 
 /** Promise 版 sleep */
 export const sleep = (ms: number) => new Promise((res) => setTimeout(res, ms));

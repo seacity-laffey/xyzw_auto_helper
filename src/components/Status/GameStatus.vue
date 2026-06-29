@@ -311,7 +311,7 @@ import { useMessage } from "naive-ui";
 import {
   preloadQuestions,
   getQuestionCount,
-} from "@/utils/studyQuestionsFromJSON.js";
+} from "@/utils/studyQuestionsFromJSON";
 import BottleHelperCard from "../Cards/Helper/BottleHelperCard.vue";
 import BoxHelperCard from "../Cards/Helper/BoxHelperCard.vue";
 import FishHelperCard from "../Cards/Helper/FishHelperCard.vue";

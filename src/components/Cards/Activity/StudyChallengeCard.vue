@@ -61,7 +61,7 @@ import { useMessage } from "naive-ui";
 import {
   preloadQuestions,
   getQuestionCount,
-} from "@/utils/studyQuestionsFromJSON.js";
+} from "@/utils/studyQuestionsFromJSON";
 import { useTokenStore } from "@/stores/tokenStore";
 import MyCard from "../../Common/MyCard.vue";
 

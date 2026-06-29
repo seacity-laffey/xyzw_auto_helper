@@ -2815,9 +2815,9 @@ import {
   h,
 } from "vue";
 import { useTokenStore, gameTokens, tokenGroups } from "@/stores/tokenStore";
-import { $emit } from "@/stores/events/index.ts";
+import { $emit } from "@/stores/events/index";
 import { DailyTaskRunner } from "@/utils/dailyTaskRunner";
-import { preloadQuestions } from "@/utils/studyQuestionsFromJSON.js";
+import { preloadQuestions } from "@/utils/studyQuestionsFromJSON";
 import { useMessage } from "naive-ui";
 import { Settings } from "@vicons/ionicons5";
 
@@ -4399,7 +4399,7 @@ const verifyTaskDependencies = async (task) => {
 
   // Verify task functions exist
   for (const taskName of task.selectedTasks) {
-    const taskFunction = eval(taskName);
+    const taskFunction = getScheduledTaskFunction(taskName);
     if (typeof taskFunction !== "function") {
       addLog({
         time: new Date().toLocaleTimeString(),
@@ -4564,8 +4564,8 @@ const executeScheduledTask = async (task) => {
         type: "info",
       });
 
-      // Call the task function dynamically
-      const taskFunction = eval(taskName);
+      // Call the task function from the explicit scheduled task registry
+      const taskFunction = getScheduledTaskFunction(taskName);
       if (typeof taskFunction === "function") {
         // For batch operations, pass isScheduledTask = true
         // 具体的batch任务函数内部会使用ensureConnection管理并行连接
@@ -5757,6 +5757,52 @@ const {
 
 const tasksLegacy = createTasksLegacy(createTaskDeps());
 const { batchLegacyClaim, batchLegacyGiftSendEnhanced } = tasksLegacy;
+
+const getScheduledTaskFunction = (taskName) => {
+  const taskRegistry = {
+    startBatch,
+    claimHangUpRewards,
+    batchAddHangUpTime,
+    batchStudy,
+    batchclubsign,
+    batchWarGuessCheer,
+    resetBottles,
+    batchlingguanzi,
+    climbTower,
+    climbWeirdTower,
+    batchClaimFreeEnergy,
+    skinChallenge,
+    batchUseItems,
+    batchMergeItems,
+    batchSmartSendCar,
+    batchClaimCars,
+    batchOpenBox,
+    batchOpenBoxByPoints,
+    batchClaimBoxPointReward,
+    batchFish,
+    batchRecruit,
+    batchHeroUpgrade,
+    batchBookUpgrade,
+    batchClaimStarRewards,
+    batchClaimPeachTasks,
+    batchGenieSweep,
+    batchbaoku13,
+    batchbaoku45,
+    batchmengjing,
+    batchBuyDreamItems,
+    batcharenafight,
+    batchTopUpFish,
+    batchTopUpArena,
+    legion_storebuygoods,
+    legionStoreBuySkinCoins,
+    store_purchase,
+    collection_claimfreereward,
+    batchLegacyClaim,
+    batchLegacyGiftSendEnhanced,
+  };
+
+  return taskRegistry[taskName];
+};
 
 const startBatch = async () => {
   if (selectedTokens.value.length === 0) return;

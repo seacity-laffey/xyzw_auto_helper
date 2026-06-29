@@ -1,4 +1,5 @@
 import { useLocalStorage } from "@vueuse/core";
+import type { XyzwWebSocketClient } from "@/utils/xyzwWebSocket";
 
 declare interface RoleToken {
   id: string; // 唯一标识符
@@ -15,21 +16,48 @@ declare interface RoleToken {
   // URL获取相关信息
   sourceUrl?: string | null; // Token来源URL（用于刷新）
   importMethod?: "manual" | "url"; // 导入方式：manual 或 url
-  [key: string]: any; // 允许额外的动态属性
+  [key: string]: unknown; // 允许额外的动态属性
+}
+
+interface CommonWebSocketConnection {
+  status?: "connecting" | "connected" | "disconnecting" | "disconnected" | "error";
+  client?: XyzwWebSocketClient | null;
+  tokenId?: string;
+  sessionId?: string;
+  lastError?: {
+    timestamp: string;
+    error: string;
+  } | null;
+  lastMessageAt?: string | null;
+}
+
+interface ConnectionLock {
+  tokenId?: string;
+  operation?: "connect" | "disconnect";
+  timestamp?: number;
+  sessionId?: string;
+}
+
+interface ActiveConnectionState {
+  tokenId?: string;
+  status?: CommonWebSocketConnection["status"];
+  timestamp?: number;
+  sessionId?: string;
 }
 
 // export const selectedTokenId = useLocalStorage<string>('selectedTokenId', null);
-export const gameTokens = useLocalStorage<any[]>("gameTokens", []);
-export const wsConnections = ref({}); // WebSocket连接状态
-export const connectionLocks = ref(new Map()); // 连接操作锁，防止竞态条件
-export const activeConnections = ref(new Map()); // 跨标签页连接协调
+export const gameTokens = useLocalStorage<RoleToken[]>("gameTokens", []);
+export const selectedTokenId = useLocalStorage<string | null>("selectedTokenId", null);
+export const wsConnections = ref<Record<string, CommonWebSocketConnection>>({}); // WebSocket连接状态
+export const connectionLocks = ref(new Map<string, ConnectionLock>()); // 连接操作锁，防止竞态条件
+export const activeConnections = ref(new Map<string, ActiveConnectionState>()); // 跨标签页连接协调
 
-const selectedToken = computed(() =>
+export const selectedToken = computed(() =>
   gameTokens.value.find((token) => token.id === selectedTokenId.value),
 );
 
 // Token管理
-const addToken = (tokenData: RoleToken) => {
+export const addToken = (tokenData: RoleToken) => {
   const newToken = {
     id: "token_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9),
     name: tokenData.name,
@@ -49,11 +77,13 @@ const addToken = (tokenData: RoleToken) => {
   return newToken;
 };
 
-const updateToken = (tokenId: string, updates: RoleToken) => {
+export const updateToken = (tokenId: string, updates: Partial<RoleToken>) => {
   const index = gameTokens.value.findIndex((token) => token.id === tokenId);
   if (index !== -1) {
+    const existingToken = gameTokens.value[index];
+    if (!existingToken) return false;
     gameTokens.value[index] = {
-      ...gameTokens.value[index],
+      ...existingToken,
       ...updates,
       updatedAt: new Date().toISOString(),
     };
@@ -62,7 +92,13 @@ const updateToken = (tokenId: string, updates: RoleToken) => {
   return false;
 };
 
-const removeToken = (tokenId) => {
+export const closeWebSocketConnection = (tokenId: string) => {
+  const connection = wsConnections.value[tokenId];
+  connection?.client?.disconnect?.();
+  delete wsConnections.value[tokenId];
+};
+
+export const removeToken = (tokenId: string) => {
   gameTokens.value = gameTokens.value.filter((token) => token.id !== tokenId);
 
   // 关闭对应的WebSocket连接

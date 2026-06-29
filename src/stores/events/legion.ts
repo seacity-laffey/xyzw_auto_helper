@@ -3,7 +3,6 @@ import type { EVM, XyzwSession } from ".";
 
 export const LegionPlugin = ({
   onSome,
-  $emit
 }: EVM) => {
   onSome(
     [

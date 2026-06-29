@@ -1,9 +1,9 @@
 import { gameLogger } from "@/utils/logger";
 import type { EVM, XyzwSession } from ".";
+import type { GameResponseBody } from "@/types/gameProtocol";
 
 export const TeamPlugin = ({
   onSome,
-  $emit
 }: EVM) => {
 
   onSome(
@@ -15,7 +15,8 @@ export const TeamPlugin = ({
     ],
     (data: XyzwSession) => {
       gameLogger.verbose(`收到队伍信息事件: ${data.tokenId}`, data);
-      const { body, gameData, cmd } = data;
+      const { body, gameData } = data;
+      const teamBody = body as GameResponseBody;
       if (!body) {
         gameLogger.debug("队伍信息响应为空");
         return;
@@ -24,7 +25,7 @@ export const TeamPlugin = ({
       if (!gameData.value.presetTeam) {
         gameData.value.presetTeam = {};
       }
-      gameData.value.presetTeam = { ...gameData.value.presetTeam, ...body };
+      gameData.value.presetTeam = { ...gameData.value.presetTeam, ...teamBody };
       data.gameData.value.lastUpdated = new Date().toISOString();
     },
   );
@@ -38,7 +39,8 @@ export const TeamPlugin = ({
     ],
     (data: XyzwSession) => {
       gameLogger.verbose(`收到队伍信息事件: ${data.tokenId}`, data);
-      const { body, gameData, cmd } = data;
+      const { body, gameData } = data;
+      const teamBody = body as GameResponseBody;
       if (!body) {
         gameLogger.debug("队伍信息响应为空");
         return;
@@ -47,14 +49,15 @@ export const TeamPlugin = ({
       if (!gameData.value.presetTeam) {
         gameData.value.presetTeam = {};
       }
+      const presetTeam = gameData.value.presetTeam;
       // 设置/保存队伍响应 - 可能只返回确认信息
-      if (body.presetTeamInfo) {
-        gameData.value.presetTeam.presetTeamInfo = body.presetTeamInfo;
+      if (teamBody.presetTeamInfo) {
+        presetTeam.presetTeamInfo = teamBody.presetTeamInfo;
       }
       // 合并其他队伍相关数据
-      Object.keys(body).forEach((key) => {
+      Object.keys(teamBody).forEach((key) => {
         if (key.includes("team") || key.includes("Team")) {
-          gameData.value.presetTeam[key] = body[key];
+          presetTeam[key] = teamBody[key];
         }
       });
     },

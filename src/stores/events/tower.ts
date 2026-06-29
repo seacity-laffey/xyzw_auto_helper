@@ -1,9 +1,13 @@
 import { gameLogger } from "@/utils/logger";
 import type { EVM, XyzwSession } from ".";
+import type { TowerResponseBody } from "@/types/gameProtocol";
+
+interface CodedSession extends XyzwSession {
+  code?: number;
+}
 
 export const TowerPlugin = ({
   onSome,
-  $emit
 }: EVM) => {
 
   onSome(["bosstower_getinforesp", "bosstower_getinfo"], (data: XyzwSession) => {
@@ -37,7 +41,7 @@ export const TowerPlugin = ({
 
   onSome(["tower_getinfo", "tower_getinforesp"], (data: XyzwSession) => {
     gameLogger.verbose(`收到查询塔事件: ${data.tokenId}`, data);
-    const { body, gameData, client } = data;
+    const { body, gameData } = data;
     // 保存爬塔结果到gameData中，供组件使用
     if (!gameData.value.towerResult) {
       gameData.value.towerResult = {};
@@ -53,7 +57,7 @@ export const TowerPlugin = ({
     gameLogger.verbose(`收到爬塔战斗开始事件: ${data.tokenId}`, data);
 
     // 处理"上座塔奖励未领取"错误 (1500040)
-    if ((data as any).code === 1500040) {
+    if ((data as CodedSession).code === 1500040) {
       gameLogger.warn(`爬塔失败: 上座塔奖励未领取 (Code: 1500040) - 尝试自动领取`);
       const { gameData, client } = data;
       const roleInfo = gameData.value.roleInfo;
@@ -77,6 +81,7 @@ export const TowerPlugin = ({
     }
 
     const { body, gameData, client } = data;
+    const towerBody = body as TowerResponseBody;
     // 保存爬塔结果到gameData中，供组件使用
     if (!gameData.value.towerResult) {
       gameData.value.towerResult = {};
@@ -85,7 +90,7 @@ export const TowerPlugin = ({
       gameLogger.warn("爬塔战斗开始响应为空");
       return;
     }
-    const battleData = body.battleData;
+    const battleData = towerBody.battleData;
     if (!battleData) {
       gameLogger.warn("爬塔战斗数据为空");
       return;
@@ -93,7 +98,7 @@ export const TowerPlugin = ({
 
     // 判断爬塔结果
     const towerId = battleData.options?.towerId;
-    const curHP = battleData.result?.sponsor?.ext?.curHP;
+    const curHP = battleData.result?.sponsor?.ext?.curHP ?? 0;
     const isSuccess = curHP > 0;
     gameData.value.towerResult = {
       success: isSuccess,
@@ -104,7 +109,7 @@ export const TowerPlugin = ({
     gameData.value.lastUpdated = new Date().toISOString();
 
     // 检查是否需要自动领取奖励
-    if (!isSuccess && towerId == undefined) {
+    if (towerId === undefined) {
       return;
     }
 
@@ -116,11 +121,12 @@ export const TowerPlugin = ({
       setTimeout(() => {
         const roleInfo = gameData.value.roleInfo;
         const towerRewards = roleInfo?.role?.tower?.reward;
+        const towerResult = gameData.value.towerResult;
 
-        if (towerRewards && !towerRewards[rewardFloor]) {
+        if (towerRewards && towerResult && !towerRewards[rewardFloor]) {
           // 保存奖励信息
-          gameData.value.towerResult.autoReward = true;
-          gameData.value.towerResult.rewardFloor = rewardFloor;
+          towerResult.autoReward = true;
+          towerResult.rewardFloor = rewardFloor;
           try {
             client?.send("tower_claimreward", { rewardId: rewardFloor });
           } catch (error) {
@@ -133,7 +139,7 @@ export const TowerPlugin = ({
   });
 
   onSome(["tower_claimreward", "tower_claimrewardresp"], (data: XyzwSession) => {
-    const { body, gameData, client } = data;
+    const { body, client } = data;
     if (!body) {
       gameLogger.warn("爬塔战斗开始响应为空");
       return;

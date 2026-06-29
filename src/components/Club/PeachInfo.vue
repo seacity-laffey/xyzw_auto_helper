@@ -418,7 +418,7 @@ import { Refresh, Copy } from "@vicons/ionicons5";
 import { useTokenStore } from "@/stores/tokenStore";
 import html2canvas from "html2canvas";
 import { downloadCanvasAsImage } from "@/utils/imageExport";
-import { HERO_DICT, HeroFillInfo, legacycolor, getLineupType, LINEUP_RULES } from "@/utils/HeroList";
+import { HERO_DICT, HeroFillInfo, legacycolor, getLineupType, LINEUP_RULES } from "@/utils/heroList";
 import {
   getLastSaturday,
   formatTimestamp,

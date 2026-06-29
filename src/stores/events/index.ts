@@ -2,15 +2,19 @@
 import { gameLogger } from '@/utils/logger';
 import { XyzwWebSocketClient } from '@/utils/xyzwWebSocket';
 import { EventEmitter } from 'event-emitter3';
+import type { GameDataRef, GamePacket, GameResponseBody } from '@/types/gameProtocol';
 
-import { AckPlugin } from './ack.ts';
-import { ChatPlugin } from './chat.ts';
-import { HangupPlugin } from './hangup.ts';
-import { LegionPlugin } from './legion.ts';
-import { RolePlugin } from './role.ts';
-import { StudyPlugin } from './study.ts';
-import { TeamPlugin } from './team.ts';
-import { TowerPlugin } from './tower.ts';
+import { AckPlugin } from './ack';
+import { ChatPlugin } from './chat';
+import { HangupPlugin } from './hangup';
+import { LegionPlugin } from './legion';
+import { RolePlugin } from './role';
+import { StudyPlugin } from './study';
+import { TeamPlugin } from './team';
+import { TowerPlugin } from './tower';
+
+type EventArgs = unknown[];
+type EventListener = (data: XyzwSession, ...args: EventArgs) => void | Promise<void>;
 
 export const $emit = new EventEmitter();
 export const events: Set<string> = new Set<string>();
@@ -18,7 +22,7 @@ $emit.on('$any', (cmd: string, data: XyzwSession) => {
   gameLogger.warn(`收到未处理事件: ${cmd} TokenID: ${data.tokenId}`, data);
 });
 
-export const onSome = (event: string[], listener: (...args: any[]) => void) => {
+export const onSome = (event: string[], listener: EventListener) => {
   event.map((e) => events.add(e));
   event.forEach(evt => {
     $emit.on(evt, listener);
@@ -27,7 +31,7 @@ export const onSome = (event: string[], listener: (...args: any[]) => void) => {
 
 export const emitPlus = (
   event: string | symbol,
-  ...args: Array<any>
+  ...args: EventArgs
 ): boolean => {
   // 先触发具体事件，然后触发$any事件
   const result = $emit.emit(event, ...args);
@@ -38,18 +42,19 @@ export const emitPlus = (
 };
 
 export interface XyzwSession {
-  id: string;
+  id?: string;
   tokenId: string;
-  cmd: string;
-  token: any;
-  body: any;
+  cmd?: string;
+  token?: unknown;
+  body: GameResponseBody;
+  message?: GamePacket;
   client: XyzwWebSocketClient | null;
-  gameData: any;
+  gameData: GameDataRef;
 }
 
 export interface EVM {
-  onSome: (event: string[], listener: (...args: any[]) => void) => void;
-  emitPlus: (event: string | symbol, ...args: Array<any>) => boolean;
+  onSome: (event: string[], listener: EventListener) => void;
+  emitPlus: (event: string | symbol, ...args: EventArgs) => boolean;
   $emit: EventEmitter;
 }
 
@@ -74,9 +79,6 @@ LegionPlugin(evmInst);
 ChatPlugin(evmInst);
 
 HangupPlugin(evmInst);
-
-
-
 
 
 

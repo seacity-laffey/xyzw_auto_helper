@@ -170,7 +170,7 @@ import { useMessage } from "naive-ui";
 import { useTokenStore } from "@/stores/tokenStore";
 import { useLegionWarStore } from "@/stores/legionWarStore";
 import { extractValidData, HexGraph, roadPointList } from "@/utils/legionWar";
-import { getCurrentTimeByFormat } from "@/utils/DateTimeUtils";
+import { getCurrentTimeByFormat } from "@/utils/dateTimeUtils";
 import {
   LogInOutline,
   MapOutline,

@@ -2,8 +2,23 @@ import axios from "axios";
 import { MD5, lib, enc } from "crypto-js";
 import { g_utils } from "@/utils/bonProtocol";
 
+type TokenBinary = ArrayBuffer | Uint8Array;
+type AuthUserData = Record<string, unknown>;
+type ServerListData = {
+  roles?: Record<string, unknown>;
+};
+
+const toWordArrayInput = (token: TokenBinary) => {
+  if (token instanceof ArrayBuffer) return new Uint8Array(token);
+  return token;
+};
+
 export const getTokenId = (token: string | ArrayBuffer | Uint8Array) => {
-  const binHash = MD5(lib.WordArray.create(token)).toString(enc.Hex);
+  const source =
+    typeof token === "string"
+      ? token
+      : lib.WordArray.create(toWordArrayInput(token));
+  const binHash = MD5(source).toString(enc.Hex);
   return binHash;
 };
 
@@ -40,6 +55,7 @@ class RateLimiter {
     }
 
     const oldestRequest = this.requests[0];
+    if (oldestRequest === undefined) return;
     const waitTime = oldestRequest + this.windowMs - Date.now();
 
     if (waitTime > 0) {
@@ -114,7 +130,7 @@ export const transformToken = async (arrayBuffer: ArrayBuffer) => {
       },
     );
     const msg = g_utils.parse(res.data);
-    const data = msg.getData();
+    const data = msg.getData<AuthUserData>();
     const currentTime = Date.now();
     const sessId = currentTime * 100 + Math.floor(Math.random() * 100);
     const connId = currentTime + Math.floor(Math.random() * 10);
@@ -149,9 +165,9 @@ export const getServerList = async (arrayBuffer: ArrayBuffer) => {
   const msg = g_utils.parse(res.data);
   // console.log("解析结果:", msg);
 
-  const data = msg.getData();
+  const data = msg.getData<ServerListData>();
   console.log("数据内容:", data);
   return JSON.stringify({
-    ...data.roles,
+    ...(data.roles || {}),
   });
 };

@@ -600,7 +600,7 @@ import ClubHistoryRecords from "./ClubHistoryRecords.vue";
 import ClubWeirdTowerInfo from "./ClubWeirdTowerInfo.vue";
 import CarScoreInfo from "./CarScoreInfo.vue";
 import { $emit } from "@/stores/events";
-import { HERO_DICT, legacycolor, HeroFillInfo, getLineupType, LINEUP_RULES } from "@/utils/HeroList";
+import { HERO_DICT, legacycolor, HeroFillInfo, getLineupType, LINEUP_RULES } from "@/utils/heroList";
 import html2canvas from 'html2canvas';
 import { downloadCanvasAsImage } from "@/utils/imageExport";
 

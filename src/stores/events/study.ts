@@ -2,6 +2,7 @@ import { isInCurrentWeek, sleep } from "@/utils/base";
 import { gameLogger } from "@/utils/logger";
 import { findAnswer } from "@/utils/studyQuestionsFromJSON";
 import type { EVM, XyzwSession } from ".";
+import type { RoleResponseBody, StudyResponseBody } from "@/types/gameProtocol";
 
 export const StudyPlugin = ({
   onSome,
@@ -10,14 +11,15 @@ export const StudyPlugin = ({
   onSome(['study', 'studyresp', 'study_startgame', 'study_startgameresp'], async (data: XyzwSession) => {
     gameLogger.verbose(`收到学习答题事件: ${data.tokenId}`, data);
     const { body, gameData, client } = data;
+    const studyBody = body as StudyResponseBody;
     if (!body) {
       return;
     }
 
     gameLogger.info('开始处理学习答题响应')
     // 获取题目列表和学习ID
-    const questionList = body.questionList
-    const studyId = body.role?.study?.id
+    const questionList = studyBody.questionList
+    const studyId = studyBody.role?.study?.id
 
     if (!questionList || !Array.isArray(questionList)) {
       gameLogger.error('未找到题目列表')
@@ -38,10 +40,11 @@ export const StudyPlugin = ({
       timestamp: Date.now()
     }
     try {
-      // 遍历题目并回答
-      for (let i = 0; i < questionList.length; i++) {
-        const question = questionList[i]
-        const questionText = question.question
+    // 遍历题目并回答
+    for (let i = 0; i < questionList.length; i++) {
+      const question = questionList[i]
+      if (!question) continue;
+      const questionText = question.question
         const questionId = question.id
 
         gameLogger.debug(`题目 ${i + 1}: ${questionText.substring(0, 20)}...`)
@@ -86,8 +89,12 @@ export const StudyPlugin = ({
   //
   onSome(['I-study'], (data: XyzwSession) => {
     const { body, gameData } = data;
-    const maxCorrectNum = body.role.study.maxCorrectNum
-    const beginTime = body.role.study.beginTime
+    const roleBody = body as RoleResponseBody;
+    const maxCorrectNum = roleBody.role?.study?.maxCorrectNum
+    const beginTime = roleBody.role?.study?.beginTime
+    if (maxCorrectNum === undefined || beginTime === undefined) {
+      return
+    }
     const isStudyCompleted = maxCorrectNum >= 10 && isInCurrentWeek(beginTime * 1000)
 
     // 更新答题完成状态

@@ -4,7 +4,6 @@ import { type EVM, type XyzwSession } from "./index";
 // 处理_ack事件，通常用于确认收到某些重要消息
 export const AckPlugin = ({
   onSome,
-  $emit
 }: EVM) => {
   onSome(["activity_getresp", "activity_get"], (data: XyzwSession) => {
     gameLogger.verbose(`收到活动信息事件: ${data.tokenId}`, data);

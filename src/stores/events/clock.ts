@@ -1,6 +1,7 @@
 import type { EVM, XyzwSession } from ".";
+import type { RoleResponseBody } from "@/types/gameProtocol";
 
-export const ClockPlugin = ({ onSome, $emit }: EVM) => {
+export const ClockPlugin = ({ onSome }: EVM) => {
   onSome(
     ["system_claimhangupreward", "system_claimhanguprewardresp"],
     async (data: XyzwSession) => {
@@ -11,7 +12,8 @@ export const ClockPlugin = ({ onSome, $emit }: EVM) => {
 
   onSome(["syncresp", "system_mysharecallback"], async (data: XyzwSession) => {
     const { client, body } = data;
-    if (body?.role?.battleTeam || body?.role?.heroes || body?.role?.custom) {
+    const roleBody = body as RoleResponseBody;
+    if (roleBody?.role?.battleTeam || roleBody?.role?.heroes || roleBody?.role?.custom) {
       return;
     }
     client?.debounceSend("role_getroleinfo", {});

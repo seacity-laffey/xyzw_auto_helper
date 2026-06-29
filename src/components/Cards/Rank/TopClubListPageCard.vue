@@ -687,7 +687,7 @@ import {
   formatWarrankRecordsForExport,
   allianceincludes,
 } from "@/utils/clubWarrankUtils";
-import { HERO_DICT, HeroFillInfo, legacycolor } from "@/utils/HeroList";
+import { HERO_DICT, HeroFillInfo, legacycolor } from "@/utils/heroList";
 
 const ScoreShow = ref(1);
 

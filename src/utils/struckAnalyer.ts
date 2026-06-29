@@ -1,7 +1,7 @@
 declare interface TermData {
   path: string; // 对象路径
   key: string; // 键名
-  value: any; // 键值
+  value: unknown; // 键值
   type: string; // 数据类型
   isArray: boolean; // 是否为数组
 }
@@ -69,7 +69,8 @@ const analyzeDataStructure = (
 };
 
 // 辅助函数：尝试解析队伍数据
-const tryParseTeamData = (data: Object, result: any, cmd) => {
+const tryParseTeamData = (data: Object, result: any, cmd: unknown) => {
+  void cmd;
   // 查找队伍相关字段
   const teamFields: TermData[] = [];
   scanForTermData(data, teamFields, [

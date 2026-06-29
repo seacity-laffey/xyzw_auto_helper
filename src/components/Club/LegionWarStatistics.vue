@@ -235,7 +235,7 @@ import { useMessage } from "naive-ui";
 import { useTokenStore } from "@/stores/tokenStore";
 import { useLegionWarStore } from "@/stores/legionWarStore";
 import { extractValidData, formatPower } from "@/utils/legionWar";
-import { getCurrentTimeByFormat } from "@/utils/DateTimeUtils";
+import { getCurrentTimeByFormat } from "@/utils/dateTimeUtils";
 import { isLegionWarAccessible } from "@/utils/clubBattleUtils";
 import { storeToRefs } from "pinia";
 import html2canvas from "html2canvas";

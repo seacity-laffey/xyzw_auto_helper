@@ -492,7 +492,7 @@ const connectWebSocket = () => {
 
 const handleChange = async (e) => {
   // 导入BON协议
-  const { g_utils } = await import("../../utils/bonProtocol.js");
+  const { g_utils } = await import("../../utils/bonProtocol");
   const file = e.target.files[0]; // 获取选中的文件
   if (!file) return; // 未选择文件则退出
 
@@ -526,7 +526,7 @@ const handleChange = async (e) => {
 const testBONDecoding = async () => {
   try {
     // 导入BON协议
-    const { g_utils } = await import("../../utils/bonProtocol.js");
+    const { g_utils } = await import("../../utils/bonProtocol");
 
     // 测试一些简单的数据
     const testData = new Uint8Array([8, 2, 5, 4, 114, 111, 108, 101]);

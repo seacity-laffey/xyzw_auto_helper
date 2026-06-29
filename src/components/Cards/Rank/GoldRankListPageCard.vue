@@ -728,7 +728,7 @@ import {
   formatWarrankRecordsForExport,
   allianceincludes,
 } from "@/utils/goldWarrankUtils";
-import { HERO_DICT, HeroFillInfo, legacycolor } from "@/utils/HeroList";
+import { HERO_DICT, HeroFillInfo, legacycolor } from "@/utils/heroList";
 
 const props = defineProps({
   visible: {

@@ -1,38 +1,71 @@
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 import path from "path";
-  import fs from "fs";
+import fs from "fs";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-async function safeImport(moduleName, humanName) {
+async function safeImport(moduleName, humanName, { warnOnMissing = true } = {}) {
   try {
     return await import(moduleName);
   } catch (error) {
     if (error?.code === "ERR_MODULE_NOT_FOUND") {
-      console.warn(
-        `[vite] Optional dependency "${moduleName}" (${humanName}) not found; continuing without it.`,
-      );
+      if (warnOnMissing) {
+        console.warn(
+          `[vite] Optional dependency "${moduleName}" (${humanName}) not found; continuing without it.`,
+        );
+      }
       return null;
     }
     throw error;
   }
 }
 
-export default defineConfig(async () => {
-  let basicSsl;
-  try {
-    ({ default: basicSsl } = await import("@vitejs/plugin-basic-ssl"));
-  } catch (error) {
-    if (error?.code !== "ERR_MODULE_NOT_FOUND") {
-      throw error;
-    }
-    console.warn(
-      "[vite] '@vitejs/plugin-basic-ssl' not found, starting without HTTPS support.",
-    );
+function createManualChunks(id) {
+  if (id.includes(`${path.sep}src${path.sep}xyzw${path.sep}`)) {
+    return "xyzw-runtime";
   }
 
+  if (!id.includes(`${path.sep}node_modules${path.sep}`)) {
+    return undefined;
+  }
+
+  if (
+    /[\\/]node_modules[\\/](vue|vue-router|pinia|@vueuse)[\\/]/.test(id)
+  ) {
+    return "vendor-vue";
+  }
+
+  if (
+    /[\\/]node_modules[\\/](naive-ui|@arco-design|@vicons|@css-render|css-render|date-fns)[\\/]/.test(
+      id,
+    )
+  ) {
+    return "vendor-ui";
+  }
+
+  if (/[\\/]node_modules[\\/](xlsx|ssf|cfb|codepage)[\\/]/.test(id)) {
+    return "vendor-xlsx";
+  }
+
+  if (
+    /[\\/]node_modules[\\/](axios|crypto-js|event-emitter3|idb|lz4js|moment|p-queue)[\\/]/.test(
+      id,
+    )
+  ) {
+    return "vendor-utils";
+  }
+
+  return undefined;
+}
+
+export default defineConfig(async ({ command }) => {
+  const isServe = command === "serve";
+
+  const basicSslModule = isServe
+    ? await safeImport("@vitejs/plugin-basic-ssl", "dev HTTPS support")
+    : null;
   const autoImportModule = await safeImport(
     "unplugin-auto-import/vite",
     "auto-imports",
@@ -48,10 +81,9 @@ export default defineConfig(async () => {
       )
     : null;
   const unoCssModule = await safeImport("unocss/vite", "UnoCSS");
-  const vueDevToolsModule = await safeImport(
-    "vite-plugin-vue-devtools",
-    "Vue DevTools",
-  );
+  const vueDevToolsModule = isServe
+    ? await safeImport("vite-plugin-vue-devtools", "Vue DevTools")
+    : null;
   const vueI18nModule = await safeImport(
     "@intlify/unplugin-vue-i18n/vite",
     "Vue I18n pre-compiler",
@@ -75,7 +107,8 @@ export default defineConfig(async () => {
   });
 
   const unoCssPlugin = unoCssModule?.default?.();
-  const vueDevToolsPlugin = vueDevToolsModule?.default?.();
+  const vueDevToolsPlugin = isServe ? vueDevToolsModule?.default?.() : null;
+  const basicSslPlugin = isServe ? basicSslModule?.default?.() : null;
   const vueI18nPlugin = vueI18nModule?.default?.({
     module: "vue-i18n",
     include: path.resolve(__dirname, "./src/locales/**"),
@@ -84,7 +117,7 @@ export default defineConfig(async () => {
   const plugins = [
     vue(),
     vueDevToolsPlugin,
-    basicSsl && basicSsl(),
+    basicSslPlugin,
     unoCssPlugin,
     autoImportPlugin,
     componentsPlugin,
@@ -179,7 +212,16 @@ export default defineConfig(async () => {
     css: {
       preprocessorOptions: {
         scss: {
+          api: "modern-compiler",
           additionalData: '@use "@/assets/styles/variables.scss" as vars;',
+        },
+      },
+    },
+    build: {
+      chunkSizeWarningLimit: 5000,
+      rollupOptions: {
+        output: {
+          manualChunks: createManualChunks,
         },
       },
     },

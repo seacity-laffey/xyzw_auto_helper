@@ -137,7 +137,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
 import { useTokenStore } from "@/stores/tokenStore";
-import { legacycolor as rawLegacyColor } from "@/utils/HeroList";
+import { legacycolor as rawLegacyColor } from "@/utils/heroList";
 
 const legacycolor = rawLegacyColor as any;
 

@@ -50,9 +50,7 @@ export default defineConfig({
         display: "inline-block",
         "vertical-align": "text-bottom",
       },
-      processor(css, meta) {
-        console.log("meta:", meta);
-        console.log("css:", css);
+      processor(css) {
         return css;
         // 解决图标前缀问题
         // if (meta.body.includes("i-")) {

@@ -580,7 +580,7 @@ import {
   getTechType,
   weapon,
   color,
-} from "@/utils/HeroList.js";
+} from "@/utils/heroList";
 
 const tokenStore = useTokenStore();
 const message = useMessage();

@@ -113,7 +113,7 @@
 import { ref, computed, watch, onMounted } from "vue";
 import { useTokenStore } from "@/stores/tokenStore";
 import { useMessage } from "naive-ui";
-import { HERO_DICT } from "@/utils/HeroList.js";
+import { HERO_DICT } from "@/utils/heroList";
 
 const tokenStore = useTokenStore();
 const message = useMessage();

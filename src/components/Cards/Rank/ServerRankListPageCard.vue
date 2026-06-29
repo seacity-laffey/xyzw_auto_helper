@@ -600,7 +600,7 @@ import html2canvas from "html2canvas";
 import { downloadCanvasAsImage } from "@/utils/imageExport";
 import { Refresh, Copy } from "@vicons/ionicons5";
 import { gettoday } from "@/utils/clubWarrankUtils";
-import { HERO_DICT, HeroFillInfo, legacycolor } from "@/utils/HeroList";
+import { HERO_DICT, HeroFillInfo, legacycolor } from "@/utils/heroList";
 
 const props = defineProps({
   visible: {

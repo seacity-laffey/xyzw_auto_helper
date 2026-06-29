@@ -1,7 +1,8 @@
 import { gameLogger } from "@/utils/logger";
 import type { EVM, XyzwSession } from ".";
+import type { RoleResponseBody } from "@/types/gameProtocol";
 
-export const HangupPlugin = ({ onSome, $emit }: EVM) => {
+export const HangupPlugin = ({ onSome }: EVM) => {
   onSome(
     ["system_claimhangupreward", "system_claimhanguprewardresp"],
     async (data: XyzwSession) => {
@@ -13,7 +14,8 @@ export const HangupPlugin = ({ onSome, $emit }: EVM) => {
 
   onSome(["syncresp", "system_mysharecallback"], async (data: XyzwSession) => {
     const { client, body } = data;
-    if (body?.role?.battleTeam || body?.role?.heroes || body?.role?.custom) {
+    const roleBody = body as RoleResponseBody;
+    if (roleBody.role?.battleTeam || roleBody.role?.heroes || roleBody.role?.custom) {
       return;
     }
     gameLogger.verbose(`收到加钟/时钟信息事件: ${data.tokenId}`, data);

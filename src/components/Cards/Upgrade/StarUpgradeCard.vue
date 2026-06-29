@@ -76,7 +76,7 @@ import { ref, computed } from "vue";
 import { useMessage } from "naive-ui";
 import { useTokenStore } from "@/stores/tokenStore";
 import MyCard from "../../Common/MyCard.vue";
-import { HERO_DICT } from "@/utils/HeroList";
+import { HERO_DICT } from "@/utils/heroList";
 
 const tokenStore = useTokenStore();
 const message = useMessage();

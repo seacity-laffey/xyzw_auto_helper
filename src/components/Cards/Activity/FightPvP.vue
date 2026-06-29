@@ -546,7 +546,7 @@ import {
   HeroFillInfo,
   formatWeapon,
   legacycolor,
-} from "@/utils/HeroList";
+} from "@/utils/heroList";
 import html2canvas from "html2canvas";
 import { downloadCanvasAsImage } from "@/utils/imageExport";
 

@@ -64,7 +64,7 @@
 <script setup>
 import { ref, onMounted,toRaw } from 'vue'
 import { roadPointList,extractValidData,typeName,typeBg,formatPower,HexGraph } from "@/utils/legionWar"
-import { getCurrentTimeByFormat } from "@/utils/DateTimeUtils"
+import { getCurrentTimeByFormat } from "@/utils/dateTimeUtils"
 
 import { XyzwLegionWarWebSocketClient } from '@/utils/xyzwLegionWarWebSocket'
 import { useTokenStore } from '@/stores/tokenStore'
