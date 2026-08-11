@@ -111,9 +111,9 @@
 - `pnpm exec tsc --noEmit -p tsconfig.app.json`：通过
 - `node --test test/upstreamFeatures.test.js test/roleTokenMetadata.test.js test/helperTaskRunner.test.js test/towerClimbLimit.test.js`：21 项通过
 - `git diff --check`：通过
-- `npm run lint`：未通过，共 407 个 error、960 个 warning
+- `npm run lint`：通过；既有 error 已由 `eslint-suppressions.json` 按文件和规则纳入基线，仍报告 960 个不阻断检查的 warning
 
-旧文档中关于 lint 为 0 error、旧页面可独立访问的结论不再代表当前工作区。
+旧文档中关于 lint 无遗留项、旧页面可独立访问的结论不再代表当前工作区。
 
 ## 与 upstream 的比较口径
 

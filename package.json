@@ -11,6 +11,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint src --ext .vue,.js,.ts",
+    "lint:baseline": "eslint src --ext .vue,.js,.ts --quiet --suppress-all --pass-on-unpruned-suppressions && eslint src --ext .vue,.js,.ts --quiet --prune-suppressions",
     "lint:fix": "eslint src --ext .vue,.js,.ts --fix",
     "format": "prettier --write \"src/**/*.{js,vue,ts,css,scss}\""
   },

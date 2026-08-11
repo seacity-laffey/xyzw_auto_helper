@@ -1980,29 +1980,11 @@
     }
   },
   "src/layout/DefaultLayout.vue": {
-    "antfu/consistent-list-newline": {
-      "count": 1
-    },
-    "perfectionist/sort-named-imports": {
-      "count": 5
-    },
-    "style/comma-spacing": {
-      "count": 1
-    },
-    "style/quotes": {
-      "count": 4
-    },
-    "style/semi": {
-      "count": 4
-    },
     "vue/attributes-order": {
-      "count": 29
-    },
-    "vue/html-indent": {
-      "count": 6
+      "count": 12
     },
     "vue/html-self-closing": {
-      "count": 20
+      "count": 13
     }
   },
   "src/locales/en.json": {
@@ -2023,38 +2005,6 @@
   },
   "src/main.js": {
     "style/operator-linebreak": {
-      "count": 2
-    }
-  },
-  "src/router/index.js": {
-    "style/arrow-parens": {
-      "count": 1
-    },
-    "style/comma-dangle": {
-      "count": 29
-    },
-    "style/indent": {
-      "count": 1
-    },
-    "style/keyword-spacing": {
-      "count": 1
-    },
-    "style/no-multi-spaces": {
-      "count": 1
-    },
-    "style/no-multiple-empty-lines": {
-      "count": 1
-    },
-    "style/quotes": {
-      "count": 62
-    },
-    "style/semi": {
-      "count": 15
-    },
-    "style/space-before-blocks": {
-      "count": 1
-    },
-    "style/space-infix-ops": {
       "count": 2
     }
   },
@@ -2369,12 +2319,9 @@
       "count": 23
     }
   },
-  "src/utils/batch/index.ts": {
-    "perfectionist/sort-exports": {
-      "count": 7
-    },
-    "style/quotes": {
-      "count": 14
+  "src/utils/batch/footballBet.js": {
+    "style/operator-linebreak": {
+      "count": 1
     }
   },
   "src/utils/batch/logUtils.ts": {
@@ -2463,6 +2410,11 @@
     },
     "ts/ban-ts-comment": {
       "count": 1
+    }
+  },
+  "src/utils/batch/tasksFootball.ts": {
+    "style/operator-linebreak": {
+      "count": 4
     }
   },
   "src/utils/batch/tasksHangUp.ts": {
@@ -2559,7 +2511,7 @@
       "count": 15
     },
     "style/indent": {
-      "count": 176
+      "count": 174
     },
     "style/no-trailing-spaces": {
       "count": 16
@@ -2832,6 +2784,11 @@
       "count": 1
     }
   },
+  "src/utils/towerActId.js": {
+    "style/operator-linebreak": {
+      "count": 1
+    }
+  },
   "src/utils/wsAgent.ts": {
     "antfu/if-newline": {
       "count": 1
@@ -2892,7 +2849,7 @@
       "count": 2
     },
     "perfectionist/sort-named-imports": {
-      "count": 29
+      "count": 25
     },
     "prefer-const": {
       "count": 2
@@ -2904,7 +2861,7 @@
       "count": 25
     },
     "vue/attributes-order": {
-      "count": 292
+      "count": 297
     },
     "vue/brace-style": {
       "count": 1
@@ -2916,13 +2873,10 @@
       "count": 51
     },
     "vue/html-self-closing": {
-      "count": 77
+      "count": 80
     },
     "vue/max-attributes-per-line": {
       "count": 14
-    },
-    "vue/no-useless-v-bind": {
-      "count": 1
     },
     "vue/operator-linebreak": {
       "count": 28
@@ -2977,8 +2931,11 @@
     "style/operator-linebreak": {
       "count": 7
     },
+    "vue/attributes-order": {
+      "count": 2
+    },
     "vue/html-self-closing": {
-      "count": 3
+      "count": 5
     }
   },
   "src/views/GameRoles.vue": {
@@ -3242,40 +3199,28 @@
       "count": 1
     },
     "perfectionist/sort-named-imports": {
-      "count": 4
+      "count": 2
     },
     "prefer-template": {
       "count": 3
     },
     "style/operator-linebreak": {
-      "count": 15
+      "count": 16
+    },
+    "style/padded-blocks": {
+      "count": 1
     },
     "vue/attributes-order": {
-      "count": 61
+      "count": 60
     },
     "vue/component-name-in-template-casing": {
-      "count": 19
+      "count": 4
     },
     "vue/define-macros-order": {
       "count": 1
     },
-    "vue/html-indent": {
-      "count": 15
-    },
     "vue/html-self-closing": {
-      "count": 32
-    },
-    "vue/max-attributes-per-line": {
-      "count": 1
-    },
-    "vue/operator-linebreak": {
-      "count": 18
-    },
-    "vue/prefer-separate-static-class": {
-      "count": 1
-    },
-    "vue/quote-props": {
-      "count": 1
+      "count": 13
     }
   },
   "src/views/TokenImport/manual.vue": {

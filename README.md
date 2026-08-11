@@ -155,11 +155,13 @@ pnpm run preview
 ### 开发命令
 
 ```bash
-pnpm run dev      # 启动开发服务器 (端口3000)
-pnpm run build    # 构建生产版本
-pnpm run preview  # 预览生产构建
-pnpm run lint     # 代码检查和修复
-pnpm run format   # 代码格式化
+pnpm run dev            # 启动开发服务器 (端口3000)
+pnpm run build          # 构建生产版本
+pnpm run preview        # 预览生产构建
+pnpm run lint           # 代码检查
+pnpm run lint:fix       # 自动修复可修复问题
+pnpm run lint:baseline  # 刷新既有 error 抑制基线
+pnpm run format         # 代码格式化
 ```
 
 ### 部署代理服务 (Cloudflare Pages)
