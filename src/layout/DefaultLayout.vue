@@ -1,391 +1,243 @@
 <template>
-  <div class="default-layout">
-    <!-- 顶部导航 -->
-    <nav class="dashboard-nav">
-      <div class="nav-container">
-        <div class="nav-brand">
-          <img src="/icons/xiaoyugan.png" alt="XYZW" class="brand-logo" />
-          <div class="brand-toggle" @click="isMobileMenuOpen = true">
-            <n-icon>
-              <Menu />
-            </n-icon>
-            <span class="brand-text">XYZW 控制台</span>
+  <div class="app-shell">
+    <aside class="app-sider">
+      <router-link class="brand" to="/tokens" aria-label="XYZW 游戏助手">
+        <span class="brand-mark"><Flash /></span>
+        <span class="brand-copy">
+          <strong>XYZW 助手</strong>
+          <small>GAME CONTROL</small>
+        </span>
+      </router-link>
+
+      <nav class="primary-nav" aria-label="主导航">
+        <router-link
+          v-for="item in navigation"
+          :key="item.path"
+          :to="item.disabled ? route.fullPath : item.path"
+          class="nav-link"
+          :class="{ disabled: item.disabled }"
+          :aria-disabled="item.disabled"
+          @click="handleNavigation(item, $event)"
+        >
+          <component :is="item.icon" />
+          <span>{{ item.label }}</span>
+          <LockClosed v-if="item.disabled" class="nav-lock" />
+        </router-link>
+      </nav>
+
+      <div class="sider-footer">
+        <div class="system-status">
+          <span class="status-dot" :class="{ active: tokenStore.hasTokens }" />
+          <span>{{ tokenStore.hasTokens ? `${tokenStore.gameTokens.length} 个账号可用` : "尚未导入 Token" }}</span>
+        </div>
+        <span class="version">LOCAL CONTROL · V2</span>
+      </div>
+    </aside>
+
+    <div
+      v-if="mobileMenuOpen"
+      class="mobile-overlay"
+      @click.self="mobileMenuOpen = false"
+    >
+      <aside class="mobile-drawer">
+        <div class="mobile-drawer-head">
+          <router-link class="brand" to="/tokens" @click="mobileMenuOpen = false">
+            <span class="brand-mark"><Flash /></span>
+            <span class="brand-copy"><strong>XYZW 助手</strong><small>GAME CONTROL</small></span>
+          </router-link>
+          <button class="icon-button" type="button" aria-label="关闭菜单" @click="mobileMenuOpen = false">
+            <Close />
+          </button>
+        </div>
+        <nav class="primary-nav mobile-nav" aria-label="移动端主导航">
+          <router-link
+            v-for="item in navigation"
+            :key="item.path"
+            :to="item.disabled ? route.fullPath : item.path"
+            class="nav-link"
+            :class="{ disabled: item.disabled }"
+            @click="handleNavigation(item, $event)"
+          >
+            <component :is="item.icon" />
+            <span>{{ item.label }}</span>
+            <LockClosed v-if="item.disabled" class="nav-lock" />
+          </router-link>
+        </nav>
+      </aside>
+    </div>
+
+    <div class="workspace">
+      <header class="topbar" :class="{ 'immersive-topbar': route.meta.immersive }">
+        <div class="topbar-title">
+          <button
+            class="icon-button mobile-menu-button"
+            type="button"
+            aria-label="打开菜单"
+            @click="mobileMenuOpen = true"
+          >
+            <Menu />
+          </button>
+          <div>
+            <h1>{{ route.meta.title }}</h1>
+            <p>{{ route.meta.description }}</p>
           </div>
         </div>
 
-        <div class="nav-menu">
-          <router-link
-            to="/admin/dashboard"
-            class="nav-item"
-            active-class="active"
-          >
-            <n-icon>
-              <Home />
-            </n-icon>
-            <span>首页</span>
-          </router-link>
-          <router-link
-            to="/admin/game-features"
-            class="nav-item"
-            active-class="active"
-          >
-            <n-icon>
-              <Cube />
-            </n-icon>
-            <span>游戏功能</span>
-          </router-link>
-          <router-link to="/tokens" class="nav-item" active-class="active">
-            <n-icon>
-              <PersonCircle />
-            </n-icon>
-            <span>Token管理</span>
-          </router-link>
-          <router-link
-            to="/admin/batch-daily-tasks"
-            class="nav-item"
-            active-class="active"
-          >
-            <n-icon>
-              <Layers />
-            </n-icon>
-            <span>批量日常</span>
-          </router-link>
-          <router-link
-            to="/admin/message-test"
-            class="nav-item"
-            active-class="active"
-          >
-            <n-icon>
-              <ChatbubbleEllipsesSharp />
-            </n-icon>
-            <span>消息测试</span>
-          </router-link>
-          <router-link to="/admin/legion-war" class="nav-item" active-class="active"  v-if="isNowInLegionWarTime()" >
-            <n-icon>
-              <LockOpen />
-            </n-icon>
-            <span>实时盐场</span>
-          </router-link>
-        </div>
-
-        <div class="nav-user">
-          <!-- 主题切换按钮 -->
+        <div class="topbar-actions">
           <ThemeToggle />
-
-          <n-dropdown :options="userMenuOptions" @select="handleUserAction">
-            <div class="user-info">
-              <n-avatar
-                :src="selectedToken?.avatar || '/icons/xiaoyugan.png'"
-                size="medium"
-                fallback-src="/icons/xiaoyugan.png"
-              />
-              <span class="username">{{
-                selectedToken?.name || "未选择Token"
-              }}</span>
-              <n-icon>
-                <ChevronDown />
-              </n-icon>
-            </div>
+          <n-dropdown
+            v-if="tokenStore.hasTokens"
+            :options="roleOptions"
+            placement="bottom-end"
+            @select="selectRole"
+          >
+            <button class="role-switcher" type="button">
+              <img :src="selectedToken?.avatar || '/icons/xiaoyugan.png'" alt="当前角色头像" />
+              <span>
+                <strong>{{ selectedToken?.name || "选择角色" }}</strong>
+                <small>{{ selectedToken?.server || "TOKEN ACCOUNT" }}</small>
+              </span>
+              <ChevronDown />
+            </button>
           </n-dropdown>
         </div>
-      </div>
-    </nav>
-    <n-drawer
-      v-model:show="isMobileMenuOpen"
-      placement="left"
-      style="width: 260px"
-    >
-      <div class="drawer-menu">
-        <router-link
-          to="/admin/dashboard"
-          class="drawer-item"
-          @click="isMobileMenuOpen = false"
-        >
-          <n-icon>
-            <Home />
-          </n-icon>
-          <span>首页</span>
-        </router-link>
-        <router-link
-          to="/admin/game-features"
-          class="drawer-item"
-          @click="isMobileMenuOpen = false"
-        >
-          <n-icon>
-            <Cube />
-          </n-icon>
-          <span>游戏功能</span>
-        </router-link>
-        <router-link
-          to="/tokens"
-          class="drawer-item"
-          @click="isMobileMenuOpen = false"
-        >
-          <n-icon>
-            <PersonCircle />
-          </n-icon>
-          <span>Token管理</span>
-        </router-link>
-        <router-link
-          to="/admin/daily-tasks"
-          class="drawer-item"
-          @click="isMobileMenuOpen = false"
-        >
-          <n-icon>
-            <Settings />
-          </n-icon>
-          <span>任务管理</span>
-        </router-link>
-        <router-link
-          to="/admin/batch-daily-tasks"
-          class="drawer-item"
-          @click="isMobileMenuOpen = false"
-        >
-          <n-icon>
-            <Layers />
-          </n-icon>
-          <span>批量日常</span>
-        </router-link>
-        <router-link
-          to="/admin/message-test"
-          class="drawer-item"
-          @click="isMobileMenuOpen = false"
-        >
-          <n-icon>
-            <ChatbubbleEllipsesSharp />
-          </n-icon>
-          <span>消息测试</span>
-        </router-link>
-          <router-link to="/admin/legion-war" class="nav-item" active-class="active"  v-if="isNowInLegionWarTime()" >
-            <n-icon>
-              <LockOpen />
-            </n-icon>
-            <span>实时盐场</span>
-          </router-link>
-        <router-link
-          to="/admin/profile"
-          class="drawer-item"
-          @click="isMobileMenuOpen = false"
-        >
-          <n-icon>
-            <Settings />
-          </n-icon>
-          <span>个人设置</span>
-        </router-link>
-      </div>
-    </n-drawer>
-    <div class="main">
-      <router-view />
+      </header>
+
+      <main class="content-area" :class="{ 'immersive-content': route.meta.immersive }">
+        <router-view />
+      </main>
     </div>
   </div>
 </template>
 
 <script setup>
+import { computed, ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import {
-  useTokenStore,
-  selectedToken,
-  selectedTokenId,
-} from "@/stores/tokenStore";
-import ThemeToggle from "@/components/Common/ThemeToggle.vue";
-import {
-  Home,
-  PersonCircle,
-  Cube,
-  Settings,
+  Apps,
   ChevronDown,
-  ChatbubbleEllipsesSharp,
-  LockClosedSharp,LockOpen,
+  Close,
+  Flash,
+  Key,
+  LockClosed,
   Menu,
-  Layers,
+  Person,
 } from "@vicons/ionicons5";
+import { selectedToken, useTokenStore } from "@/stores/tokenStore";
+import ThemeToggle from "@/components/Common/ThemeToggle.vue";
 
-import { useRouter } from 'vue-router'
-import { useMessage } from 'naive-ui'
-import { ref } from 'vue'
-import { isNowInLegionWarTime } from '@/utils/clubBattleUtils'
-
-const tokenStore = useTokenStore();
+const route = useRoute();
 const router = useRouter();
-const message = useMessage();
+const tokenStore = useTokenStore();
+const mobileMenuOpen = ref(false);
 
-const isMobileMenuOpen = ref(false);
-
-const userMenuOptions = [
+const navigation = computed(() => [
+  { path: "/tokens", label: "Token 管理", icon: Key, disabled: false },
   {
-    label: "清除所有Token并退出",
-    key: "logout",
+    path: "/admin/game-features",
+    label: "单个角色",
+    icon: Person,
+    disabled: !tokenStore.hasTokens,
   },
-];
+  {
+    path: "/admin/batch-daily-tasks",
+    label: "批量任务",
+    icon: Apps,
+    disabled: !tokenStore.hasTokens,
+  },
+]);
 
-// 方法
-const handleUserAction = async (key) => {
-  switch (key) {
-    case "logout":
-      await tokenStore.clearAllTokens();
-      message.success("已清除所有Token");
-      router.push("/tokens");
-      break;
+const roleOptions = computed(() =>
+  tokenStore.gameTokens.map((token) => ({
+    label: token.server ? `${token.name} · ${token.server}` : token.name,
+    key: token.id,
+  })),
+);
+
+const handleNavigation = (item, event) => {
+  if (item.disabled) {
+    event.preventDefault();
+    return;
+  }
+  mobileMenuOpen.value = false;
+};
+
+const selectRole = (key) => {
+  tokenStore.selectToken(key);
+  if (route.path === "/tokens") {
+    router.push("/admin/game-features");
   }
 };
 </script>
 
-<style scoped lang="scss">
-// 导航栏
-.dashboard-nav {
-  background: var(--bg-primary);
-  border-bottom: 1px solid var(--border-light);
-  padding: 0 var(--spacing-lg);
-  position: sticky;
-  top: 0;
-  z-index: var(--z-sticky);
+<style scoped>
+.app-shell { min-height: 100vh; background: var(--surface); }
+.app-sider {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 30;
+  width: 248px;
+  overflow: hidden;
+  background: var(--surface-container-low);
+  border-right: 1px solid var(--outline-variant);
+}
+.brand { display: flex; align-items: center; gap: 12px; height: 76px; padding: 0 22px; color: var(--on-surface); }
+.brand:hover { color: var(--on-surface); }
+.brand-mark { display: grid; width: 36px; height: 36px; place-items: center; flex: 0 0 36px; color: var(--on-primary); font-size: 18px; background: var(--primary); border-radius: 8px; }
+.brand-copy { display: grid; gap: 2px; min-width: 0; }
+.brand-copy strong { font-size: 17px; font-weight: 700; }
+.brand-copy small,
+.version { color: var(--on-surface-variant); font: 500 10px/1.2 "JetBrains Mono", monospace; }
+.primary-nav { display: grid; gap: 5px; padding: 18px 14px; }
+.nav-link { position: relative; display: grid; grid-template-columns: 20px 1fr 18px; align-items: center; gap: 12px; min-height: 44px; padding: 0 14px; color: var(--on-surface-variant); font-weight: 600; border-radius: 8px; transition: background 160ms ease, color 160ms ease; }
+.nav-link:hover { color: var(--on-surface); background: var(--surface-container-high); }
+.nav-link.router-link-active { color: var(--primary); background: color-mix(in srgb, var(--primary) 12%, transparent); }
+.nav-link.router-link-active::after { position: absolute; inset: 9px 0 9px auto; width: 2px; background: var(--primary); content: ""; }
+.nav-link.disabled { cursor: not-allowed; opacity: 0.42; }
+.nav-lock { font-size: 13px; }
+.sider-footer { position: absolute; inset: auto 16px 20px; display: grid; gap: 10px; padding-top: 16px; border-top: 1px solid var(--outline-variant); }
+.system-status { display: flex; align-items: center; gap: 8px; color: var(--on-surface-variant); font-size: 12px; }
+.status-dot { width: 7px; height: 7px; background: var(--outline); border-radius: 50%; }
+.status-dot.active { background: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 18%, transparent); }
+.workspace { min-width: 0; min-height: 100vh; margin-left: 248px; background: var(--surface); }
+.topbar { position: sticky; top: 0; z-index: 20; display: flex; height: 68px; padding: 0 24px; align-items: center; justify-content: space-between; background: color-mix(in srgb, var(--surface) 88%, transparent); border-bottom: 1px solid var(--outline-variant); backdrop-filter: blur(14px); }
+.topbar.immersive-topbar { display: none; }
+.topbar-title { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.topbar-title h1 { margin: 0; color: var(--on-surface); font-size: 18px; line-height: 1.25; font-weight: 700; }
+.topbar-title p { margin: 3px 0 0; color: var(--on-surface-variant); font-size: 12px; }
+.topbar-actions { display: flex; align-items: center; gap: 12px; }
+.icon-button { display: grid; width: 36px; height: 36px; place-items: center; color: var(--on-surface); border-radius: 50%; }
+.icon-button:hover { background: var(--surface-container-high); }
+.mobile-menu-button { display: none; }
+.role-switcher { display: flex; height: 46px; padding: 5px 8px; align-items: center; gap: 9px; color: var(--on-surface); text-align: left; background: transparent; border: 1px solid transparent; border-radius: 8px; }
+.role-switcher:hover { background: var(--surface-container-high); border-color: var(--outline-variant); }
+.role-switcher img { width: 34px; height: 34px; object-fit: cover; border-radius: 50%; }
+.role-switcher > span { display: grid; min-width: 100px; gap: 2px; }
+.role-switcher strong { max-width: 150px; overflow: hidden; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+.role-switcher small { color: var(--on-surface-variant); font-size: 10px; }
+.content-area { min-width: 0; min-height: calc(100vh - 68px); background: var(--surface); }
+.content-area.immersive-content { min-height: 100vh; }
+.mobile-overlay { position: fixed; inset: 0; z-index: 60; background: rgba(0, 0, 0, 0.56); }
+.mobile-drawer { width: min(280px, 86vw); height: 100%; padding: 12px 14px; background: var(--surface-container-low); box-shadow: var(--shadow-heavy); }
+.mobile-drawer-head { display: flex; align-items: center; justify-content: space-between; }
+.mobile-drawer-head .brand { padding: 0; }
+.mobile-nav { padding: 18px 0; }
+
+@media (max-width: 900px) {
+  .app-sider { display: none; }
+  .workspace { margin-left: 0; }
+  .mobile-menu-button { display: grid; }
+  .topbar { height: 62px; padding: 0 14px; }
+  .topbar.immersive-topbar { display: flex; }
+  .topbar-title p { display: none; }
+  .role-switcher > span,
+  .role-switcher > svg { display: none; }
+  .role-switcher { height: 40px; padding: 3px; }
+  .content-area.immersive-content { min-height: calc(100vh - 62px); }
 }
 
-.nav-container {
-  display: flex;
-  align-items: center;
-  height: 64px;
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-.nav-brand {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-  margin-right: var(--spacing-xl);
-}
-
-.brand-logo {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--border-radius-small);
-}
-
-.brand-text {
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-semibold);
-  color: var(--text-primary);
-}
-
-.brand-toggle {
-  display: none;
-  align-items: center;
-  gap: var(--spacing-xs);
-  cursor: pointer;
-  font-size: var(--font-size-lg);
-}
-
-.brand-toggle .n-icon {
-  font-size: inherit;
-}
-
-.nav-menu {
-  display: flex;
-  gap: var(--spacing-md);
-  flex: 1;
-}
-
-.nav-item {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-  padding: var(--spacing-sm) var(--spacing-md);
-  border-radius: var(--border-radius-medium);
-  color: var(--text-secondary);
-  text-decoration: none;
-  transition: all var(--transition-fast);
-
-  &:hover {
-    background: var(--bg-tertiary);
-    color: var(--text-primary);
-  }
-
-  &.active {
-    background: var(--primary-color-light);
-    color: var(--primary-color);
-  }
-}
-
-.nav-user {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-}
-
-.user-info {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-sm);
-  border-radius: var(--border-radius-medium);
-  cursor: pointer;
-  transition: background var(--transition-fast);
-
-  &:hover {
-    background: var(--bg-tertiary);
-  }
-}
-
-.username {
-  font-weight: var(--font-weight-medium);
-  color: var(--text-primary);
-}
-
-@media (max-width: 768px) {
-  .nav-item span {
-    display: none;
-  }
-
-  .nav-menu {
-    display: none;
-  }
-
-  .nav-item {
-    padding: var(--spacing-sm);
-    flex: 0 0 auto;
-  }
-
-  .nav-container {
-    height: 56px;
-  }
-
-  .brand-logo {
-    display: none;
-  }
-
-  .brand-toggle {
-    display: inline-flex;
-  }
-}
-
-.drawer-menu {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-md);
-}
-
-.drawer-item {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-sm) var(--spacing-md);
-  border-radius: var(--border-radius-medium);
-  color: var(--text-secondary);
-  text-decoration: none;
-}
-
-.drawer-item.router-link-active {
-  background: var(--primary-color-light);
-  color: var(--primary-color);
-}
-
-/* 禁用样式：灰化、鼠标禁止、无hover效果 */
-.nav-item.disabled {
-  background: #cccccc;
-  color: #999999;
-  cursor: not-allowed; /* 鼠标样式：禁止 */
-  pointer-events: none; /* 可选：直接禁用所有鼠标事件（比阻止click更彻底） */
+@media (max-width: 480px) {
+  .topbar-actions { gap: 4px; }
+  .topbar-title h1 { font-size: 16px; }
 }
 </style>

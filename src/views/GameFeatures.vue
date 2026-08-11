@@ -1,24 +1,33 @@
 <template>
   <div class="game-features-page">
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <div class="container">
-        <div class="header-content">
-          <div class="header-left">
-            <h1 class="page-title">游戏功能</h1>
-            <p class="page-subtitle">
-              {{ tokenStore.selectedToken?.name || "未选择Token" }}
-            </p>
-          </div>
-
-          <div class="header-actions">
-            <div class="connection-status" :class="connectionStatus">
-              <n-icon>
-                <CloudDone />
-              </n-icon>
-              <span>{{ connectionStatusText }}</span>
+    <div class="role-context-band">
+      <div class="container role-context">
+        <div class="role-identity">
+          <img
+            class="role-avatar"
+            :src="tokenStore.selectedToken?.avatar || '/icons/xiaoyugan.png'"
+            alt="当前角色头像"
+          />
+          <div>
+            <span class="context-label">CURRENT ROLE</span>
+            <h2>{{ tokenStore.selectedToken?.name || "未选择角色" }}</h2>
+            <div class="role-metadata">
+              <n-tag v-if="tokenStore.selectedToken?.server" type="success" size="small">
+                {{ tokenStore.selectedToken.server }}
+              </n-tag>
+              <span class="token-id">{{ tokenStore.selectedToken?.id }}</span>
             </div>
           </div>
+        </div>
+        <div class="connection-actions">
+          <span class="connection-summary">
+            <span class="connection-summary-dot" :class="{ connected: isConnected }" />
+            {{ connectionStatusText }}
+          </span>
+          <n-button @click="toggleConnection">
+            <template #icon><n-icon><Wifi /></n-icon></template>
+            {{ isConnected ? "断开连接" : "重新连接" }}
+          </n-button>
         </div>
       </div>
     </div>
@@ -39,7 +48,7 @@
         <div class="ws-status-card">
           <div class="status-header">
             <h3>连接状态</h3>
-            <n-button text @click="toggleConnection">
+            <n-button text type="primary" @click="toggleConnection">
               {{ isConnected ? "断开连接" : "重新连接" }}
             </n-button>
           </div>
@@ -50,7 +59,7 @@
             </div>
             <div v-if="tokenStore.selectedToken" class="status-item">
               <span>当前Token:</span>
-              <span>{{ tokenStore.selectedToken.name }}</span>
+              <span>{{ tokenStore.selectedToken.name || "未命名Token" }}</span>
             </div>
             <div v-if="lastActivity" class="status-item">
               <span>最后活动:</span>
@@ -68,7 +77,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useMessage } from "naive-ui";
 import { useTokenStore } from "@/stores/tokenStore";
-import { CloudDone } from "@vicons/ionicons5";
+import { Wifi } from "@vicons/ionicons5";
 
 const router = useRouter();
 const message = useMessage();
@@ -324,21 +333,70 @@ onUnmounted(() => {
 
 <style scoped lang="scss">
 .game-features-page {
-  min-height: 100dvh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  min-height: calc(100dvh - 68px);
+  background: var(--surface);
   padding-bottom: calc(var(--spacing-md) + env(safe-area-inset-bottom));
 }
 
-/* 深色主题下背景 */
-[data-theme="dark"] .game-features-page {
-  background: linear-gradient(135deg, #0f172a 0%, #1f2937 100%);
+.role-context-band {
+  background: var(--surface-container-low);
+  border-bottom: 1px solid var(--border-light);
+  padding: 18px 0;
 }
 
-// 页面头部
-.page-header {
-  background: var(--bg-primary);
-  border-bottom: 1px solid var(--border-light);
-  padding: var(--spacing-lg) 0;
+.role-context {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.role-identity,
+.connection-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.role-avatar {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.role-metadata,
+.connection-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.connection-summary {
+  color: var(--on-surface-variant);
+  font-size: 13px;
+}
+
+.connection-summary-dot {
+  width: 7px;
+  height: 7px;
+  background: var(--error);
+  border-radius: 50%;
+}
+
+.connection-summary-dot.connected { background: var(--primary); }
+
+.role-identity h2 {
+  margin: 2px 0 5px;
+  color: var(--on-surface);
+  font-size: 18px;
+}
+
+.context-label,
+.token-id {
+  color: var(--on-surface-variant);
+  font: 500 10px/1.2 "JetBrains Mono", monospace;
+  letter-spacing: 0;
 }
 
 .container {
@@ -430,7 +488,7 @@ onUnmounted(() => {
 
 // 功能模块网格
 .features-grid-section {
-  padding: var(--spacing-xl) 0;
+  padding: 20px 0;
 }
 
 .features-grid {
@@ -598,10 +656,12 @@ onUnmounted(() => {
 }
 
 .ws-status-card {
-  background: var(--bg-primary);
-  border-radius: var(--border-radius-large);
+  background: var(--surface-container-low);
+  border: 1px solid var(--outline-variant);
+  border-top: 2px solid var(--secondary);
+  border-radius: 8px;
   padding: var(--spacing-lg);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: none;
 }
 
 .status-header {
@@ -666,11 +726,9 @@ onUnmounted(() => {
     padding: 0 var(--spacing-md);
   }
 
-  .header-content {
-    flex-direction: column;
-    gap: var(--spacing-md);
-    text-align: center;
-  }
+  .game-features-page { min-height: calc(100dvh - 62px); }
+  .role-context { align-items: flex-start; flex-direction: column; }
+  .connection-actions { width: 100%; justify-content: space-between; }
 
   .features-grid {
     grid-template-columns: 1fr;

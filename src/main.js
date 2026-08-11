@@ -1,6 +1,7 @@
 import "@arco-design/web-vue/dist/arco.css";
 import "virtual:uno.css";
 import "./assets/styles/global.scss";
+import "./assets/styles/tailwind.css";
 
 import { createApp } from "vue";
 import { createPinia } from "pinia";

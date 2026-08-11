@@ -38,6 +38,7 @@ export interface RoleTowerInfo {
 }
 
 export interface RoleInfo {
+  name?: string;
   headImg?: string;
   server?: string;
   serverName?: string;

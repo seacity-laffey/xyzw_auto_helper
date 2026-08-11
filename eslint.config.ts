@@ -12,52 +12,6 @@ const config = antfu({
     "unused-imports/no-unused-imports": "warn",
     "perfectionist/sort-imports": ["off"],
     "node/prefer-global/process": ["off"],
-    "import/order": ["error", {
-      "groups": [
-        "builtin",
-        "external",
-        "internal",
-        "type",
-        "sibling",
-        "parent",
-        "index",
-        "object",
-        "unknown",
-      ],
-      "newlines-between": "always",
-      "distinctGroup": true,
-      "pathGroups": [
-        {
-          pattern: "@capacitor/**",
-          group: "external",
-          position: "before",
-        },
-        {
-          pattern: "@arco-design/**",
-          group: "external",
-          position: "before",
-        },
-        {
-          pattern: "#/**",
-          group: "external",
-          position: "after",
-        },
-        {
-          pattern: "@@/**",
-          group: "external",
-          position: "after",
-        },
-        {
-          pattern: "@/**",
-          group: "external",
-          position: "after",
-        },
-      ],
-      "pathGroupsExcludedImportTypes": ["builtin"],
-      "alphabetize": {
-        order: "asc",
-      },
-    }],
     "ts/no-use-before-define": ["off"],
     "ts/array-callback-return": ["off"],
     "ts/no-namespace": ["warn", {
@@ -126,6 +80,10 @@ const config = antfu({
   ignores: [
     "android/**",
     "package.json",
+    "src/xyzw/**",
+    "src/utils/legionWar.ts",
+    "src/utils/peachTaskIds.ts",
+    "src/utils/xyzwLegionWarWebSocket.ts",
     "tsconfig.json",
     "tsconfig.*.json",
   ],

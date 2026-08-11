@@ -1,175 +1,101 @@
-import { createRouter, createWebHistory } from 'vue-router'
-import { useTokenStore } from '@/stores/tokenStore'
-import { isNowInLegionWarTime } from "@/utils/clubBattleUtils"
+import { createRouter, createWebHistory } from "vue-router";
+import { useTokenStore } from "@/stores/tokenStore";
 
-const my_routes = [
+const routes = [
   {
-    path: '/',
-    name: 'Home',
-    component: () => import('@/views/Home.vue'),
-    meta: {
-      title: '首页',
-      requiresToken: false
-    }
-  },
-  {
-    path: '/tokens',
-    name: 'TokenImport',
-    component: () => import('@/views/TokenImport/index.vue'),
-    meta: {
-      title: 'Token管理',
-      requiresToken: false
-    },
-    props: route => ({
-      token: route.query.token,
-      name: route.query.name,
-      server: route.query.server,
-      wsUrl: route.query.wsUrl,
-      api: route.query.api,
-      auto: route.query.auto === 'true'
-    })
-  },
-  {
-    name: 'DefaultLayout',
-    path: '/admin',
-    component: () => import('@/layout/DefaultLayout.vue'),
+    path: "/",
+    component: () => import("@/layout/DefaultLayout.vue"),
     children: [
       {
-        path: 'dashboard',
-        name: 'Dashboard',
-        component: () => import('@/views/Dashboard.vue'),
-        meta: {
-          title: '控制台',
-          requiresToken: true
-        }
+        path: "",
+        redirect: "/tokens",
       },
       {
-        path: 'game-features',
-        name: 'GameFeatures',
-        component: () => import('@/views/GameFeatures.vue'),
+        path: "/tokens",
+        name: "TokenManagement",
+        component: () => import("@/views/TokenImport/index.vue"),
         meta: {
-          title: '游戏功能',
-          requiresToken: true
-        }
+          title: "Token 管理",
+          description: "账号凭证与连接管理",
+          requiresToken: false,
+        },
+        props: (route) => ({
+          token: route.query.token,
+          name: route.query.name,
+          server: route.query.server,
+          wsUrl: route.query.wsUrl,
+          api: route.query.api,
+          auto: route.query.auto === "true",
+        }),
       },
       {
-        path: 'message-test',
-        name: 'MessageTest',
-        component: () => import('@/views/Tools/MessageTester.vue'),
+        path: "/admin/game-features",
+        name: "RoleManagement",
+        component: () => import("@/views/GameFeatures.vue"),
         meta: {
-          title: '消息测试',
-          requiresToken: true
-        }
+          title: "单个角色",
+          description: "当前角色功能与状态",
+          requiresToken: true,
+        },
       },
       {
-        path: 'legion-war',
-        name: 'LegionWar',
-        component: () => import('@/views/LegionWar.vue'),
+        path: "/admin/batch-daily-tasks",
+        name: "BatchTasks",
+        component: () => import("@/views/BatchDailyTasks.vue"),
         meta: {
-          title: '实时盐场',
-          requiresToken: true
-        }
+          title: "批量任务",
+          description: "多账号任务编排与执行",
+          requiresToken: true,
+          immersive: true,
+        },
       },
-      {
-        path: 'profile',
-        name: 'Profile',
-        component: () => import('@/views/Profile.vue'),
-        meta: {
-          title: '个人设置',
-          requiresToken: true
-        }
-      },
-      {
-        path: 'daily-tasks',
-        name: 'DailyTasks',
-        component: () => import('@/views/DailyTasks.vue'),
-        meta: {
-          title: '日常任务',
-          requiresToken: true
-        }
-      },
-      {
-        path: 'batch-daily-tasks',
-        name: 'BatchDailyTasks',
-        component: () => import('@/views/BatchDailyTasks.vue'),
-        meta: {
-          title: '批量日常',
-          requiresToken: true
-        }
-      },
-    ]
+    ],
   },
-  {
-    path: '/websocket-test',
-    name: 'WebSocketTest',
-    component: () => import('@/views/Tools/WebSocketTester.vue'),
-    meta: {
-      title: 'WebSocket测试',
-      requiresToken: true
-    }
-  },
-  // 兼容旧路由，重定向到新的token管理页面
-  {
-    path: '/login',
-    redirect: '/tokens'
-  },
-  {
-    path: '/register',
-    redirect: '/tokens'
-  },
-  {
-    path: '/game-roles',
-    redirect: '/tokens'
-  },
-  {
-    path: '/:pathMatch(.*)*',
-    name: 'NotFound',
-    component: () => import('@/views/NotFound.vue'),
-    meta: {
-      title: '页面不存在'
-    }
-  }
-]
+  // 兼容历史链接，但不再保留额外页面。
+  { path: "/admin", redirect: "/admin/game-features" },
+  { path: "/admin/dashboard", redirect: "/admin/game-features" },
+  { path: "/admin/daily-tasks", redirect: "/admin/game-features" },
+  { path: "/admin/profile", redirect: "/admin/game-features" },
+  { path: "/admin/message-test", redirect: "/admin/game-features" },
+  { path: "/admin/legion-war", redirect: "/admin/game-features" },
+  { path: "/websocket-test", redirect: "/admin/game-features" },
+  { path: "/login", redirect: "/tokens" },
+  { path: "/register", redirect: "/tokens" },
+  { path: "/game-roles", redirect: "/tokens" },
+  { path: "/:pathMatch(.*)*", redirect: "/tokens" },
+];
 
 const router = createRouter({
   history: createWebHistory(),
-  routes: my_routes,
-  scrollBehavior(to, from, savedPosition) {
-    if (savedPosition) {
-      return savedPosition
-    } else {
-      return { top: 0 }
+  routes,
+  scrollBehavior(_to, _from, savedPosition) {
+    return savedPosition || { top: 0 };
+  },
+});
+
+router.beforeEach((to) => {
+  const tokenStore = useTokenStore();
+
+  document.title = to.meta.title
+    ? `${to.meta.title} - XYZW 游戏助手`
+    : "XYZW 游戏助手";
+
+  if (to.meta.requiresToken && !tokenStore.hasTokens) {
+    return {
+      path: "/tokens",
+      query: { blocked: to.fullPath },
+      replace: true,
+    };
+  }
+
+  if (to.meta.requiresToken && !tokenStore.selectedToken) {
+    const firstToken = tokenStore.gameTokens[0];
+    if (firstToken) {
+      tokenStore.selectToken(firstToken.id);
     }
   }
-})
 
-// 导航守卫
-router.beforeEach((to, from, next) => {
-  const tokenStore = useTokenStore()
+  return true;
+});
 
-  // 设置页面标题
-  document.title = to.meta.title ? `${to.meta.title} - XYZW 游戏管理系统` : 'XYZW 游戏管理系统'
-  if(to.name==="LegionWar"&&!isNowInLegionWarTime()){
-  // if(to.name==="LegionWar"&&isNowInLegionWarTime()){
-    next('/admin/dashboard');
-    return;
-  }
-  // 检查是否需要Token
-  // if (to.meta.requiresToken  && tokenStore.getWebSocketStatus(tokenStore.selectedToken.id)=="disconnected") {
-    if (to.meta.requiresToken  && !tokenStore.hasTokens) {
-    next('/tokens')
-  } else if (to.path === '/' && tokenStore.hasTokens) {
-    // 首页重定向逻辑
-    if (tokenStore.selectedToken) {
-      next('/admin/dashboard')
-    } else {
-      next('/tokens')
-    }
-  } else {
-    next()
-  }
-})
-
-
-
-export default router
+export default router;

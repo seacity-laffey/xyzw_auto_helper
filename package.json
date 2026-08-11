@@ -10,7 +10,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint src --ext .vue,.js,.ts --fix",
+    "lint": "eslint src --ext .vue,.js,.ts",
+    "lint:fix": "eslint src --ext .vue,.js,.ts --fix",
     "format": "prettier --write \"src/**/*.{js,vue,ts,css,scss}\""
   },
   "dependencies": {
@@ -41,8 +42,12 @@
     "@types/node": "^20.19.21",
     "@vitejs/plugin-vue": "^5.2.4",
     "@vue/tsconfig": "^0.8.1",
+    "autoprefixer": "^10.5.3",
+    "eslint": "9.39.3",
     "jiti": "^2.6.1",
+    "postcss": "^8.5.19",
     "sass": "^1.93.2",
+    "tailwindcss": "^3.4.17",
     "typescript": "^5.9.3",
     "unocss": "^0.61.9",
     "unplugin-auto-import": "^19.3.0",

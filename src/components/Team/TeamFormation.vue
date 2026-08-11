@@ -388,9 +388,27 @@ watch(
   font-size: var(--font-size-sm);
 }
 
+.info {
+  flex: 1;
+  min-width: 120px;
+}
+
 .team-selector {
   display: flex;
   gap: var(--spacing-xs);
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+
+@media (min-width: 769px) and (max-width: 1599px) {
+  .card-header {
+    flex-wrap: wrap;
+  }
+
+  .team-selector {
+    width: calc(100% - 48px);
+    margin-left: 48px;
+  }
 }
 
 .team-button {

@@ -1,300 +1,212 @@
 <template>
-  <div class="batch-daily-tasks">
-    <div class="main-layout">
-      <!-- Left Column -->
-      <div class="left-column">
-        <!-- Header -->
-        <div
-          class="page-header"
-          style="
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 12px;
-          "
-        >
-          <div style="display: flex; align-items: center; gap: 16px">
-            <h2>批量日常任务</h2>
-            <div
-              style="
-                display: flex;
-                align-items: center;
-                gap: 12px;
-                padding: 8px 12px;
-                background-color: #f8f9fa;
-                border-radius: 8px;
-                border: 1px solid #e9ecef;
-              "
-            >
-              <div style="font-size: 14px; color: #495057">
-                共 {{ scheduledTasks.length }} 个定时任务
-              </div>
-              <div
-                v-if="shortestCountdownTask"
-                style="font-size: 14px; font-weight: 500; color: #1677ff"
-              >
-                即将执行：{{ shortestCountdownTask.task.name }} ({{
-                  shortestCountdownTask.countdown.formatted
-                }})
-              </div>
-              <div v-else style="font-size: 14px; color: #6c757d">
-                暂无定时任务
-              </div>
-              <div style="display: flex; gap: 8px">
-                <n-button type="primary" size="small" @click="openTaskModal">
-                  新增定时任务
-                </n-button>
-                <n-button size="small" @click="showTasksModal = true">
-                  查看定时任务
-                </n-button>
-                <n-button size="small" @click="exportConfig">
-                  导出配置
-                </n-button>
-                <n-upload
-                  :show-file-list="false"
-                  accept=".json"
-                  :custom-request="importConfig"
-                >
-                  <n-button size="small">导入配置</n-button>
-                </n-upload>
-              </div>
-            </div>
-          </div>
-          <div
-            style="
-              display: flex;
-              align-items: center;
-              gap: 12px;
-              padding: 8px 12px;
-              background-color: #f8f9fa;
-              border-radius: 8px;
-              border: 1px solid #e9ecef;
-            "
-          >
-            <n-button
-              type="primary"
-              @click="startBatch"
-              :disabled="isRunning || selectedTokens.length === 0"
-              size="medium"
-            >
-              {{ isRunning ? "执行中..." : "开始执行" }}
-            </n-button>
-            <n-button
-              @click="stopBatch"
-              :disabled="!isRunning"
-              type="error"
-              size="medium"
-            >
-              停止
-            </n-button>
-            <n-button
-              @click="openTemplateManagerModal"
-              type="info"
-              size="medium"
-            >
-              任务模板
-            </n-button>
-            <n-button @click="openBatchSettings" type="default" size="medium">
-              <template #icon>
-                <n-icon>
-                  <Settings />
-                </n-icon>
-              </template>
-              设置
-            </n-button>
+  <div class="batch-daily-tasks h-screen min-h-screen overflow-hidden bg-surface p-0 text-on-surface max-md:h-auto max-md:min-h-[calc(100vh-62px)] max-md:overflow-visible">
+    <header
+      data-testid="batch-control-header"
+      class="flex min-h-20 items-center justify-between gap-6 border-b border-[color-mix(in_srgb,var(--outline-variant)_20%,transparent)] bg-surface px-6 py-3 max-xl:flex-wrap max-md:gap-4 max-md:px-3"
+    >
+      <div class="flex min-w-0 items-center gap-8 max-md:w-full max-md:justify-between max-md:gap-3">
+        <div class="shrink-0 max-md:hidden">
+          <h2 class="m-0 whitespace-nowrap text-2xl font-extrabold text-on-surface max-md:text-xl">批量日常任务</h2>
+          <div class="mt-1 flex items-center gap-2">
+            <span class="h-2 w-2 rounded-full bg-primary"></span>
+            <span class="text-[10px] font-bold uppercase text-primary">
+              系统就绪 · {{ scheduledTasks.length }} 个定时任务
+            </span>
           </div>
         </div>
+        <div class="h-10 w-px bg-[color-mix(in_srgb,var(--outline-variant)_30%,transparent)] max-md:hidden"></div>
+        <div class="flex items-center gap-1 rounded-full border border-[color-mix(in_srgb,var(--outline-variant)_20%,transparent)] bg-[color-mix(in_srgb,var(--surface-container-lowest)_40%,transparent)] p-1 shadow-lg">
+          <button
+            type="button"
+            class="flex items-center gap-2 whitespace-nowrap rounded-full bg-primary px-4 py-2 text-sm font-bold text-on-primary transition-[filter] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50 max-md:px-3"
+            :disabled="isRunning || selectedTokens.length === 0"
+            @click="startBatch"
+          >
+            <Play class="h-4 w-4"></Play>
+            {{ isRunning ? "执行中..." : "开始执行" }}
+          </button>
+          <button
+            type="button"
+            class="flex items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-sm font-bold text-error transition-colors hover:bg-[color-mix(in_srgb,var(--error)_10%,transparent)] disabled:cursor-not-allowed disabled:opacity-40 max-md:px-3"
+            :disabled="!isRunning"
+            @click="stopBatch"
+          >
+            <Stop class="h-4 w-4"></Stop>
+            停止
+          </button>
+        </div>
+      </div>
 
-        <!-- Token Selection -->
-        <n-card title="账号列表" class="token-list-card">
-          <div style="margin-bottom: 16px">
-            <!-- 分组管理和选择 -->
-            <n-space vertical style="width: 100%">
-              <!-- 分组选择部分 -->
-              <div
-                v-if="tokenGroups.length > 0"
-                class="group-selection-section"
+      <div class="flex items-center gap-3 max-md:w-full max-md:justify-end">
+        <div data-testid="batch-tool-cluster" class="flex items-center gap-1.5 rounded-full border border-[color-mix(in_srgb,var(--outline-variant)_20%,transparent)] bg-[color-mix(in_srgb,var(--surface-container-high)_40%,transparent)] px-2 py-1">
+          <button class="batch-tool-button" type="button" title="新增定时任务" aria-label="新增定时任务" @click="openTaskModal">
+            <Add class="h-5 w-5"></Add>
+          </button>
+          <button class="batch-tool-button" type="button" title="查看定时任务" aria-label="查看定时任务" @click="showTasksModal = true">
+            <CalendarOutline class="h-5 w-5"></CalendarOutline>
+          </button>
+          <button class="batch-tool-button" type="button" title="任务模板" aria-label="任务模板" @click="openTemplateManagerModal">
+            <DocumentTextOutline class="h-5 w-5"></DocumentTextOutline>
+          </button>
+          <span class="mx-1 h-5 w-px bg-[color-mix(in_srgb,var(--outline-variant)_20%,transparent)]"></span>
+          <button class="batch-tool-button" type="button" title="导出配置" aria-label="导出配置" @click="exportConfig">
+            <CloudUploadOutline class="h-5 w-5"></CloudUploadOutline>
+          </button>
+          <n-upload class="batch-tool-upload" :show-file-list="false" accept=".json" :custom-request="importConfig">
+            <button class="batch-tool-button" type="button" title="导入配置" aria-label="导入配置">
+              <CloudDownloadOutline class="h-5 w-5"></CloudDownloadOutline>
+            </button>
+          </n-upload>
+          <span class="mx-1 h-5 w-px bg-[color-mix(in_srgb,var(--outline-variant)_20%,transparent)]"></span>
+          <button class="batch-tool-button" type="button" title="批量设置" aria-label="批量设置" @click="openBatchSettings">
+            <Settings class="h-5 w-5"></Settings>
+          </button>
+        </div>
+        <button
+          type="button"
+          class="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-[color-mix(in_srgb,var(--primary)_30%,transparent)] bg-[color-mix(in_srgb,var(--primary)_10%,transparent)] text-primary transition-colors hover:bg-[color-mix(in_srgb,var(--primary)_20%,transparent)]"
+          :title="showLogPanel ? '隐藏日志面板' : '显示日志面板'"
+          :aria-label="showLogPanel ? '隐藏日志面板' : '显示日志面板'"
+          @click="showLogPanel = !showLogPanel"
+        >
+          <TerminalOutline
+            class="h-5 w-5 transition-transform duration-300"
+            :class="showLogPanel ? 'rotate-0' : 'rotate-180'"
+          ></TerminalOutline>
+        </button>
+      </div>
+    </header>
+
+    <div
+      data-testid="batch-workspace"
+      class="grid h-[calc(100%-80px)] min-h-0 gap-y-6 overflow-hidden p-6 transition-[grid-template-columns,column-gap] duration-300 ease-out max-lg:h-auto max-lg:overflow-visible max-md:gap-y-4 max-md:p-3"
+      :class="showLogPanel
+        ? 'grid-cols-[minmax(0,1fr)_384px] gap-x-6 max-xl:grid-cols-[minmax(0,1fr)_340px] max-lg:grid-cols-1 max-md:gap-x-0'
+        : 'grid-cols-[minmax(0,1fr)_0px] gap-x-0 max-lg:grid-cols-1'"
+    >
+      <div class="flex min-w-0 flex-col gap-6 overflow-hidden max-lg:overflow-visible max-md:gap-4">
+        <section
+          data-testid="batch-account-panel"
+          class="shrink-0 overflow-hidden rounded-xl border border-[color-mix(in_srgb,var(--outline-variant)_20%,transparent)] bg-surface-container-low shadow-xl"
+        >
+          <header class="flex items-center justify-between gap-4 border-b border-[color-mix(in_srgb,var(--outline-variant)_10%,transparent)] bg-[color-mix(in_srgb,var(--surface-container-low)_60%,transparent)] px-6 py-4 max-md:px-4">
+            <div class="flex items-center gap-3">
+              <span class="grid h-8 w-8 place-items-center rounded-lg bg-[color-mix(in_srgb,var(--primary)_20%,transparent)] text-primary">
+                <PeopleOutline class="h-5 w-5"></PeopleOutline>
+              </span>
+              <h3 class="m-0 text-lg font-bold text-on-surface">账号列表</h3>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="text-xs font-medium text-on-surface-variant">
+                已选 {{ selectedTokens.length }}/{{ sortedTokens.length }}
+              </span>
+              <button
+                type="button"
+                class="flex items-center gap-1.5 rounded-lg border border-[color-mix(in_srgb,var(--primary)_20%,transparent)] bg-[color-mix(in_srgb,var(--primary)_10%,transparent)] px-3 py-1.5 text-xs font-bold text-primary hover:bg-[color-mix(in_srgb,var(--primary)_20%,transparent)]"
+                @click="showGroupManageModal = true"
               >
-                <div
-                  style="
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 12px;
-                  "
-                >
-                  <label style="font-weight: 500; color: #333">分组选择</label>
-                  <n-button
-                    size="small"
-                    type="error"
-                    text
-                    @click="clearAllGroupSelection"
-                  >
-                    一键清除所有分组选择
-                  </n-button>
-                </div>
-                <div style="display: flex; gap: 8px; flex-wrap: wrap">
-                  <div
-                    v-for="group in tokenGroups"
-                    :key="group.id"
-                    @click="toggleGroupSelection(group.id)"
-                    :style="{
-                      padding: '8px 12px',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      backgroundColor: isGroupSelected(group.id)
-                        ? group.color
-                        : 'transparent',
-                      border: `2px solid ${group.color}`,
-                      color: isGroupSelected(group.id) ? 'white' : group.color,
-                      fontWeight: isGroupSelected(group.id) ? '600' : '400',
-                      transition: 'all 0.3s ease',
-                      userSelect: 'none',
-                    }"
-                  >
-                    {{ group.name }} ({{
-                      getValidGroupTokenIds(group.id).length
-                    }})
-                  </div>
-                </div>
-              </div>
+                <OptionsOutline class="h-4 w-4"></OptionsOutline>
+                管理分组
+              </button>
+            </div>
+          </header>
 
-              <!-- 分组管理按钮 -->
-              <div
-                style="
-                  display: flex;
-                  justify-content: space-between;
-                  align-items: center;
-                "
+          <div class="space-y-4 p-6 max-md:p-4">
+            <div v-if="tokenGroups.length > 0" class="flex flex-wrap items-center gap-2">
+              <span class="mr-1 text-xs font-semibold text-on-surface-variant">分组</span>
+              <button
+                v-for="group in tokenGroups"
+                :key="group.id"
+                type="button"
+                class="rounded-md border px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-80"
+                :style="{
+                  borderColor: group.color,
+                  backgroundColor: isGroupSelected(group.id) ? group.color : 'transparent',
+                  color: isGroupSelected(group.id) ? '#fff' : group.color,
+                }"
+                @click="toggleGroupSelection(group.id)"
               >
-                <n-button
-                  type="info"
-                  size="small"
-                  @click="showGroupManageModal = true"
+                {{ group.name }} ({{ getValidGroupTokenIds(group.id).length }})
+              </button>
+              <button
+                v-if="selectedGroups.length > 0"
+                type="button"
+                class="ml-auto text-xs font-medium text-error hover:underline"
+                @click="clearAllGroupSelection"
+              >
+                清除分组选择
+              </button>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div data-testid="batch-sort-controls" class="flex max-w-full overflow-x-auto rounded-lg border border-[color-mix(in_srgb,var(--outline-variant)_10%,transparent)] bg-[color-mix(in_srgb,var(--surface-container-highest)_30%,transparent)] p-1">
+                <button
+                  v-for="sortItem in batchSortOptions"
+                  :key="sortItem.value"
+                  type="button"
+                  class="whitespace-nowrap rounded-md px-4 py-2 text-xs font-medium transition-colors"
+                  :class="sortConfig.field === sortItem.value
+                    ? 'batch-sort-active bg-primary font-bold shadow-sm'
+                    : 'text-on-surface-variant hover:bg-surface-container-highest'"
+                  @click="toggleSort(sortItem.value)"
                 >
-                  管理分组
-                </n-button>
-                <span
-                  v-if="selectedGroups.length > 0"
-                  style="font-size: 12px; color: #86909c"
-                >
-                  已选择 {{ selectedGroups.length }} 个分组，包含
-                  {{ selectedTokens.length }} 个账号
-                </span>
+                  {{ sortItem.label }} {{ getSortIcon(sortItem.value) }}
+                </button>
               </div>
-            </n-space>
-          </div>
+              <n-checkbox
+                :checked="isAllSelected"
+                :indeterminate="isIndeterminate"
+                @update:checked="handleSelectAll"
+              >
+                全选
+              </n-checkbox>
+            </div>
 
-          <!-- 排序按钮组 -->
-          <div class="sort-buttons" style="margin-bottom: 12px">
-            <n-space align="center">
-              <n-button-group size="small">
-                <n-button
-                  @click="toggleSort('name')"
-                  :type="sortConfig.field === 'name' ? 'primary' : 'default'"
-                >
-                  名称 {{ getSortIcon("name") }}
-                </n-button>
-                <n-button
-                  @click="toggleSort('server')"
-                  :type="sortConfig.field === 'server' ? 'primary' : 'default'"
-                >
-                  服务器 {{ getSortIcon("server") }}
-                </n-button>
-                <n-button
-                  @click="toggleSort('createdAt')"
-                  :type="
-                    sortConfig.field === 'createdAt' ? 'primary' : 'default'
-                  "
-                >
-                  创建时间 {{ getSortIcon("createdAt") }}
-                </n-button>
-                <n-button
-                  @click="toggleSort('lastUsed')"
-                  :type="
-                    sortConfig.field === 'lastUsed' ? 'primary' : 'default'
-                  "
-                >
-                  最后使用 {{ getSortIcon("lastUsed") }}
-                </n-button>
-              </n-button-group>
-            </n-space>
-          </div>
-
-          <n-space vertical>
-            <n-checkbox
-              :checked="isAllSelected"
-              :indeterminate="isIndeterminate"
-              @update:checked="handleSelectAll"
-            >
-              全选
-            </n-checkbox>
             <n-checkbox-group v-model:value="selectedTokens">
-              <n-grid
-                :x-gap="12"
-                :y-gap="8"
-                :cols="batchSettings.tokenListColumns"
-              >
-                <n-grid-item v-for="token in sortedTokens" :key="token.id">
-                  <div class="token-row">
-                    <n-checkbox
-                      :value="token.id"
-                      :label="token.name"
-                      style="flex: 1"
-                    >
-                      <div class="token-item">
-                        <span>{{ token.name }}</span>
-                        <n-tag
-                          size="small"
-                          :type="getStatusType(token.id)"
-                          style="margin-left: 8px"
-                        >
-                          {{ getStatusText(token.id) }}
-                        </n-tag>
-                        <!-- 显示token所属的分组 -->
-                        <div
-                          v-if="tokenStore.getTokenGroups(token.id).length > 0"
-                          style="
-                            margin-left: 8px;
-                            display: inline-flex;
-                            gap: 4px;
-                            flex-wrap: wrap;
-                          "
-                        >
-                          <n-tag
-                            v-for="group in tokenStore.getTokenGroups(token.id)"
-                            :key="group.id"
-                            size="small"
-                            :color="{ color: group.color, textColor: 'white' }"
-                            style="font-size: 11px"
-                          >
-                            {{ group.name }}
-                          </n-tag>
-                        </div>
-                      </div>
-                    </n-checkbox>
-                    <n-button
-                      size="tiny"
-                      circle
-                      @click.stop="openSettings(token)"
-                    >
-                      <template #icon>
-                        <n-icon>
-                          <Settings />
-                        </n-icon>
-                      </template>
-                    </n-button>
-                  </div>
-                </n-grid-item>
-              </n-grid>
+              <div class="grid grid-cols-2 gap-3 lg:grid-cols-3 max-md:grid-cols-1">
+                <article
+                  v-for="token in sortedTokens"
+                  :key="token.id"
+                  data-testid="batch-token-card"
+                  class="group relative flex min-h-14 items-center justify-between gap-3 rounded-xl border bg-[color-mix(in_srgb,var(--surface-container-low)_40%,var(--surface-container-lowest))] px-4 py-3 transition-colors hover:border-[color-mix(in_srgb,var(--primary)_50%,transparent)] hover:bg-[color-mix(in_srgb,var(--surface-container-high)_60%,transparent)]"
+                  :class="selectedTokens.includes(token.id) ? 'border-[color-mix(in_srgb,var(--primary)_50%,transparent)]' : 'border-[color-mix(in_srgb,var(--outline-variant)_20%,transparent)]'"
+                >
+                  <n-checkbox :value="token.id" class="min-w-0 flex-1">
+                    <div class="flex min-w-0 items-center gap-3">
+                      <span
+                        class="h-2.5 w-2.5 shrink-0 rounded-full"
+                        :class="tokenStatus[token.id] === 'failed' ? 'bg-error' : tokenStatus[token.id] === 'running' ? 'bg-tertiary' : 'bg-primary'"
+                      ></span>
+                      <span class="truncate text-sm font-semibold text-on-surface">{{ token.name || "未命名账号" }}</span>
+                      <span class="hidden shrink-0 text-[10px] text-on-surface-variant min-[1320px]:inline">{{ getStatusText(token.id) }}</span>
+                    </div>
+                  </n-checkbox>
+                  <button
+                    type="button"
+                    class="absolute right-2 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-md bg-surface-container-lowest text-on-surface-variant opacity-0 hover:bg-[color-mix(in_srgb,var(--primary)_10%,transparent)] hover:text-primary focus:opacity-100 group-hover:opacity-100 max-md:opacity-100"
+                    :aria-label="`设置${token.name || '未命名账号'}`"
+                    @click.stop="openSettings(token)"
+                  >
+                    <Settings class="h-4 w-4"></Settings>
+                  </button>
+                </article>
+              </div>
             </n-checkbox-group>
-          </n-space>
-        </n-card>
+          </div>
+        </section>
 
         <!-- Batch Functions -->
-        <n-card title="批量功能列表" style="margin-top: 16px">
-          <n-tabs type="line" animated>
+        <section
+          data-testid="batch-function-panel"
+          class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-[color-mix(in_srgb,var(--outline-variant)_20%,transparent)] bg-surface-container-low shadow-xl max-lg:min-h-[520px]"
+        >
+          <header class="flex items-center gap-3 border-b border-[color-mix(in_srgb,var(--outline-variant)_10%,transparent)] bg-[color-mix(in_srgb,var(--surface-container-low)_60%,transparent)] px-6 py-4 max-md:px-4">
+            <span class="grid h-8 w-8 place-items-center rounded-lg bg-[color-mix(in_srgb,var(--primary)_20%,transparent)] text-primary">
+              <GridOutline class="h-5 w-5"></GridOutline>
+            </span>
+            <h3 class="m-0 text-lg font-bold text-on-surface">批量功能列表</h3>
+          </header>
+          <n-tabs type="line" animated class="batch-function-tabs">
             <n-tab-pane name="daily" tab="日常">
               <n-space>
                 <n-button
@@ -302,6 +214,7 @@
                   @click="claimHangUpRewards"
                   :disabled="isRunning || selectedTokens.length === 0"
                 >
+                  <template #icon><n-icon><DownloadOutline /></n-icon></template>
                   领取挂机
                 </n-button>
                 <n-button
@@ -309,6 +222,7 @@
                   @click="batchAddHangUpTime"
                   :disabled="isRunning || selectedTokens.length === 0"
                 >
+                  <template #icon><n-icon><TimerOutline /></n-icon></template>
                   一键加钟
                 </n-button>
                 <n-button
@@ -316,6 +230,7 @@
                   @click="resetBottles"
                   :disabled="isRunning || selectedTokens.length === 0"
                 >
+                  <template #icon><n-icon><Refresh /></n-icon></template>
                   重置罐子
                 </n-button>
                 <n-button
@@ -323,6 +238,7 @@
                   @click="batchlingguanzi"
                   :disabled="isRunning || selectedTokens.length === 0"
                 >
+                  <template #icon><n-icon><ArchiveOutline /></n-icon></template>
                   一键领取罐子
                 </n-button>
                 <n-button
@@ -330,6 +246,7 @@
                   @click="batchclubsign"
                   :disabled="isRunning || selectedTokens.length === 0"
                 >
+                  <template #icon><n-icon><People /></n-icon></template>
                   一键俱乐部签到
                 </n-button>
                 <n-button
@@ -337,6 +254,7 @@
                   @click="batchStudy"
                   :disabled="isRunning || selectedTokens.length === 0"
                 >
+                  <template #icon><n-icon><HelpCircleOutline /></n-icon></template>
                   一键答题
                 </n-button>
                 <n-button
@@ -654,60 +572,108 @@
               </n-space>
             </n-tab-pane>
           </n-tabs>
-        </n-card>
+        </section>
       </div>
 
       <!-- Right Column - Execution Log -->
-      <div class="right-column">
-        <n-card class="log-card">
-          <template #header>
-            <div class="custom-card-header">
-              <div class="card-title">
-                {{
-                  currentRunningTokenName
-                    ? `正在执行: ${currentRunningTokenName}`
-                    : "执行日志"
-                }}
-                <span
-                  style="margin-left: 12px; font-size: 12px; color: #86909c"
-                >
-                  {{ logs.length }}/{{ batchSettings.maxLogEntries || 1000 }}
-                </span>
-              </div>
-              <div class="log-header-controls">
-                <n-checkbox v-model:checked="autoScrollLog" size="small">
-                  自动滚动
-                </n-checkbox>
-                <n-checkbox v-model:checked="filterErrorsOnly" size="small">
-                  只看错误
-                </n-checkbox>
-                <n-tag v-if="errorCount > 0" type="error" size="small">
-                  {{ errorCount }} 个错误
-                </n-tag>
-                <n-button size="small" @click="clearLogs"> 清空日志 </n-button>
-                <n-button size="small" @click="copyLogs"> 复制日志 </n-button>
-              </div>
-            </div>
-          </template>
-          <n-progress
-            type="line"
-            :percentage="currentProgress"
-            :indicator-placement="'inside'"
-            processing
-          />
-          <div class="log-container" ref="logContainer">
-            <div
-              v-for="(log, index) in filteredLogs"
-              :key="index"
-              class="log-item"
-              :class="log.type"
-            >
-              <span class="time">{{ log.time }}</span>
-              <span class="message">{{ log.message }}</span>
+      <section
+        data-testid="batch-log-panel"
+        :aria-hidden="!showLogPanel"
+        class="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border border-[color-mix(in_srgb,var(--outline-variant)_20%,transparent)] bg-surface-container-low shadow-2xl transition-[opacity,transform] duration-300 ease-out max-lg:h-[520px] max-md:h-[460px]"
+        :class="showLogPanel
+          ? 'translate-x-0 opacity-100'
+          : 'pointer-events-none translate-x-4 opacity-0 max-lg:hidden'"
+      >
+        <header class="flex items-center justify-between gap-3 border-b border-[color-mix(in_srgb,var(--outline-variant)_10%,transparent)] bg-[color-mix(in_srgb,var(--surface-container-low)_60%,transparent)] px-5 py-4">
+          <div class="flex min-w-0 items-center gap-3">
+            <TerminalOutline class="h-5 w-5 shrink-0 text-primary"></TerminalOutline>
+            <div class="min-w-0">
+              <h3 class="m-0 truncate text-sm font-bold text-on-surface">
+                {{ currentRunningTokenName ? `正在执行: ${currentRunningTokenName}` : "执行日志" }}
+              </h3>
+              <span class="text-[10px] font-mono text-on-surface-variant">
+                {{ logs.length }}/{{ batchSettings.maxLogEntries || 1000 }} 条
+              </span>
             </div>
           </div>
-        </n-card>
-      </div>
+          <div class="flex items-center gap-2">
+            <span class="rounded border border-[color-mix(in_srgb,var(--primary)_20%,transparent)] bg-[color-mix(in_srgb,var(--primary)_10%,transparent)] px-2 py-0.5 font-mono text-[9px] font-bold text-primary">
+              {{ isRunning ? "RUNNING" : "READY" }}
+            </span>
+            <span class="font-mono text-[10px] text-on-surface-variant">Worker #1</span>
+          </div>
+        </header>
+
+        <div class="space-y-3 border-b border-[color-mix(in_srgb,var(--outline-variant)_10%,transparent)] bg-[color-mix(in_srgb,var(--surface-container-lowest)_30%,transparent)] p-4">
+          <div class="flex gap-2">
+            <button
+              type="button"
+              class="flex-1 rounded-lg border px-3 py-2 text-[11px] font-bold"
+              :class="!filterErrorsOnly ? 'border-primary bg-primary text-on-primary' : 'border-[color-mix(in_srgb,var(--outline-variant)_30%,transparent)] text-on-surface-variant'"
+              @click="filterErrorsOnly = false"
+            >
+              全部日志
+            </button>
+            <button
+              type="button"
+              class="flex-1 rounded-lg border px-3 py-2 text-[11px] font-bold"
+              :class="filterErrorsOnly ? 'border-error bg-[color-mix(in_srgb,var(--error)_10%,transparent)] text-error' : 'border-[color-mix(in_srgb,var(--outline-variant)_30%,transparent)] text-on-surface-variant'"
+              @click="filterErrorsOnly = true"
+            >
+              错误 {{ errorCount > 0 ? `(${errorCount})` : "" }}
+            </button>
+          </div>
+          <div class="flex items-center justify-between gap-3">
+            <n-checkbox v-model:checked="autoScrollLog" size="small">自动滚动</n-checkbox>
+            <div class="flex items-center gap-2">
+              <button type="button" class="text-[10px] font-semibold text-on-surface-variant hover:text-primary" @click="copyLogs">
+                复制
+              </button>
+              <button type="button" class="text-[10px] font-semibold text-on-surface-variant hover:text-error" @click="clearLogs">
+                清空
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-[color-mix(in_srgb,var(--surface-container-lowest)_30%,transparent)] px-5 pt-4">
+          <div class="h-1 w-full overflow-hidden rounded-full bg-surface-container-highest">
+            <div class="h-full bg-primary transition-[width] duration-700" :style="{ width: `${currentProgress}%` }"></div>
+          </div>
+          <div class="flex items-center justify-between pb-2 pt-2">
+            <span class="text-[10px] font-bold text-primary">批量进度</span>
+            <span class="font-mono text-[10px] text-on-surface-variant">{{ currentProgress }}% 完成</span>
+          </div>
+        </div>
+
+        <div ref="logContainer" class="min-h-0 flex-1 space-y-2.5 overflow-y-auto bg-black/20 p-5 font-mono text-[11px] leading-relaxed">
+          <div v-if="filteredLogs.length === 0" class="py-10 text-center text-on-surface-variant opacity-60">
+            暂无执行日志
+          </div>
+          <div
+            v-for="(log, index) in filteredLogs"
+            :key="index"
+            class="flex gap-3 rounded px-1 py-0.5"
+            :class="{
+              'text-error bg-[color-mix(in_srgb,var(--error)_5%,transparent)]': log.type === 'error',
+              'text-primary bg-[color-mix(in_srgb,var(--primary)_5%,transparent)]': log.type === 'success',
+              'text-tertiary': log.type === 'warning',
+              'text-on-surface-variant': !['error', 'success', 'warning'].includes(log.type),
+            }"
+          >
+            <span class="shrink-0 opacity-50">{{ log.time }}</span>
+            <span class="min-w-0 break-words">{{ log.message }}</span>
+          </div>
+        </div>
+
+        <footer class="flex items-center justify-between border-t border-[color-mix(in_srgb,var(--outline-variant)_10%,transparent)] bg-[color-mix(in_srgb,var(--surface-container-high)_40%,transparent)] p-3 font-mono text-[9px] uppercase tracking-wider">
+          <div class="flex gap-4">
+            <span class="flex items-center gap-1 text-primary"><i class="h-1.5 w-1.5 rounded-full bg-primary"></i>OK: {{ completedTokenCount }}</span>
+            <span class="flex items-center gap-1 text-error"><i class="h-1.5 w-1.5 rounded-full bg-error"></i>FAIL: {{ failedTokenCount }}</span>
+          </div>
+          <span class="text-on-surface-variant opacity-60">{{ isRunning ? "BUSY" : "IDLE" }}</span>
+        </footer>
+      </section>
     </div>
 
     <!-- Settings Modal -->
@@ -2830,7 +2796,26 @@ import { $emit } from "@/stores/events/index";
 import { DailyTaskRunner } from "@/utils/dailyTaskRunner";
 import { preloadQuestions } from "@/utils/studyQuestionsFromJSON";
 import { useMessage } from "naive-ui";
-import { Settings } from "@vicons/ionicons5";
+import {
+  Add,
+  ArchiveOutline,
+  CalendarOutline,
+  CloudDownloadOutline,
+  CloudUploadOutline,
+  DocumentTextOutline,
+  DownloadOutline,
+  GridOutline,
+  HelpCircleOutline,
+  OptionsOutline,
+  PeopleOutline,
+  People,
+  Play,
+  Refresh,
+  Settings,
+  Stop,
+  TerminalOutline,
+  TimerOutline,
+} from "@vicons/ionicons5";
 import { DEFAULT_WEIRD_TOWER_MAX_CLIMB } from "@/utils/towerClimbLimit.js";
 
 // Import batch task modules
@@ -2904,6 +2889,13 @@ const sortConfig = ref(
         direction: "asc", // 排序方向：asc, desc
       },
 );
+
+const batchSortOptions = [
+  { label: "名称", value: "name" },
+  { label: "服务器", value: "server" },
+  { label: "创建时间", value: "createdAt" },
+  { label: "最后使用", value: "lastUsed" },
+];
 
 // 计算属性 - 从gameData中获取塔相关信息
 const evoTowerInfo = computed(() => {
@@ -5252,9 +5244,16 @@ const logs = ref([]);
 const logContainer = ref(null);
 const autoScrollLog = ref(true);
 const filterErrorsOnly = ref(false);
+const showLogPanel = ref(true);
 const errorCount = computed(() => {
   return logs.value.filter((log) => log.type === "error").length;
 });
+const completedTokenCount = computed(
+  () => Object.values(tokenStatus.value).filter((status) => status === "completed").length,
+);
+const failedTokenCount = computed(
+  () => Object.values(tokenStatus.value).filter((status) => status === "failed").length,
+);
 
 const filteredLogs = computed(() => {
   if (filterErrorsOnly.value) {
@@ -5938,11 +5937,143 @@ const stopBatch = () => {
 </script>
 
 <style scoped>
+.batch-tool-button {
+  display: grid;
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  color: var(--on-surface-variant);
+  border-radius: 9999px;
+  transition: color 160ms ease, background 160ms ease;
+}
+
+.batch-tool-upload {
+  width: 40px;
+  flex: 0 0 40px;
+}
+
+.batch-tool-button:hover {
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+}
+
+.batch-sort-active {
+  color: var(--on-primary) !important;
+}
+
+.batch-function-tabs {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.batch-function-tabs :deep(.n-tabs-nav) {
+  flex: 0 0 auto;
+  padding: 0 24px;
+  margin: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--outline-variant) 10%, transparent);
+}
+
+.batch-function-tabs :deep(.n-tabs-tab) {
+  padding: 16px 22px;
+  font-size: 14px;
+}
+
+.batch-function-tabs :deep(.n-tabs-tab:not(.n-tabs-tab--active) .n-tabs-tab__label) {
+  color: var(--on-surface-variant) !important;
+}
+
+.batch-function-tabs :deep(.n-tabs-tab--active .n-tabs-tab__label) {
+  color: var(--primary) !important;
+}
+
+.batch-function-tabs :deep(.n-tabs-pane-wrapper) {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.batch-function-tabs :deep(.n-tab-pane) {
+  padding: 24px;
+}
+
+.batch-function-tabs :deep(.n-space) {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px !important;
+}
+
+.batch-function-tabs :deep(.n-space-item) {
+  min-width: 0;
+  margin: 0 !important;
+}
+
+.batch-function-tabs :deep(.n-button) {
+  width: 100%;
+  min-width: 0;
+  height: 60px;
+  padding: 0 24px;
+  justify-content: flex-start;
+  color: var(--on-surface);
+  font-size: 14px;
+  font-weight: 700;
+  background: color-mix(in srgb, var(--surface-container-high) 72%, transparent);
+  border-color: color-mix(in srgb, var(--outline-variant) 25%, transparent);
+  border-radius: 12px !important;
+  box-shadow: var(--shadow-small);
+}
+
+.batch-function-tabs :deep(.n-button:not(.n-button--disabled):hover) {
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 5%, var(--surface-container-high));
+  border-color: var(--primary);
+}
+
+@media (max-width: 768px) {
+  .batch-tool-button {
+    flex-basis: 34px;
+    width: 34px;
+    height: 34px;
+  }
+
+  .batch-tool-upload {
+    width: 34px;
+    flex-basis: 34px;
+  }
+
+  .batch-function-tabs :deep(.n-tabs-nav) {
+    padding: 0 12px;
+  }
+
+  .batch-function-tabs :deep(.n-tabs-tab) {
+    padding: 13px 16px;
+  }
+
+  .batch-function-tabs :deep(.n-tab-pane) {
+    padding: 16px;
+  }
+
+  .batch-function-tabs :deep(.n-space) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px !important;
+  }
+
+  .batch-function-tabs :deep(.n-button) {
+    height: 52px;
+    padding: 0 14px;
+    white-space: normal;
+  }
+}
+
 .batch-daily-tasks {
-  padding: 20px;
-  height: 100vh;
+  padding: 20px 24px 32px;
+  min-height: calc(100vh - 68px);
+  height: calc(100vh - 68px);
   box-sizing: border-box;
   overflow: hidden;
+  background: var(--surface);
 }
 
 .main-layout {
@@ -5972,6 +6103,44 @@ const stopBatch = () => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
+}
+
+.page-header h2 {
+  color: var(--on-surface);
+  font-size: 20px;
+}
+
+.page-header > div,
+.page-header > div > div {
+  border-color: var(--outline-variant) !important;
+}
+
+.page-header > div > div[style*="background-color"],
+.page-header > div[style*="background-color"] {
+  background-color: var(--surface-container-low) !important;
+}
+
+.batch-daily-tasks :deep(.n-card) {
+  background: var(--surface-container-low);
+  border-color: var(--outline-variant);
+  border-top: 2px solid var(--secondary) !important;
+}
+
+.batch-daily-tasks :deep(.n-card-header__main),
+.batch-daily-tasks :deep(.n-tabs-tab__label),
+.batch-daily-tasks :deep(.n-checkbox__label) {
+  color: var(--on-surface);
+}
+
+.batch-daily-tasks [style*="color: #495057"],
+.batch-daily-tasks [style*="color: #333"],
+.batch-daily-tasks [style*="color: #1d2129"] {
+  color: var(--on-surface) !important;
+}
+
+.batch-daily-tasks [style*="color: #6c757d"],
+.batch-daily-tasks [style*="color: #86909c"] {
+  color: var(--on-surface-variant) !important;
 }
 
 .token-item {
@@ -6070,7 +6239,7 @@ const stopBatch = () => {
 .log-container {
   flex: 1;
   overflow-y: auto;
-  background: #f5f5f5;
+  background: var(--surface-container-lowest);
   padding: 10px;
   border-radius: 4px;
   margin-top: 10px;
@@ -6096,7 +6265,7 @@ const stopBatch = () => {
 }
 
 .log-item.info {
-  color: #333;
+  color: var(--on-surface);
 }
 
 .time {
@@ -6204,7 +6373,8 @@ const stopBatch = () => {
 @media (max-width: 768px) {
   .batch-daily-tasks {
     padding: 12px;
-    height: 100vh;
+    min-height: calc(100vh - 62px);
+    height: auto;
     overflow-y: auto;
     overflow-x: hidden;
   }
@@ -6232,6 +6402,18 @@ const stopBatch = () => {
     flex-direction: column;
     gap: 12px;
     align-items: stretch;
+  }
+
+  .page-header > div,
+  .page-header > div > div {
+    width: 100%;
+    align-items: stretch !important;
+    flex-direction: column;
+  }
+
+  .page-header > div > div > div:last-child {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .page-header .actions {
