@@ -3,7 +3,8 @@ const DAYS_PER_WEEK = 7;
 
 const getCycleFriday = (date) => {
   const cycleDate = new Date(date);
-  const diff = (cycleDate.getDay() - FRIDAY_DAY + DAYS_PER_WEEK) % DAYS_PER_WEEK;
+  const diff =
+    (cycleDate.getDay() - FRIDAY_DAY + DAYS_PER_WEEK) % DAYS_PER_WEEK;
 
   cycleDate.setHours(0, 0, 0, 0);
   cycleDate.setDate(cycleDate.getDate() - diff);
@@ -18,4 +19,15 @@ export const getTowerActId = (date = new Date()) => {
   const day = String(cycleFriday.getDate()).padStart(2, "0");
 
   return Number(`${year}${month}${day}1`);
+};
+
+export const MAX_SKIN_CHALLENGE_REWARD_CLAIMS = 100;
+
+export const getSkinChallengeRewardActId = (actId) => {
+  const numericActId = Number(actId);
+  if (!Number.isSafeInteger(numericActId) || numericActId <= 0) {
+    return null;
+  }
+
+  return numericActId % 10 === 1 ? numericActId + 1 : numericActId;
 };

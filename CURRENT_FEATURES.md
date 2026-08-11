@@ -2,7 +2,8 @@
 
 本文档描述当前代码实际提供的功能，用于维护本仓库并与 `upstream` 比较差异。
 
-- 功能基线提交：`e7bcbfd`
+- 功能基线分支：`refactor/dev`
+- 上游同步点：`59f305d`
 - 核对日期：2026-08-11
 - 判断依据：正式路由、可达页面及其直接使用的组件和 Store
 
@@ -64,7 +65,7 @@
 ### 任务分区
 
 - 日常：挂机、盐罐、俱乐部签到、竞技场、珍宝阁等
-- 副本：咸将塔、蟠桃园等
+- 副本：咸将塔、蟠桃园、盐杯批量竞猜、换皮闯关及自动领奖等
 - 宝库
 - 怪异塔
 - 资源：宝箱积分、招募、图鉴奖励等
@@ -104,12 +105,13 @@
 
 ## 当前验证状态
 
-在功能基线提交上已执行：
+在当前功能基线上已执行：
 
 - `npm run build`：通过
-- `node --test test/roleTokenMetadata.test.js`：3 项通过
+- `pnpm exec tsc --noEmit -p tsconfig.app.json`：通过
+- `node --test test/upstreamFeatures.test.js test/roleTokenMetadata.test.js test/helperTaskRunner.test.js test/towerClimbLimit.test.js`：21 项通过
 - `git diff --check`：通过
-- `npm run lint`：未通过，共 431 个 error、960 个 warning
+- `npm run lint`：未通过，共 407 个 error、960 个 warning
 
 旧文档中关于 lint 为 0 error、旧页面可独立访问的结论不再代表当前工作区。
 

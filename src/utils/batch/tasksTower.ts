@@ -1,6 +1,10 @@
 // @ts-nocheck
 import type { BatchTaskDeps } from "./types";
-import { getTowerActId } from "../towerActId.js";
+import {
+  getSkinChallengeRewardActId,
+  getTowerActId,
+  MAX_SKIN_CHALLENGE_REWARD_CLAIMS,
+} from "../towerActId.js";
 
 /**
  * 爬塔类任务
@@ -755,13 +759,11 @@ export function createTasksTower(deps: BatchTaskDeps) {
         }
 
         if (targetTowers.length === 0) {
-             tokenStatus.value[tokenId] = "completed";
              addLog({
                 time: new Date().toLocaleTimeString(),
-                message: `=== ${token.name} 换皮闯关结束 (无需挑战) ===`,
-                type: "success",
+                message: `${token.name} 无需挑战，继续检查可领取奖励`,
+                type: "info",
              });
-             return;
         }
 
         for (const type of targetTowers) {
@@ -837,6 +839,52 @@ export function createTasksTower(deps: BatchTaskDeps) {
                      }
                 }
             }
+        }
+
+        const claimActId = getSkinChallengeRewardActId(towerData.actId);
+        let claimCount = 0;
+        if (claimActId) {
+          addLog({
+            time: new Date().toLocaleTimeString(),
+            message: `${token.name} 闯关结束，开始领取活动 ${claimActId} 奖励`,
+            type: "info",
+          });
+
+          try {
+            while (
+              !shouldStop.value
+              && claimCount < MAX_SKIN_CHALLENGE_REWARD_CLAIMS
+            ) {
+              await tokenStore.sendMessageWithPromise(
+                tokenId,
+                "activity_startactegame",
+                { actId: claimActId },
+                5000,
+              );
+              claimCount++;
+              addLog({
+                time: new Date().toLocaleTimeString(),
+                message: `${token.name} 活动 ${claimActId} 领取奖励第 ${claimCount} 次`,
+                type: "success",
+              });
+              await new Promise((r) => setTimeout(r, 300));
+            }
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            addLog({
+              time: new Date().toLocaleTimeString(),
+              message: `${token.name} 活动 ${claimActId} 领取结束（共 ${claimCount} 次）：${errorMessage}`,
+              type: claimCount > 0 ? "success" : "info",
+            });
+          }
+
+          if (claimCount >= MAX_SKIN_CHALLENGE_REWARD_CLAIMS) {
+            addLog({
+              time: new Date().toLocaleTimeString(),
+              message: `${token.name} 领取达到 ${MAX_SKIN_CHALLENGE_REWARD_CLAIMS} 次保护上限，已停止`,
+              type: "warning",
+            });
+          }
         }
 
         tokenStatus.value[tokenId] = "completed";

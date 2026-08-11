@@ -358,6 +358,19 @@
                 >
                   一键购买梦境商品
                 </n-button>
+                <n-popselect
+                  trigger="click"
+                  :options="footballPickOptions"
+                  :value="footballPick"
+                  @update:value="onFootballPickChange"
+                >
+                  <n-button
+                    size="small"
+                    :disabled="isRunning || selectedTokens.length === 0"
+                  >
+                    一键竞猜({{ footballPickLabel }})
+                  </n-button>
+                </n-popselect>
               </n-space>
             </n-tab-pane>
             <n-tab-pane name="baoku" tab="宝库">
@@ -2861,15 +2874,18 @@ import {
   shouldSendCar,
   canClaim,
   // Task factories
-  createTasksHangUp,
-  createTasksBottle,
-  createTasksTower,
-  createTasksCar,
-  createTasksItem,
-  createTasksDungeon,
   createTasksArena,
-  createTasksStore,
+  createTasksBottle,
+  createTasksCar,
+  createTasksDungeon,
+  createTasksFootball,
+  createTasksHangUp,
+  createTasksItem,
   createTasksLegacy,
+  createTasksStore,
+  createTasksTower,
+  getSaltCupPickLabel,
+  SALT_CUP_PICK_OPTIONS,
 } from "@/utils/batch";
 
 import { merchantConfig, goldItemsConfig } from "@/utils/dreamConstants";
@@ -5770,6 +5786,19 @@ const {
 
 const tasksLegacy = createTasksLegacy(createTaskDeps());
 const { batchLegacyClaim, batchLegacyGiftSendEnhanced } = tasksLegacy;
+
+const tasksFootball = createTasksFootball(createTaskDeps());
+const { batchFootballBet } = tasksFootball;
+
+const footballPick = ref(3);
+const footballPickOptions = SALT_CUP_PICK_OPTIONS;
+const footballPickLabel = computed(() =>
+  getSaltCupPickLabel(footballPick.value),
+);
+const onFootballPickChange = async (value) => {
+  footballPick.value = value;
+  await batchFootballBet(value);
+};
 
 const getScheduledTaskFunction = (taskName) => {
   const taskRegistry = {
