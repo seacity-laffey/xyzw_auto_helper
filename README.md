@@ -164,85 +164,21 @@ pnpm run lint:baseline  # 刷新既有 error 抑制基线
 pnpm run format         # 代码格式化
 ```
 
-### 部署代理服务 (Cloudflare Pages)
+### 部署
 
-本项目推荐使用 Cloudflare Pages 进行部署，内置了对 API 代理的支持。
-
-1. **准备代码**：https://github.com/w1249178256/xyzw_web_helper.git
-2. **连接仓库**：在 Cloudflare Dashboard 中选择 "Pages" -> "Connect to Git"，选择本项目仓库。
-3. **构建设置**：
-    - **构建命令**: `npm run build`
-    - **构建输出目录**: `dist`
-4. **环境变量**（可选）：可以在 Cloudflare Pages 设置中添加环境变量。
-5. **部署**：点击 "Save and Deploy"。
-
-Cloudflare Pages 会自动识别 `dist/_worker.js` 并启用 Advanced Mode，无需额外配置即可实现 API 代理和静态资源托管。
-
-### 本地预览 (Cloudflare Pages)
-
-为了在本地模拟 Cloudflare Pages 环境（包括 `worker.js` 的代理功能），请使用 `wrangler`：
-
-1. **安装 wrangler**: `npm install -g wrangler`
-2. **构建项目**: `npm run build`
-3. **启动预览**: `npx wrangler pages dev dist`
-4. **访问**: 打开浏览器访问 `http://localhost:8787`
-
-> 注意：`npm run preview` 仅提供静态文件预览，无法执行 `worker.js` 中的代理逻辑。请使用 `wrangler` 进行全功能预览。
-
-### 部署TokenURL获取服务 (Python)
-
-本项目提供了一个基于 Python Flask 的配套后端服务，用于管理游戏 bin 文件并提供 Token 获取接口。
-
-**主要功能：**
-*   **多用户管理**：支持用户注册、登录、注销，每个用户拥有独立的文件存储空间。
-*   **Web 管理界面**：可视化管理 bin 文件，支持批量上传、删除。
-*   **安全认证**：内置登录认证机制，保护接口安全。
-*   **专属 Token**：为每个用户生成唯一的 Token，用于构建安全的访问链接。
-
-#### 1. 环境准备
-
-确保服务器安装了 Python 3.x，并安装依赖：
+正式部署目标为 Cloudflare Pages。构建过程会生成 `dist/_worker.js`，用于静态资源托管和 API 代理。
 
 ```bash
-cd server
-pip install -r requirements.txt
+pnpm run preview:cloudflare # 本地预览 Pages + Worker
+pnpm run deploy:cloudflare  # 构建并部署当前分支
 ```
 
-#### 2. 配置
+Git 集成、首次认证、预览分支、验证和回滚步骤见 [DEPLOYMENT.md](./DEPLOYMENT.md)。
 
-服务启动时会自动检查 `server/config.json`，如果不存在则创建默认配置（包含默认管理员账号）。
+### 旧部署路径状态
 
-> **注意**：默认管理员账号为 `admin`，密码为 `admin123`。建议首次登录后修改密码或创建新账号。
-
-#### 3. 启动服务
-
-```bash
-python app.py
-```
-
-服务将在 `0.0.0.0:5000` 启动。
-
-#### 4. 使用方式
-
-1.  **注册/登录**：
-    访问 `http://<你的服务器IP>:5000`。
-    *   默认管理员：`admin` / `admin123`
-    *   普通用户：点击“注册新账号”创建自己的账号。
-
-2.  **上传 bin 文件**：
-    登录后，点击“上传”按钮，选择一个或多个 `.bin` 文件进行上传。文件将存储在您的专属目录下。
-
-3.  **获取 Token URL**：
-    上传成功后，列表中会显示每个文件的 Token URL。点击“复制完整链接”按钮。
-
-    URL 格式示例（包含用户专属 Token）：
-    ```
-    http://<你的服务器IP>:5000/<UserToken>/<bin文件名>/<base64编码>
-    ```
-
-4.  **账号管理**：
-    *   **修改密码**：点击“修改密码”按钮，在弹出的窗口中输入新密码进行修改。
-    *   **注销账号**：普通用户可以点击“注销账号”来永久删除账号及所有数据。管理员账号不可注销。
+- `docker/` 已修复为可构建的静态 Nginx 兼容方案，但不会执行 Cloudflare Worker，因此依赖 API 代理的功能不可用。
+- `server/` 只有历史依赖清单，没有 Flask 应用源码，不再作为可部署服务。不要使用旧文档曾记录的默认账号密码。
 
 ---
 
