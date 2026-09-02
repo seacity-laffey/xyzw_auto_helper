@@ -1207,6 +1207,80 @@
       "count": 1
     }
   },
+  "src/components/Club/ClubWarRankV2.vue": {
+    "antfu/if-newline": {
+      "count": 20
+    },
+    "eqeqeq": {
+      "count": 5
+    },
+    "no-alert": {
+      "count": 2
+    },
+    "object-shorthand": {
+      "count": 11
+    },
+    "perfectionist/sort-named-imports": {
+      "count": 16
+    },
+    "prefer-const": {
+      "count": 4
+    },
+    "prefer-template": {
+      "count": 8
+    },
+    "style/indent-binary-ops": {
+      "count": 2
+    },
+    "style/operator-linebreak": {
+      "count": 21
+    },
+    "style/quote-props": {
+      "count": 11
+    },
+    "style/spaced-comment": {
+      "count": 16
+    },
+    "unicode-bom": {
+      "count": 1
+    },
+    "unicorn/prefer-number-properties": {
+      "count": 3
+    },
+    "vue/attribute-hyphenation": {
+      "count": 3
+    },
+    "vue/attributes-order": {
+      "count": 55
+    },
+    "vue/component-name-in-template-casing": {
+      "count": 10
+    },
+    "vue/define-macros-order": {
+      "count": 1
+    },
+    "vue/eqeqeq": {
+      "count": 2
+    },
+    "vue/html-indent": {
+      "count": 25
+    },
+    "vue/html-self-closing": {
+      "count": 14
+    },
+    "vue/max-attributes-per-line": {
+      "count": 2
+    },
+    "vue/operator-linebreak": {
+      "count": 4
+    },
+    "vue/prefer-separate-static-class": {
+      "count": 2
+    },
+    "vue/prefer-template": {
+      "count": 1
+    }
+  },
   "src/components/Club/ClubWeirdTowerInfo.vue": {
     "import/newline-after-import": {
       "count": 1
@@ -1600,6 +1674,68 @@
       "count": 1
     }
   },
+  "src/components/Club/PeachInfoV2.vue": {
+    "antfu/curly": {
+      "count": 3
+    },
+    "antfu/if-newline": {
+      "count": 24
+    },
+    "eqeqeq": {
+      "count": 5
+    },
+    "import/newline-after-import": {
+      "count": 1
+    },
+    "object-shorthand": {
+      "count": 8
+    },
+    "perfectionist/sort-named-imports": {
+      "count": 16
+    },
+    "prefer-const": {
+      "count": 6
+    },
+    "prefer-template": {
+      "count": 2
+    },
+    "style/operator-linebreak": {
+      "count": 6
+    },
+    "style/spaced-comment": {
+      "count": 16
+    },
+    "unicorn/prefer-number-properties": {
+      "count": 7
+    },
+    "vue/attributes-order": {
+      "count": 51
+    },
+    "vue/component-name-in-template-casing": {
+      "count": 41
+    },
+    "vue/eqeqeq": {
+      "count": 2
+    },
+    "vue/html-indent": {
+      "count": 33
+    },
+    "vue/html-self-closing": {
+      "count": 14
+    },
+    "vue/max-attributes-per-line": {
+      "count": 3
+    },
+    "vue/operator-linebreak": {
+      "count": 4
+    },
+    "vue/prefer-separate-static-class": {
+      "count": 1
+    },
+    "vue/prefer-template": {
+      "count": 1
+    }
+  },
   "src/components/Club/SignIn.vue": {
     "antfu/if-newline": {
       "count": 2
@@ -1745,7 +1881,7 @@
       "count": 30
     },
     "vue/html-self-closing": {
-      "count": 62
+      "count": 64
     },
     "vue/operator-linebreak": {
       "count": 2
@@ -1912,7 +2048,7 @@
       "count": 1
     },
     "import/first": {
-      "count": 4
+      "count": 5
     },
     "no-unmodified-loop-condition": {
       "count": 2
@@ -1935,9 +2071,6 @@
     "style/no-trailing-spaces": {
       "count": 10
     },
-    "style/operator-linebreak": {
-      "count": 3
-    },
     "style/padded-blocks": {
       "count": 2
     },
@@ -1945,7 +2078,7 @@
       "count": 9
     },
     "style/semi": {
-      "count": 9
+      "count": 10
     },
     "unicorn/prefer-number-properties": {
       "count": 3
@@ -2324,6 +2457,11 @@
       "count": 1
     }
   },
+  "src/utils/batch/index.ts": {
+    "perfectionist/sort-exports": {
+      "count": 1
+    }
+  },
   "src/utils/batch/logUtils.ts": {
     "prefer-template": {
       "count": 1
@@ -2493,7 +2631,7 @@
   },
   "src/utils/batch/tasksTower.ts": {
     "antfu/if-newline": {
-      "count": 17
+      "count": 18
     },
     "eqeqeq": {
       "count": 1
@@ -2515,9 +2653,6 @@
     },
     "style/no-trailing-spaces": {
       "count": 16
-    },
-    "style/operator-linebreak": {
-      "count": 3
     },
     "style/padded-blocks": {
       "count": 3
@@ -2597,7 +2732,7 @@
   },
   "src/utils/clubWarrankUtils.ts": {
     "antfu/if-newline": {
-      "count": 2
+      "count": 4
     },
     "one-var": {
       "count": 1
@@ -2689,6 +2824,11 @@
       "count": 2
     },
     "unicorn/prefer-number-properties": {
+      "count": 1
+    }
+  },
+  "src/utils/petList.js": {
+    "antfu/if-newline": {
       "count": 1
     }
   },
@@ -3118,6 +3258,32 @@
       "count": 12
     }
   },
+  "src/views/PushingLevels.vue": {
+    "antfu/if-newline": {
+      "count": 38
+    },
+    "regexp/no-super-linear-backtracking": {
+      "count": 1
+    },
+    "style/indent-binary-ops": {
+      "count": 1
+    },
+    "style/operator-linebreak": {
+      "count": 18
+    },
+    "vue/attributes-order": {
+      "count": 24
+    },
+    "vue/html-indent": {
+      "count": 6
+    },
+    "vue/html-self-closing": {
+      "count": 9
+    },
+    "vue/max-attributes-per-line": {
+      "count": 4
+    }
+  },
   "src/views/Register.vue": {
     "antfu/if-newline": {
       "count": 1
@@ -3199,7 +3365,7 @@
       "count": 1
     },
     "perfectionist/sort-named-imports": {
-      "count": 2
+      "count": 3
     },
     "prefer-template": {
       "count": 3
@@ -3410,6 +3576,17 @@
     },
     "vue/html-self-closing": {
       "count": 3
+    }
+  },
+  "src/views/bossNames.js": {
+    "style/comma-dangle": {
+      "count": 1
+    },
+    "style/eol-last": {
+      "count": 1
+    },
+    "style/quote-props": {
+      "count": 10000
     }
   }
 }

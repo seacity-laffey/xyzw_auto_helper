@@ -3,19 +3,21 @@
 本文档描述当前代码实际提供的功能，用于维护本仓库并与 `upstream` 比较差异。
 
 - 功能基线分支：`refactor/dev`
-- 上游同步点：`59f305d`
-- 核对日期：2026-08-11
+- 上游同步点：`4169559`（`main`：`b66570b`）
+- 核对日期：2026-09-02
 - 判断依据：正式路由、可达页面及其直接使用的组件和 Store
 
 ## 正式入口
 
-当前应用只有三个正式页面入口：
+当前应用有五个正式页面入口：
 
 | 页面 | 路由 | Token 要求 | 主要用途 |
 | --- | --- | --- | --- |
 | Token 管理 | `/tokens` | 否 | 导入、维护和选择游戏账号 |
 | 单个角色 | `/admin/game-features` | 是 | 查看角色状态并使用单账号功能 |
 | 批量任务 | `/admin/batch-daily-tasks` | 是 | 为多个账号编排、执行和定时运行任务 |
+| 主线推关 | `/admin/pushing-levels` | 是 | 为多个账号执行主线自动推关 |
+| 内嵌游戏 | `/game` | 是 | 使用当前账号启动内嵌游戏客户端 |
 
 没有 Token 时，受保护页面会跳转到 `/tokens`。有 Token 但尚未选择账号时，路由守卫会自动选择第一个账号。
 
@@ -40,6 +42,7 @@
 - 临时 Token 清理及升级为长期有效
 - 显示并控制每个账号的 WebSocket 连接状态
 - 从角色信息补齐缺失的角色名称并同步服务器名称
+- 使用当前选中账号打开内嵌游戏
 
 账号元数据、当前选择和分组保存在 `localStorage`。连接需要使用的二进制 Token 数据按账号保存在 IndexedDB；两种存储共同组成当前持久化方案。
 
@@ -53,8 +56,8 @@
 | 俱乐部 | 俱乐部信息、签到入口和疯狂赛车 |
 | 活动 | 月度任务、答题活动、换皮闯关 |
 | 工具 | 无限阵容、宝箱、钓鱼、招募、升星、竞技场、梦境、武将升级、洗练、消耗活动、咸王宝库 |
-| 盐场 | 盐场排行、周战绩、月战绩、地图和战况 |
-| 蟠桃园 | 蟠桃园信息和战绩 |
+| 盐场 | 盐场排行（两套展示样式）、周战绩、月战绩、地图和战况 |
+| 蟠桃园 | 蟠桃园信息（两套展示样式）和战绩 |
 | 排行榜 | 区服榜、巅峰榜、俱乐部榜、黄金积分榜、伟大航路积分榜 |
 | 切磋 | 玩家切磋功能 |
 
@@ -71,6 +74,7 @@
 - 资源：宝箱积分、招募、图鉴奖励等
 - 功法
 - 月度任务
+- 巅峰赛竞猜
 
 ### 编排能力
 
@@ -82,6 +86,7 @@
 - 定时任务启停、编辑和删除
 - 任务配置与账号配置的导入、导出
 - WebSocket 连接队列、并发限制和任务超时恢复
+- 咸将塔和怪异塔的待领取章节奖励自动补领
 
 ## 公共能力
 
@@ -90,15 +95,19 @@
 - 浅色、深色及跟随系统的主题模式
 - BON 协议编解码和游戏 WebSocket 通信
 - LX、X、XTM 等协议处理逻辑
+- 内嵌 Cocos 游戏及账号会话注入
 - Cloudflare Pages Worker 代理
 - 可选的 Token URL 配套服务
 
+仓库还包含独立的 `render-backend/` 实验服务，用于 BON 协议和游戏连接相关的后端能力。它有独立依赖与启动入口，尚未接入根项目的前端构建和正式路由。
+
 ## 兼容与遗留边界
 
-下列旧地址仅用于兼容，均会跳转到现有三个正式入口之一：
+下列旧地址仅用于兼容，会跳转到现有正式入口：
 
 - `/admin`、`/admin/dashboard`、`/admin/daily-tasks`
 - `/admin/profile`、`/admin/message-test`、`/admin/legion-war`
+- `/admin/PushingLevels`
 - `/websocket-test`、`/login`、`/register`、`/game-roles`
 
 仓库仍保留部分旧页面及旧 Store，例如登录、注册、Dashboard、Profile、`auth.ts`、`gameRoles.ts` 和 `localTokenManager.ts`。它们不属于当前正式路由，不应仅因文件存在就视为现有产品功能。
@@ -108,10 +117,10 @@
 在当前功能基线上已执行：
 
 - `npm run build`：通过
-- `pnpm exec tsc --noEmit -p tsconfig.app.json`：通过
-- `node --test test/upstreamFeatures.test.js test/roleTokenMetadata.test.js test/helperTaskRunner.test.js test/towerClimbLimit.test.js`：21 项通过
-- `git diff --check`：通过
-- `npm run lint`：通过；既有 error 已由 `eslint-suppressions.json` 按文件和规则纳入基线，仍报告 960 个不阻断检查的 warning
+- `./node_modules/.bin/tsc --noEmit`：通过
+- `node --test test/*.test.js`：24 项通过
+- `git diff --check`：通过（内嵌游戏的上游编译产物除外）
+- `npm run lint`：通过；既有 error 已由 `eslint-suppressions.json` 按文件和规则纳入基线，仍报告 1083 个不阻断检查的 warning
 
 旧文档中关于 lint 无遗留项、旧页面可独立访问的结论不再代表当前工作区。
 

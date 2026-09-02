@@ -197,10 +197,45 @@ const allianceConfig = [
   },
 ];
 
-export const allianceincludes = (str1?: string) => {
-  if (!str1) return "未知联盟";
+const normalizeAllianceText = (value: unknown): string => {
+  if (value == null) return "";
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) {
+    return value.map(normalizeAllianceText).filter(Boolean).join(" ");
+  }
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    const textKeys = [
+      "announcement",
+      "notice",
+      "content",
+      "text",
+      "value",
+      "desc",
+      "description",
+      "message",
+      "msg",
+      "name",
+      "title",
+    ];
+    const parts = textKeys
+      .map((key) => normalizeAllianceText(record[key]))
+      .filter(Boolean);
+    if (parts.length) return parts.join(" ");
+
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return "";
+    }
+  }
+  return String(value);
+};
+
+export const allianceincludes = (value: unknown) => {
+  const text = normalizeAllianceText(value);
   const matchedItem = allianceConfig.find((item) => {
-    return item.keywords.some((keyword) => str1.includes(keyword));
+    return item.keywords.some((keyword) => text.includes(keyword));
   });
 
   return matchedItem ? matchedItem.value : "未知联盟";

@@ -142,6 +142,14 @@
           </div>
           <div data-testid="token-header-actions" class="flex flex-wrap items-center gap-2 max-md:grid max-md:w-full max-md:grid-cols-2">
             <button
+              class="flex items-center justify-center gap-2 rounded-md border border-primary bg-transparent px-4 py-2 text-label-sm font-semibold text-primary transition-colors hover:bg-[color-mix(in_srgb,var(--primary)_10%,transparent)]"
+              type="button"
+              @click="openGame"
+            >
+              <GameController class="h-4 w-4"></GameController>
+              打开游戏
+            </button>
+            <button
               v-if="!showImportForm"
               class="flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-label-sm font-semibold text-on-primary transition-[filter] hover:brightness-110"
               type="button"
@@ -513,6 +521,7 @@ import {
   DocumentTextOutline as DocumentIcon,
   EllipsisHorizontal,
   Home,
+  GameController,
   Key as KeyIcon,
   Menu as MenuIcon,
   Refresh,
@@ -526,6 +535,7 @@ import { useRouter } from "vue-router";
 import { transformToken, scheduleAuthUserRequest } from "@/utils/token";
 import { $emit } from "@/stores/events/index";
 import useIndexedDB from "@/hooks/useIndexedDB";
+import { prepareEmbeddedGameSession } from "@/utils/gameLauncher";
 const { getArrayBuffer, storeArrayBuffer, deleteArrayBuffer, clearAll } =
   useIndexedDB();
 // 接收路由参数
@@ -1395,6 +1405,23 @@ const maskToken = (token) => {
 
 const formatTime = (timestamp) => {
   return new Date(timestamp).toLocaleString("zh-CN");
+};
+
+const openGame = async () => {
+  const token = tokenStore.selectedToken;
+  if (!token) {
+    message.warning("请先选择一个 Token");
+    return;
+  }
+
+  const binData = await getArrayBuffer(token.id);
+  if (!binData) {
+    message.error("未找到该 Token 的 BIN 数据");
+    return;
+  }
+
+  prepareEmbeddedGameSession(token, binData);
+  router.push("/game");
 };
 
 // 开始任务管理 - 直接跳转到控制台

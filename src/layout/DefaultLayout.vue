@@ -115,6 +115,7 @@ import { computed, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import {
   Apps,
+  ArrowUpCircle,
   ChevronDown,
   Close,
   Flash,
@@ -143,6 +144,12 @@ const navigation = computed(() => [
     path: "/admin/batch-daily-tasks",
     label: "批量任务",
     icon: Apps,
+    disabled: !tokenStore.hasTokens,
+  },
+  {
+    path: "/admin/pushing-levels",
+    label: "主线推关",
+    icon: ArrowUpCircle,
     disabled: !tokenStore.hasTokens,
   },
 ]);

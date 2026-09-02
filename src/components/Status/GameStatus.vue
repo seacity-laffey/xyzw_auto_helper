@@ -100,6 +100,7 @@
           <span>{{ legionMatch.isRegistered ? "已报名" : "未报名" }}</span>
         </div>
       </div>
+
       <div class="card-content">
         <p class="description">
           每逢周三周四周五有比赛<br />
@@ -193,6 +194,13 @@
         </n-tabs>
       </div>
 
+      <div v-if="saltFieldSubTab === 'warrank'" class="style-switch-bar">
+        <n-radio-group v-model:value="warrankStyle" size="small">
+          <n-radio-button value="style1">样式一</n-radio-button>
+          <n-radio-button value="style2">样式二</n-radio-button>
+        </n-radio-group>
+      </div>
+
       <div
         class="warrank-full-container"
         v-if="saltFieldSubTab === 'weekBattle'"
@@ -200,8 +208,13 @@
         <ClubBattleRecords />
       </div>
 
-      <div class="warrank-full-container" v-if="saltFieldSubTab === 'warrank'">
-        <ClubWarRank />
+      <div
+        v-if="saltFieldSubTab === 'warrank'"
+        class="warrank-full-container"
+        :class="{ 'style2-container': warrankStyle === 'style2' }"
+      >
+        <ClubWarRankV2 v-if="warrankStyle === 'style2'" />
+        <ClubWarRank v-else />
       </div>
 
       <div
@@ -247,12 +260,24 @@
         </n-tabs>
       </div>
 
+      <div v-if="peachSubTab === 'peach'" class="style-switch-bar">
+        <n-radio-group v-model:value="peachStyle" size="small">
+          <n-radio-button value="style1">样式一</n-radio-button>
+          <n-radio-button value="style2">样式二</n-radio-button>
+        </n-radio-group>
+      </div>
+
       <div class="warrank-full-container" v-if="peachSubTab === 'peachBattle'">
         <PeachBattleRecords />
       </div>
 
-      <div class="warrank-full-container" v-if="peachSubTab === 'peach'">
-        <PeachInfo />
+      <div
+        v-if="peachSubTab === 'peach'"
+        class="warrank-full-container"
+        :class="{ 'style2-container': peachStyle === 'style2' }"
+      >
+        <PeachInfoV2 v-if="peachStyle === 'style2'" />
+        <PeachInfo v-else />
       </div>
     </div>
 
@@ -322,6 +347,7 @@ import MonthlyTasksCard from "../Cards/Activity/MonthlyTasksCard.vue";
 import StudyChallengeCard from "../Cards/Activity/StudyChallengeCard.vue";
 import SkinChallengeCard from "../Cards/Activity/SkinChallengeCard.vue";
 import ClubWarRank from "../Club/ClubWarRank.vue";
+import ClubWarRankV2 from "../Club/ClubWarRankV2.vue";
 import ClubMonthBattleRecords from "../Club/ClubMonthBattleRecords.vue";
 import ClubBattleRecords from "../Club/ClubBattleRecords.vue";
 import PeachBattleRecords from "../Club/PeachBattleRecords.vue";
@@ -339,6 +365,7 @@ import TowerStatus from "../Tower/TowerStatus.vue";
 import WeirdTowerStatus from "../Tower/WeirdTowerStatus.vue";
 import BossTower from "../Tower/BossTower.vue";
 import PeachInfo from "../Club/PeachInfo.vue";
+import PeachInfoV2 from "../Club/PeachInfoV2.vue";
 import ServerRankList from "../Cards/Rank/ServerRankListPageCard.vue";
 import LegionWarMap from "../Club/LegionWarMap.vue";
 import LegionWarStatistics from "../Club/LegionWarStatistics.vue";
@@ -357,6 +384,17 @@ const activeSection = ref("daily");
 const saltFieldSubTab = ref("warrank");
 const peachSubTab = ref("peach");
 const rankSubTab = ref("serverrank");
+const warrankStyle = ref(
+  localStorage.getItem("club_warrank_style") || "style1",
+);
+const peachStyle = ref(localStorage.getItem("peach_info_style") || "style1");
+
+watch(warrankStyle, (style) => {
+  localStorage.setItem("club_warrank_style", style);
+});
+watch(peachStyle, (style) => {
+  localStorage.setItem("peach_info_style", style);
+});
 
 // 活动开放时间：仅周一到周三可参与
 const isActivityOpen = computed(() => {
@@ -793,6 +831,25 @@ onUnmounted(() => {
   height: calc(100vh - 200px);
   min-height: 600px;
   overflow: hidden;
+
+  @media (max-width: 768px) {
+    height: calc(100vh - 180px);
+    min-height: 500px;
+  }
+}
+
+.style-switch-bar {
+  display: flex;
+  justify-content: center;
+  padding: 0 8px 8px;
+  background: var(--bg-primary);
+}
+
+.warrank-full-container.style2-container {
+  position: relative;
+  z-index: 1;
+  height: calc(100vh - 180px);
+  min-height: 700px;
 
   @media (max-width: 768px) {
     height: calc(100vh - 180px);

@@ -49,7 +49,27 @@ const routes = [
           immersive: true,
         },
       },
+      {
+        path: "/admin/pushing-levels",
+        name: "PushingLevels",
+        component: () => import("@/views/PushingLevels.vue"),
+        meta: {
+          title: "主线推关",
+          description: "多账号主线战斗与火把管理",
+          requiresToken: true,
+          immersive: true,
+        },
+      },
     ],
+  },
+  {
+    path: "/game",
+    name: "GamePlayer",
+    component: () => import("@/views/GamePlayer.vue"),
+    meta: {
+      title: "游戏",
+      requiresToken: true,
+    },
   },
   // 兼容历史链接，但不再保留额外页面。
   { path: "/admin", redirect: "/admin/game-features" },
@@ -58,6 +78,7 @@ const routes = [
   { path: "/admin/profile", redirect: "/admin/game-features" },
   { path: "/admin/message-test", redirect: "/admin/game-features" },
   { path: "/admin/legion-war", redirect: "/admin/game-features" },
+  { path: "/admin/PushingLevels", redirect: "/admin/pushing-levels" },
   { path: "/websocket-test", redirect: "/admin/game-features" },
   { path: "/login", redirect: "/tokens" },
   { path: "/register", redirect: "/tokens" },

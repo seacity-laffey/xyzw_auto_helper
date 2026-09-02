@@ -5,6 +5,7 @@ export * from "./cronUtils";
 export * from "./footballBet";
 export * from "./logUtils";
 export { createTasksArena } from "./tasksArena";
+export { createTasksApex } from "./tasksApex";
 export { createTasksBottle } from "./tasksBottle";
 export { createTasksCar } from "./tasksCar";
 export { createTasksDungeon } from "./tasksDungeon";

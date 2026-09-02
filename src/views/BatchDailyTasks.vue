@@ -371,6 +371,13 @@
                     一键竞猜({{ footballPickLabel }})
                   </n-button>
                 </n-popselect>
+                <n-button
+                  size="small"
+                  :disabled="isRunning || selectedTokens.length === 0"
+                  @click="batchApexGuess(apexScheduleId)"
+                >
+                  逐鹿盐山竞猜
+                </n-button>
               </n-space>
             </n-tab-pane>
             <n-tab-pane name="baoku" tab="宝库">
@@ -2874,6 +2881,7 @@ import {
   shouldSendCar,
   canClaim,
   // Task factories
+  createTasksApex,
   createTasksArena,
   createTasksBottle,
   createTasksCar,
@@ -5789,6 +5797,10 @@ const { batchLegacyClaim, batchLegacyGiftSendEnhanced } = tasksLegacy;
 
 const tasksFootball = createTasksFootball(createTaskDeps());
 const { batchFootballBet } = tasksFootball;
+
+const tasksApex = createTasksApex(createTaskDeps());
+const { batchApexGuess } = tasksApex;
+const apexScheduleId = ref(46);
 
 const footballPick = ref(3);
 const footballPickOptions = SALT_CUP_PICK_OPTIONS;
