@@ -573,166 +573,10 @@
       </div>
     </n-modal>
 
-    <!-- 武将详情模态框 -->
-    <n-modal
-      v-model:show="showHeroModal"
-      class="hero-detail-modal"
-      preset="card"
-      title="武将信息"
-      size="large"
-      :bordered="false"
-      :segmented="{ content: 'soft', footer: 'soft' }"
-      :style="{ width: '600px' }"
-      :show-close="true"
-    >
-      <template #header-extra>
-        <span class="hero-id">武将ID: {{ heroModealTemp?.heroId }}</span>
-      </template>
-
-      <div v-if="heroModealTemp" class="hero-modal-content">
-        <div class="hero-modal-header">
-          <div class="hero-modal-avatar">
-            <img
-              v-if="heroModealTemp.heroAvate"
-              :src="heroModealTemp.heroAvate"
-              :alt="heroModealTemp.heroName"
-            />
-            <div v-else class="hero-placeholder">
-              {{ heroModealTemp.heroName?.substring(0, 2) || "?" }}
-            </div>
-          </div>
-          <div class="hero-modal-basic">
-            <h3 class="hero-modal-name">{{ heroModealTemp.heroName }}</h3>
-            <div class="hero-modal-stats">
-              <span class="stat-item">{{
-                formatPower(heroModealTemp.power)
-              }}</span>
-              <span class="stat-item">等级: {{ heroModealTemp.level }}</span>
-              <span class="stat-item">星级: {{ heroModealTemp.star }}</span>
-              <n-tag :type="heroModealTemp.HolyBeast ? 'success' : 'warning'">
-                {{ heroModealTemp.HolyBeast ? "已激活" : "未激活" }}
-              </n-tag>
-            </div>
-          </div>
-        </div>
-
-        <div class="hero-modal-details">
-          <n-descriptions label-placement="left" column="3" bordered>
-            <n-descriptions-item label="战力">
-              {{ formatPower(heroModealTemp.power) }}
-            </n-descriptions-item>
-            <n-descriptions-item label="等级">
-              {{ heroModealTemp.level }}
-            </n-descriptions-item>
-            <n-descriptions-item label="星级">
-              {{ heroModealTemp.star }}
-            </n-descriptions-item>
-            <n-descriptions-item label="开孔数">
-              {{ heroModealTemp.hole }}
-            </n-descriptions-item>
-            <n-descriptions-item label="红孔数">
-              {{ heroModealTemp.red }}
-            </n-descriptions-item>
-            <n-descriptions-item label="四圣状态">
-              {{ heroModealTemp.HolyBeast ? "已激活" : "未激活" }}
-            </n-descriptions-item>
-            <n-descriptions-item
-              label="四圣等级"
-              v-if="heroModealTemp.HolyBeast"
-            >
-              {{ heroModealTemp.HBlevel }}
-            </n-descriptions-item>
-            <n-descriptions-item label="鱼灵">
-              {{
-                heroModealTemp?.PearlInfo?.FishInfo?.name != undefined
-                  ? heroModealTemp.PearlInfo?.FishInfo?.name
-                  : "无"
-              }}
-            </n-descriptions-item>
-            <n-descriptions-item label="鱼珠技能">
-              {{
-                heroModealTemp?.PearlInfo?.PearlSkill?.name != undefined
-                  ? heroModealTemp.PearlInfo?.PearlSkill?.name
-                  : "无"
-              }}
-            </n-descriptions-item>
-            <n-descriptions-item label="鱼灵洗练">
-              <div v-if="heroModealTemp?.PearlInfo?.slotMap?.length > 0">
-                <div
-                  v-for="item in heroModealTemp.PearlInfo.slotMap"
-                  :key="item.id"
-                  class="ModalEquipment"
-                  :style="'background-color:' + item.value"
-                ></div>
-              </div>
-              <div v-else>无</div>
-            </n-descriptions-item>
-          </n-descriptions>
-        </div>
-
-        <div class="hero-modal-equipment">
-          <h4 class="section-title">装备详情</h4>
-          <div class="equipment-grid">
-            <div class="equipment-item">
-              <span class="equipment-label">武器:</span>
-              <div class="equipment-slots">
-                <div
-                  v-for="(item, idx) in Object.values(
-                    Object.values(heroModealTemp.equipment)[0]?.quenches || {},
-                  )"
-                  :key="idx"
-                  class="equipment-slot"
-                  :class="{ 'red-slot': item.colorId === 6 }"
-                ></div>
-              </div>
-            </div>
-            <div class="equipment-item">
-              <span class="equipment-label">衣服:</span>
-              <div class="equipment-slots">
-                <div
-                  v-for="(item, idx) in Object.values(
-                    Object.values(heroModealTemp.equipment)[1]?.quenches || {},
-                  )"
-                  :key="idx"
-                  class="equipment-slot"
-                  :class="{ 'red-slot': item.colorId === 6 }"
-                ></div>
-              </div>
-            </div>
-            <div class="equipment-item">
-              <span class="equipment-label">头盔:</span>
-              <div class="equipment-slots">
-                <div
-                  v-for="(item, idx) in Object.values(
-                    Object.values(heroModealTemp.equipment)[2]?.quenches || {},
-                  )"
-                  :key="idx"
-                  class="equipment-slot"
-                  :class="{ 'red-slot': item.colorId === 6 }"
-                ></div>
-              </div>
-            </div>
-            <div class="equipment-item">
-              <span class="equipment-label">坐骑:</span>
-              <div class="equipment-slots">
-                <div
-                  v-for="(item, idx) in Object.values(
-                    Object.values(heroModealTemp.equipment)[3]?.quenches || {},
-                  )"
-                  :key="idx"
-                  class="equipment-slot"
-                  :class="{ 'red-slot': item.colorId === 6 }"
-                ></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <template #footer>
-        <n-button @click="showHeroModal = false">关闭</n-button>
-      </template>
-    </n-modal>
+    <ClubHeroDetailDialog
+      v-model:open="showHeroModal"
+      :hero="heroModealTemp"
+    />
   </div>
 </template>
 
@@ -740,7 +584,6 @@
 import { ref, computed, onMounted, reactive, watch } from "vue";
 import {
   useMessage,
-  NDatePicker,
   NCheckboxGroup,
   NCheckbox,
   NModal,
@@ -752,23 +595,16 @@ import {
 import { useTokenStore } from "@/stores/tokenStore";
 import html2canvas from "html2canvas";
 import { downloadCanvasAsImage } from "@/utils/imageExport";
+import ClubHeroDetailDialog from "@/components/Club/ClubHeroDetailDialog.vue";
 import {
-  Trophy,
   Refresh,
   Copy,
-  ChevronDown,
-  ChevronUp,
   DocumentText,
   CreateOutline,
 } from "@vicons/ionicons5";
 import {
   getLastSaturday,
-  formatTimestamp,
   formatTimestamp1,
-  parseBattleResult,
-  parseAttackType,
-  formatBattleRecordsForExport,
-  copyToClipboard,
 } from "@/utils/clubBattleUtils";
 import {
   gettoday,
@@ -785,31 +621,14 @@ import {
 
 const ScoreShow = ref(1);
 
-const props = defineProps({
-  visible: {
-    type: Boolean,
-    default: false,
-  },
-  inline: {
-    type: Boolean,
-    default: false,
-  },
-});
-
 const exportmethod = ref(["2"]);
 const exportDom = ref(null);
-const emit = defineEmits(["update:visible"]);
 
 const message = useMessage();
 const tokenStore = useTokenStore();
 const selectedTokenId = computed(() => tokenStore.selectedToken?.id || "");
 const currentClubInfo = ref(null);
 const currentLegionInfo = computed(() => currentClubInfo.value?.info || null);
-
-const showModal = computed({
-  get: () => props.visible,
-  set: (val) => emit("update:visible", val),
-});
 
 const loading1 = ref(false);
 const battleRecords1 = ref(null);
@@ -1309,7 +1128,7 @@ const saltTableColumns = [
             margin: "0 -4px",
           },
         },
-        row.topHeroes.map((hero, index) =>
+        row.topHeroes.map((hero) =>
           h(
             "div",
             {
@@ -2162,15 +1981,6 @@ const formatPower = (power) => {
   return power.toString();
 };
 
-const formatScore = (Score) => {
-  return Score ? Score.toFixed(0).toString() : "0";
-};
-
-// 处理图片加载错误
-const handleImageError = (event) => {
-  event.target.style.display = "none";
-};
-
 const disabledDate = (current) => {
   const date =
     typeof current?.toDate === "function"
@@ -2194,37 +2004,6 @@ const changeStatCalendarMonth = (offset) => {
 const selectStatCalendarDate = (value) => {
   statCalendarOpen.value = false;
   fetchBattleRecordsByDate(value);
-};
-
-// 联盟样式�?
-const getAllianceClass = (alliance) => {
-  switch (alliance) {
-    case "大联盟":
-      return "alliance-large";
-    case "梦盟":
-      return "alliance-dream";
-    case "正义联盟":
-      return "alliance-xin-justice";
-    case "龙盟":
-      return "alliance-dragon";
-    case "曦盟":
-      return "alliance-xi";
-    case "未知联盟":
-      return "alliance-unknown";
-    default:
-      return "alliance-other";
-  }
-};
-
-// 红淬样式�?
-const getRedQuenchClass = (redQuench) => {
-  if (redQuench >= 60) {
-    return "redquench-high";
-  } else if (redQuench >= 50) {
-    return "redquench-medium";
-  } else {
-    return "redquench-low";
-  }
 };
 
 //日期选择时调用查询战绩方�?
@@ -2357,7 +2136,7 @@ const fetchBattleRecords1 = async (requestTokenId = selectedTokenId.value) => {
             );
 
             let holyBeast = 0;
-            for (const [heroId, heroData] of Object.entries(
+            for (const heroData of Object.values(
               tempRoleInfo?.roleInfo?.heroes,
             )) {
               if (heroData.hB?.active !== undefined) {
@@ -2559,7 +2338,7 @@ const fetchBattleRecords1 = async (requestTokenId = selectedTokenId.value) => {
             );
 
             let holyBeast = 0;
-            for (const [heroId, heroData] of Object.entries(
+            for (const heroData of Object.values(
               tempRoleInfo?.roleInfo?.heroes,
             )) {
               if (heroData.hB?.active !== undefined) {
@@ -2765,7 +2544,7 @@ const handleExport1 = async () => {
 
   try {
     if (exportmethod.value.includes("1")) {
-      const exportText = formatWarrankRecordsForExport(
+      formatWarrankRecordsForExport(
         battleRecords1.value.legionRankList,
         queryDate.value,
       );
@@ -2912,11 +2691,6 @@ const getAllianceTagClass = (alliance) => {
     default:
       return "alliance-tag-other";
   }
-};
-
-// 关闭弹窗
-const handleClose = () => {
-  expandedMembers.value.clear();
 };
 
 // 暴露方法给父组件
@@ -3085,170 +2859,6 @@ watch(selectedTokenId, (newTokenId, oldTokenId) => {
   display: flex;
   justify-content: flex-start;
   gap: 8px;
-}
-
-.modal-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 20px;
-  background: var(--bg-secondary);
-  border-top: 1px solid var(--border-light);
-}
-
-/* 武将详情模态框样式 */
-.hero-detail-modal {
-  .hero-modal-content {
-    padding: 20px 0;
-  }
-
-  .hero-modal-header {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    margin-bottom: 20px;
-  }
-
-  .hero-modal-avatar {
-    width: 100px;
-    height: 100px;
-    border-radius: 50%;
-    background: var(--bg-secondary);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    border: 2px solid var(--border-light);
-
-    img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .hero-placeholder {
-      font-size: 36px;
-      font-weight: var(--font-weight-bold);
-      color: var(--text-secondary);
-    }
-  }
-
-  .hero-modal-basic {
-    flex: 1;
-  }
-
-  .hero-modal-name {
-    margin: 0 0 10px 0;
-    font-size: var(--font-size-lg);
-    font-weight: var(--font-weight-bold);
-  }
-
-  .hero-modal-stats {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    font-size: var(--font-size-sm);
-    color: var(--text-secondary);
-
-    .stat-item {
-      padding: 4px 8px;
-      background: var(--bg-secondary);
-      border-radius: var(--border-radius-sm);
-      border: 1px solid var(--border-light);
-    }
-  }
-
-  .hero-modal-details {
-    margin-bottom: 20px;
-
-    :deep(.n-descriptions) {
-      font-size: var(--font-size-sm);
-
-      .n-descriptions-item-label {
-        font-weight: var(--font-weight-medium);
-        color: var(--text-primary);
-      }
-
-      .n-descriptions-item-content {
-        color: var(--text-secondary);
-      }
-    }
-  }
-
-  .hero-modal-equipment {
-    margin-top: 20px;
-  }
-
-  .section-title {
-    margin: 0 0 15px 0;
-    font-size: var(--font-size-base);
-    font-weight: var(--font-weight-bold);
-  }
-
-  .equipment-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 15px;
-  }
-
-  .equipment-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .equipment-label {
-    font-size: var(--font-size-sm);
-    color: var(--text-primary);
-    font-weight: var(--font-weight-medium);
-    width: 60px;
-  }
-
-  .equipment-slots {
-    display: flex;
-    gap: 6px;
-  }
-
-  .equipment-slot {
-    width: 20px;
-    height: 20px;
-    border: 1px solid var(--border-light);
-    border-radius: var(--border-radius-sm);
-    background: var(--bg-secondary);
-  }
-
-  .equipment-slot.red-slot {
-    background: var(--error-color);
-    border-color: var(--error-color);
-  }
-
-  /* 鱼灵洗练颜色�?*/
-  .ModalEquipment {
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    margin-right: 4px;
-    display: inline-block;
-    vertical-align: middle;
-  }
-}
-
-/* 响应式设�?*/
-@media (max-width: 768px) {
-  .hero-detail-modal {
-    :deep(.n-modal-content) {
-      padding: 0 !important;
-    }
-
-    .hero-modal-header {
-      flex-direction: column;
-      text-align: center;
-    }
-
-    .equipment-grid {
-      grid-template-columns: 1fr;
-    }
-  }
 }
 
 /* 切磋结果显示样式 */
@@ -3500,12 +3110,6 @@ watch(selectedTokenId, (newTokenId, oldTokenId) => {
   text-align: center;
   color: var(--text-secondary);
   font-size: var(--font-size-sm);
-}
-
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
 }
 
 .player-id {

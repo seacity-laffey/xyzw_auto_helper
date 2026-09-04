@@ -414,124 +414,10 @@
     </DialogContent>
   </Dialog>
 
-  <Dialog v-model:open="showHeroModal">
-    <DialogContent class="max-h-[85vh] max-w-[600px] overflow-y-auto">
-      <DialogHeader>
-        <DialogTitle>武将详情</DialogTitle>
-        <DialogDescription>武将属性、鱼灵与装备淬炼信息</DialogDescription>
-      </DialogHeader>
-      <div v-if="heroModealTemp" class="hero-modal-content">
-        <div class="hero-modal-header">
-          <img
-            alt="武将头像"
-            class="hero-modal-avatar"
-            :src="heroModealTemp.heroAvate || '/icons/xiaoyugan.png'"
-          >
-          <div class="hero-modal-basic">
-            <h3 class="hero-modal-name">{{ heroModealTemp.heroName }}</h3>
-            <div class="hero-modal-stats">
-              <span class="stat-item">{{
-                formatNumber(heroModealTemp.power)
-              }}</span>
-              <span class="stat-item">等级: {{ heroModealTemp.level }}</span>
-              <span class="stat-item">星级: {{ heroModealTemp.star }}</span>
-              <Badge :variant="heroModealTemp.HolyBeast ? 'default' : 'outline'">
-                {{ heroModealTemp.HolyBeast ? "已激活" : "未激活" }}
-              </Badge>
-            </div>
-          </div>
-        </div>
-
-        <dl class="hero-detail-grid">
-          <div><dt>战力</dt><dd>{{ formatNumber(heroModealTemp.power) }}</dd></div>
-          <div><dt>等级</dt><dd>{{ heroModealTemp.level }}</dd></div>
-          <div><dt>星级</dt><dd>{{ heroModealTemp.star }}</dd></div>
-          <div><dt>开孔数</dt><dd>{{ heroModealTemp.hole }}</dd></div>
-          <div><dt>红孔数</dt><dd>{{ heroModealTemp.red }}</dd></div>
-          <div><dt>四圣状态</dt><dd>{{ heroModealTemp.HolyBeast ? "已激活" : "未激活" }}</dd></div>
-          <div v-if="heroModealTemp.HolyBeast"><dt>四圣等级</dt><dd>{{ heroModealTemp.HBlevel }}</dd></div>
-          <div><dt>鱼灵</dt><dd>{{ heroModealTemp.PearlInfo?.FishInfo?.name || "无" }}</dd></div>
-          <div><dt>鱼珠技能</dt><dd>{{ heroModealTemp.PearlInfo?.PearlSkill?.name || "无" }}</dd></div>
-          <div class="wash-stat">
-            <dt>鱼灵洗练</dt>
-            <dd>
-              <div v-if="heroModealTemp?.PearlInfo?.slotMap?.length > 0">
-                <div
-                  v-for="item in heroModealTemp.PearlInfo.slotMap"
-                  :key="item.id"
-                  class="ModalEquipment"
-                  :style="`background-color:${item.value}`"
-                ></div>
-              </div>
-              <div v-else>无</div>
-            </dd>
-          </div>
-        </dl>
-
-        <div class="hero-modal-equipment">
-          <h4 class="section-title">装备详情</h4>
-          <div class="equipment-grid">
-            <div class="equipment-item">
-              <span class="equipment-label">武器:</span>
-              <div class="equipment-slots">
-                <div
-                  v-for="(item, idx) in Object.values(
-                    Object.values(heroModealTemp.equipment || {})[0]?.quenches || {},
-                  )"
-                  :key="idx"
-                  class="equipment-slot"
-                  :class="{ 'red-slot': item.colorId === 6 }"
-                ></div>
-              </div>
-            </div>
-            <div class="equipment-item">
-              <span class="equipment-label">衣服:</span>
-              <div class="equipment-slots">
-                <div
-                  v-for="(item, idx) in Object.values(
-                    Object.values(heroModealTemp.equipment || {})[1]?.quenches || {},
-                  )"
-                  :key="idx"
-                  class="equipment-slot"
-                  :class="{ 'red-slot': item.colorId === 6 }"
-                ></div>
-              </div>
-            </div>
-            <div class="equipment-item">
-              <span class="equipment-label">头盔:</span>
-              <div class="equipment-slots">
-                <div
-                  v-for="(item, idx) in Object.values(
-                    Object.values(heroModealTemp.equipment || {})[2]?.quenches || {},
-                  )"
-                  :key="idx"
-                  class="equipment-slot"
-                  :class="{ 'red-slot': item.colorId === 6 }"
-                ></div>
-              </div>
-            </div>
-            <div class="equipment-item">
-              <span class="equipment-label">坐骑:</span>
-              <div class="equipment-slots">
-                <div
-                  v-for="(item, idx) in Object.values(
-                    Object.values(heroModealTemp.equipment || {})[3]?.quenches || {},
-                  )"
-                  :key="idx"
-                  class="equipment-slot"
-                  :class="{ 'red-slot': item.colorId === 6 }"
-                ></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <DialogFooter>
-        <Button variant="outline" @click="showHeroModal = false">关闭</Button>
-      </DialogFooter>
-    </DialogContent>
-  </Dialog>
+  <ClubHeroDetailDialog
+    v-model:open="showHeroModal"
+    :hero="heroModealTemp"
+  />
 </template>
 
 <script setup>
@@ -565,6 +451,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import ClubHistoryRecords from "./ClubHistoryRecords.vue";
+import ClubHeroDetailDialog from "./ClubHeroDetailDialog.vue";
 import ClubWeirdTowerInfo from "./ClubWeirdTowerInfo.vue";
 import { getLineupType, HERO_DICT, HeroFillInfo, legacycolor, LINEUP_RULES } from "@/utils/heroList";
 import html2canvas from "html2canvas";
@@ -2120,150 +2007,6 @@ const formatNumber = (num) => {
   font-size: var(--font-size-sm);
 }
 
-.hero-modal-content {
-  display: grid;
-  gap: var(--spacing-md);
-}
-
-.hero-modal-header {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-}
-
-.hero-modal-avatar {
-  width: 72px;
-  height: 72px;
-  flex: 0 0 72px;
-  border: 1px solid var(--border-color);
-  border-radius: 50%;
-  background: var(--bg-secondary);
-  object-fit: cover;
-}
-
-.hero-modal-basic {
-  min-width: 0;
-  flex: 1;
-}
-
-.hero-modal-name {
-  margin: 0 0 var(--spacing-xs);
-  color: var(--text-primary);
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-bold);
-}
-
-.hero-modal-stats {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--spacing-xs);
-  color: var(--text-secondary);
-  font-size: var(--font-size-xs);
-}
-
-.hero-modal-stats .stat-item {
-  padding: 3px 7px;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius);
-  background: var(--bg-secondary);
-}
-
-.hero-detail-grid {
-  display: grid;
-  margin: 0;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  border-top: 1px solid var(--border-color);
-  border-left: 1px solid var(--border-color);
-}
-
-.hero-detail-grid > div {
-  min-width: 0;
-  padding: var(--spacing-sm);
-  border-right: 1px solid var(--border-color);
-  border-bottom: 1px solid var(--border-color);
-}
-
-.hero-detail-grid dt {
-  margin-bottom: 4px;
-  color: var(--text-tertiary);
-  font-size: var(--font-size-xs);
-}
-
-.hero-detail-grid dd {
-  margin: 0;
-  overflow-wrap: anywhere;
-  color: var(--text-primary);
-  font-size: var(--font-size-sm);
-}
-
-.hero-detail-grid .wash-stat {
-  grid-column: span 3;
-}
-
-.hero-modal-equipment {
-  margin-top: var(--spacing-xs);
-}
-
-.section-title {
-  margin: 0 0 var(--spacing-sm);
-  color: var(--text-primary);
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-bold);
-}
-
-.equipment-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--spacing-sm);
-}
-
-.equipment-item {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-  padding: var(--spacing-sm);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius);
-}
-
-.equipment-label {
-  width: 48px;
-  flex: 0 0 48px;
-  color: var(--text-secondary);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-medium);
-}
-
-.equipment-slots {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-}
-
-.equipment-slot {
-  width: 18px;
-  height: 18px;
-  border: 1px solid var(--border-color);
-  border-radius: 2px;
-  background: var(--bg-secondary);
-}
-
-.equipment-slot.red-slot {
-  border-color: var(--error-color);
-  background: var(--error-color);
-}
-
-.ModalEquipment {
-  display: inline-block;
-  width: 16px;
-  height: 16px;
-  margin-right: 4px;
-  border: 1px solid var(--border-color);
-  border-radius: 50%;
-  vertical-align: middle;
-}
-
 @media (max-width: 768px) {
   .club-tabs {
     gap: var(--spacing-md);
@@ -2311,20 +2054,5 @@ const formatNumber = (num) => {
     align-items: flex-start;
   }
 
-  .hero-modal-header {
-    align-items: flex-start;
-  }
-
-  .hero-detail-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .hero-detail-grid .wash-stat {
-    grid-column: span 2;
-  }
-
-  .equipment-grid {
-    grid-template-columns: 1fr;
-  }
 }
 </style>

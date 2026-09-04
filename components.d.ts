@@ -34,6 +34,7 @@ declare module 'vue' {
     Checkbox: typeof import('./src/components/ui/checkbox/Checkbox.vue')['default']
     ClubBattleRecords: typeof import('./src/components/Club/ClubBattleRecords.vue')['default']
     ClubDailyBattleStats: typeof import('./src/components/Club/ClubDailyBattleStats.vue')['default']
+    ClubHeroDetailDialog: typeof import('./src/components/Club/ClubHeroDetailDialog.vue')['default']
     ClubHistoryRecords: typeof import('./src/components/Club/ClubHistoryRecords.vue')['default']
     ClubInfo: typeof import('./src/components/Club/ClubInfo.vue')['default']
     ClubMonthBattleRecords: typeof import('./src/components/Club/ClubMonthBattleRecords.vue')['default']

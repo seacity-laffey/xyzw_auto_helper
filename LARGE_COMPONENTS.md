@@ -20,7 +20,7 @@ static media from the component refactor queue.
 | Priority | Component | Size | Main responsibilities | Next boundary |
 | --- | --- | ---: | --- | --- |
 | P2 | `src/views/BatchDailyTasks.vue` | 1,998 lines / 57 KiB | Scheduler runtime, recipient lookup, and task execution orchestration | Isolate recipient lookup; then move the scheduler loop behind a tested runtime contract |
-| P0 | `src/components/Club/ClubWarRankV2.vue` | 5,701 lines / 151 KiB | Ranking query, map/detail presentation, member analysis, exports, dialogs | Separate ranking summary, detail table, and export sheet before moving request state |
+| P0 | `src/components/Club/ClubWarRankV2.vue` | 5,305 lines / 141 KiB | Ranking query, map/detail presentation, member analysis, exports, dialogs | Extract the player duel dialog, then separate ranking summary and export presentation before moving request state |
 | P1 | `src/components/Club/ClubWarRank.vue` | 3,886 lines / 104 KiB | Legacy salt-field ranking presentation and actions | Confirm active style-switch requirements, then share stable data transforms with V2 |
 | P1 | `src/components/Cards/Activity/UnlimitedLineup.vue` | 3,510 lines / 92 KiB | Player lookup, lineup analysis, editing, export, multiple dialogs | Extract lookup form, lineup board, and export renderer |
 | P1 | `src/components/Club/PeachInfoV2.vue` | 3,487 lines / 91 KiB | Peach event state, opponent analysis, battle actions, history, exports | Extract overview, opponent panel, and battle history |
@@ -28,13 +28,27 @@ static media from the component refactor queue.
 | P1 | `src/components/Club/GreatRouteRankListPageCard.vue` | 3,302 lines / 85 KiB | Ranking fetch, club detail queries, export | Establish a shared ranking-page contract before extracting common controls |
 | P1 | `src/components/Cards/Rank/TopClubListPageCard.vue` | 3,150 lines / 81 KiB | Ranking fetch, club detail queries, export | Establish a shared ranking-page contract before extracting common controls |
 | P2 | `src/components/Club/PeachBattleRecords.vue` | 2,329 lines / 76 KiB | History aggregation, filtering, table rendering, export | Separate aggregation from table and export presentation |
-| P2 | `src/components/Club/ClubInfo.vue` | 2,330 lines / 61 KiB | Club query lifecycle, member operations, lineup lookup, export | Move member query/export state into a club-member composable |
+| P2 | `src/components/Club/ClubInfo.vue` | 2,058 lines / 53 KiB | Club query lifecycle, member operations, lineup lookup, export | Move member query/export state into a club-member composable |
 | P2 | `src/components/Club/PeachInfo.vue` | 2,209 lines / 61 KiB | Legacy peach-event presentation and requests | Confirm whether both peach views remain user-selectable before sharing logic |
 
 Sizes are a snapshot taken on 2026-09-04 and should be refreshed after each
 completed extraction.
 
 ## Completed Extractions
+
+### Club hero detail dialog
+
+- Extracted the duplicated hero summary, attributes, pearl state, and equipment
+  display from `ClubWarRankV2.vue` and `ClubInfo.vue` into
+  `src/components/Club/ClubHeroDetailDialog.vue`.
+- Replaced the Naive UI modal and descriptions in this boundary with
+  source-owned shadcn-vue dialog, badge, and button controls.
+- Removed the parent component's unused modal props, emit, close handler, and
+  obsolete detail-dialog styles; the parent now owns only selection and open
+  state.
+- Reduced `ClubWarRankV2.vue` from 5,701 to 5,305 lines and `ClubInfo.vue` from
+  2,330 to 2,058 lines. The extracted dialog is intentionally reusable by the
+  other ranking views that duplicate this detail presentation.
 
 ### Batch task function panel
 
