@@ -20,7 +20,7 @@ static media from the component refactor queue.
 | Priority | Component | Size | Main responsibilities | Next boundary |
 | --- | --- | ---: | --- | --- |
 | P2 | `src/views/BatchDailyTasks.vue` | 1,998 lines / 57 KiB | Scheduler runtime, recipient lookup, and task execution orchestration | Isolate recipient lookup; then move the scheduler loop behind a tested runtime contract |
-| P0 | `src/components/Club/ClubWarRankV2.vue` | 4,629 lines / 125 KiB | Ranking query, map/detail presentation, member analysis, exports, dialogs | Separate ranking summary and export presentation before moving request state |
+| P0 | `src/components/Club/ClubWarRankV2.vue` | 4,146 lines / 112 KiB | Ranking query, table presentation, member analysis, exports | Extract the alliance summary and ranking table before moving request state |
 | P1 | `src/components/Club/ClubWarRank.vue` | 3,886 lines / 104 KiB | Legacy salt-field ranking presentation and actions | Confirm active style-switch requirements, then share stable data transforms with V2 |
 | P1 | `src/components/Cards/Activity/UnlimitedLineup.vue` | 3,510 lines / 92 KiB | Player lookup, lineup analysis, editing, export, multiple dialogs | Extract lookup form, lineup board, and export renderer |
 | P1 | `src/components/Club/PeachInfoV2.vue` | 3,487 lines / 91 KiB | Peach event state, opponent analysis, battle actions, history, exports | Extract overview, opponent panel, and battle history |
@@ -35,6 +35,20 @@ Sizes are a snapshot taken on 2026-09-04 and should be refreshed after each
 completed extraction.
 
 ## Completed Extractions
+
+### Club war ranking toolbar
+
+- Extracted ranking identity, club count, weekend date selection, export options,
+  and sorting actions from `ClubWarRankV2.vue` into
+  `src/components/Club/ClubWarRankToolbar.vue`.
+- Consolidated the duplicate custom calendar and Arco date picker into one
+  source-owned weekend calendar, and replaced Naive UI controls and vicons with
+  shadcn-vue controls and Lucide icons.
+- Kept fetching, edit state transitions, sorting, and export execution in the
+  parent behind props and intent events.
+- Reduced `ClubWarRankV2.vue` from 4,629 to 4,146 lines. Browser coverage verifies
+  disabled weekdays, date and export-option updates, all action events, and
+  horizontal layout at desktop and 390 px mobile widths.
 
 ### Club player duel dialog
 

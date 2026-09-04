@@ -1,162 +1,21 @@
 ﻿<template>
   <div class="club-warrank-container">
     <div class="club-warrank-card">
-      <!-- 头部信息区 -->
-      <div class="header-section">
-        <div class="header-left">
-          <img
-            src="/icons/moonPalace.png"
-            alt="俱乐部图标"
-            class="header-icon"
-          />
-          <div class="header-title">
-            <h2>盐场匹配信息详情</h2>
-            <p>俱乐部盐场匹配详情</p>
-          </div>
-        </div>
-
-        <!-- 数据统计区 -->
-        <div class="stats-section">
-          <div class="stat-item">
-            <span class="stat-label">查询日期:</span>
-            <div class="stat-date-dropdown">
-              <n-tag
-                type="info"
-                class="stat-date-tag"
-                @click="toggleStatCalendar"
-              >
-                {{ formatTimestamp1(inputDate1) }}
-              </n-tag>
-              <div v-if="statCalendarOpen" class="stat-calendar-panel">
-                <div class="stat-calendar-header">
-                  <button type="button" @click="changeStatCalendarMonth(-1)">
-                    &lt;
-                  </button>
-                  <span>{{ statCalendarTitle }}</span>
-                  <button type="button" @click="changeStatCalendarMonth(1)">
-                    &gt;
-                  </button>
-                </div>
-                <div class="stat-calendar-weekdays">
-                  <span v-for="day in statCalendarWeekdays" :key="day">{{
-                    day
-                  }}</span>
-                </div>
-                <div class="stat-calendar-grid">
-                  <button
-                    v-for="day in statCalendarDays"
-                    :key="day.key"
-                    type="button"
-                    :class="{
-                      selected: day.value === inputDate1,
-                      disabled: day.disabled,
-                      outside: day.outside,
-                    }"
-                    :disabled="day.disabled"
-                    @click="selectStatCalendarDate(day.value)"
-                  >
-                    {{ day.label }}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">总俱乐部数:</span>
-            <n-tag type="success">
-              {{ battleRecords1?.legionRankList?.length || 0 }}
-            </n-tag>
-          </div>
-        </div>
-      </div>
-
-      <!-- 功能操作区 -->
-      <div class="function-section">
-        <div class="function-left">
-          <div class="export-options">
-            <n-checkbox-group
-              v-model:value="exportmethod"
-              name="group-exportmethod"
-              size="small"
-            >
-              <n-checkbox value="1">表格导出</n-checkbox>
-              <n-checkbox value="2">图片导出</n-checkbox>
-            </n-checkbox-group>
-          </div>
-        </div>
-
-        <div class="function-right">
-          <a-date-picker
-            v-model:value="inputDate1"
-            :defaultValue="inputDate1"
-            valueFormat="YYYY/MM/DD"
-            format="YYYY/MM/DD"
-            :allowClear="false"
-            :disabled-date="disabledDate"
-            @change="fetchBattleRecordsByDate"
-          />
-          <n-button
-            size="small"
-            :disabled="loading1"
-            @click="handleRefresh1"
-            class="action-btn refresh-btn"
-          >
-            <template #icon>
-              <n-icon>
-                <Refresh />
-              </n-icon>
-            </template>
-            刷新
-          </n-button>
-          <n-button
-            type="primary"
-            size="small"
-            :disabled="!battleRecords1 || loading1"
-            @click="handleExport1"
-            class="action-btn export-btn"
-          >
-            <template #icon>
-              <n-icon>
-                <Copy />
-              </n-icon>
-            </template>
-            导出
-          </n-button>
-          <n-button
-            :type="isEditMode ? 'warning' : 'default'"
-            size="small"
-            :disabled="!battleRecords1 || loading1"
-            @click="toggleEditMode"
-            class="action-btn edit-btn"
-          >
-            <template #icon>
-              <n-icon>
-                <CreateOutline />
-              </n-icon>
-            </template>
-            {{ isEditMode ? "退出编辑" : "调整排名" }}
-          </n-button>
-          <n-button
-            type="info"
-            size="small"
-            :disabled="!battleRecords1 || loading1"
-            @click="hcSort"
-            class="action-btn sort-btn"
-          >
-            红淬排序
-          </n-button>
-          <n-button
-            type="info"
-            size="small"
-            :disabled="!battleRecords1 || loading1"
-            @click="scoreSort"
-            class="action-btn sort-btn"
-            v-if="ScoreShow === 1"
-          >
-            积分排序
-          </n-button>
-        </div>
-      </div>
+      <ClubWarRankToolbar
+        v-model:export-methods="exportmethod"
+        :club-count="battleRecords1?.legionRankList?.length || 0"
+        :date="inputDate1"
+        :edit-mode="isEditMode"
+        :has-data="Boolean(battleRecords1)"
+        :loading="loading1"
+        :score-enabled="ScoreShow === 1"
+        @date-change="fetchBattleRecordsByDate"
+        @export="handleExport1"
+        @refresh="handleRefresh1"
+        @sort-red="hcSort"
+        @sort-score="scoreSort"
+        @toggle-edit="toggleEditMode"
+      />
 
       <!-- 表格内容区 -->
       <div ref="exportDom" class="table-content">
@@ -307,8 +166,6 @@
 import { ref, computed, onMounted, reactive, watch } from "vue";
 import {
   useMessage,
-  NCheckboxGroup,
-  NCheckbox,
   NInputNumber,
   NSelect,
 } from "naive-ui";
@@ -317,12 +174,8 @@ import html2canvas from "html2canvas";
 import { downloadCanvasAsImage } from "@/utils/imageExport";
 import ClubHeroDetailDialog from "@/components/Club/ClubHeroDetailDialog.vue";
 import ClubPlayerDuelDialog from "@/components/Club/ClubPlayerDuelDialog.vue";
-import {
-  Refresh,
-  Copy,
-  DocumentText,
-  CreateOutline,
-} from "@vicons/ionicons5";
+import ClubWarRankToolbar from "@/components/Club/ClubWarRankToolbar.vue";
+import { DocumentText } from "@vicons/ionicons5";
 import {
   getLastSaturday,
   formatTimestamp1,
@@ -356,9 +209,6 @@ const expandedMembers = ref(new Set());
 const queryDate = ref("");
 const inputDate1 = ref(getLastSaturday());
 const saltFetchStartTime = ref(null);
-const statCalendarOpen = ref(false);
-const statCalendarMonth = ref(inputDate1.value.slice(0, 7));
-const statCalendarWeekdays = ["日", "一", "二", "三", "四", "五", "六"];
 
 // 新增联盟筛选功�?
 const activeAlliance = ref("all");
@@ -593,44 +443,6 @@ const getSaltFetchTimeText = () => {
   const fetchTime = saltFetchStartTime.value || new Date();
   return `数据获取时间：${formatDateTime(fetchTime)}`;
 };
-
-const parseDateText = (value) => {
-  const [year, month, day] = String(value || getLastSaturday())
-    .split("/")
-    .map(Number);
-  return new Date(year, month - 1, day || 1);
-};
-
-const formatDateForPicker = (date) => {
-  const pad = (value) => String(value).padStart(2, "0");
-  return `${date.getFullYear()}/${pad(date.getMonth() + 1)}/${pad(date.getDate())}`;
-};
-
-const statCalendarTitle = computed(() => {
-  const [year, month] = statCalendarMonth.value.split("/");
-  return `${year}年${month}月`;
-});
-
-const statCalendarDays = computed(() => {
-  const [year, month] = statCalendarMonth.value.split("/").map(Number);
-  const firstDate = new Date(year, month - 1, 1);
-  const startDate = new Date(firstDate);
-  startDate.setDate(firstDate.getDate() - firstDate.getDay());
-
-  return Array.from({ length: 42 }, (_, index) => {
-    const date = new Date(startDate);
-    date.setDate(startDate.getDate() + index);
-    const day = date.getDay();
-    const value = formatDateForPicker(date);
-    return {
-      key: `${value}-${index}`,
-      label: date.getDate(),
-      value,
-      disabled: day !== 0 && day !== 6,
-      outside: date.getMonth() !== month - 1,
-    };
-  });
-});
 
 const fetchCurrentClubInfo = async (tokenId = selectedTokenId.value) => {
   if (!tokenId) return null;
@@ -1706,31 +1518,6 @@ const formatPower = (power) => {
   return power.toString();
 };
 
-const disabledDate = (current) => {
-  const date =
-    typeof current?.toDate === "function"
-      ? current.toDate()
-      : new Date(current);
-  const day = date.getDay();
-  return day !== 6 && day !== 0;
-};
-
-const toggleStatCalendar = () => {
-  statCalendarMonth.value = inputDate1.value.slice(0, 7);
-  statCalendarOpen.value = !statCalendarOpen.value;
-};
-
-const changeStatCalendarMonth = (offset) => {
-  const date = parseDateText(`${statCalendarMonth.value}/01`);
-  date.setMonth(date.getMonth() + offset);
-  statCalendarMonth.value = formatDateForPicker(date).slice(0, 7);
-};
-
-const selectStatCalendarDate = (value) => {
-  statCalendarOpen.value = false;
-  fetchBattleRecordsByDate(value);
-};
-
 //日期选择时调用查询战绩方�?
 const fetchBattleRecordsByDate = (val) => {
   if (undefined != val) {
@@ -2463,241 +2250,6 @@ watch(selectedTokenId, (newTokenId, oldTokenId) => {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-}
-
-// 头部信息�?
-.header-section {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: var(--spacing-lg);
-  background: var(--bg-primary);
-  border-bottom: 1px solid var(--border-light);
-  flex-shrink: 0;
-
-  .header-left {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-md);
-  }
-
-  .header-icon {
-    width: 40px;
-    height: 40px;
-    object-fit: contain;
-    border-radius: var(--border-radius-md);
-    background: var(--bg-secondary);
-    padding: var(--spacing-xs);
-    box-sizing: border-box;
-  }
-
-  .header-title {
-    h2 {
-      margin: 0;
-      font-size: var(--font-size-xl);
-      font-weight: var(--font-weight-bold);
-      color: var(--text-primary);
-    }
-
-    p {
-      margin: var(--spacing-xs) 0 0 0;
-      font-size: var(--font-size-sm);
-      color: var(--text-secondary);
-    }
-  }
-
-  // 数据统计�?
-  .stats-section {
-    display: flex;
-    gap: var(--spacing-lg);
-    align-items: center;
-
-    .stat-item {
-      display: flex;
-      align-items: center;
-      gap: var(--spacing-sm);
-
-      .stat-label {
-        font-size: var(--font-size-sm);
-        color: var(--text-secondary);
-        font-weight: var(--font-weight-medium);
-      }
-
-      :deep(.n-tag) {
-        font-size: var(--font-size-sm);
-        padding: 4px 8px;
-      }
-
-      :deep(.stat-date-picker) {
-        width: 132px;
-        border-color: #91caff;
-        background: #ffffff;
-      }
-
-      .stat-date-dropdown {
-        position: relative;
-        display: inline-flex;
-        align-items: center;
-      }
-
-      :deep(.stat-date-tag) {
-        min-width: 96px;
-        justify-content: center;
-        cursor: pointer;
-        user-select: none;
-      }
-
-      .stat-calendar-panel {
-        position: absolute;
-        top: calc(100% + 6px);
-        left: 0;
-        z-index: 30;
-        width: 238px;
-        padding: 10px;
-        background: #ffffff;
-        border: 1px solid #d9d9d9;
-        border-radius: 6px;
-        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
-      }
-
-      .stat-calendar-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 8px;
-        font-size: 14px;
-        font-weight: 600;
-
-        button {
-          width: 26px;
-          height: 26px;
-          border: 1px solid #d9d9d9;
-          border-radius: 4px;
-          background: #ffffff;
-          cursor: pointer;
-        }
-      }
-
-      .stat-calendar-weekdays,
-      .stat-calendar-grid {
-        display: grid;
-        grid-template-columns: repeat(7, 1fr);
-        gap: 4px;
-      }
-
-      .stat-calendar-weekdays {
-        margin-bottom: 4px;
-        color: #6b7280;
-        font-size: 12px;
-        text-align: center;
-      }
-
-      .stat-calendar-grid button {
-        height: 28px;
-        border: 1px solid transparent;
-        border-radius: 4px;
-        background: #ffffff;
-        color: #1f2937;
-        cursor: pointer;
-
-        &.outside {
-          color: #c0c4cc;
-        }
-
-        &.selected {
-          background: #1677ff;
-          color: #ffffff;
-        }
-
-        &.disabled {
-          color: #c0c4cc;
-          background: #f5f5f5;
-          cursor: not-allowed;
-        }
-      }
-    }
-  }
-}
-
-// 功能操作�?
-.function-section {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: var(--spacing-md) var(--spacing-lg);
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-light);
-  flex-shrink: 0;
-
-  .function-left {
-    .export-options {
-      display: flex;
-      align-items: center;
-      gap: var(--spacing-sm);
-
-      :deep(.n-checkbox-group) {
-        display: flex;
-        gap: var(--spacing-md);
-
-        .n-checkbox {
-          font-size: var(--font-size-sm);
-          color: var(--text-primary);
-        }
-      }
-    }
-  }
-
-  .function-right {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-
-    :deep(.n-date-picker) {
-      font-size: var(--font-size-sm);
-      width: 200px;
-
-      .n-input-wrapper {
-        font-size: var(--font-size-sm);
-      }
-    }
-
-    .action-btn {
-      font-size: var(--font-size-sm);
-      padding: 6px 12px;
-      border-radius: var(--border-radius-sm);
-      transition: all var(--transition-fast);
-
-      &:hover {
-        transform: translateY(-1px);
-        box-shadow: var(--shadow-medium);
-      }
-
-      &.refresh-btn {
-        background: var(--bg-primary);
-        border: 1px solid var(--border-medium);
-      }
-
-      &.export-btn {
-        background: var(--primary-color);
-        color: white;
-
-        &:hover {
-          background: var(--primary-color-hover);
-        }
-      }
-
-      &.sort-btn {
-        background: var(--info-color-light);
-        color: var(--info-color);
-        border: 1px solid var(--info-color);
-
-        &:hover {
-          background: var(--info-color-hover);
-          color: white;
-        }
-      }
-    }
-  }
 }
 
 // 公告区域
@@ -3938,30 +3490,6 @@ watch(selectedTokenId, (newTokenId, oldTokenId) => {
 
 // 响应式设置
 @media (max-width: 1200px) {
-  .header-section {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--spacing-md);
-
-    .stats-section {
-      width: 100%;
-      justify-content: flex-start;
-    }
-  }
-
-  .function-section {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--spacing-md);
-
-    .function-right {
-      width: 100%;
-      justify-content: flex-start;
-      flex-wrap: wrap;
-      gap: var(--spacing-sm);
-    }
-  }
-
   .alliance-tabs-section {
     overflow-x: auto;
     justify-content: flex-start;
@@ -4581,14 +4109,6 @@ watch(selectedTokenId, (newTokenId, oldTokenId) => {
     padding: var(--spacing-xs);
   }
 
-  .header-section {
-    padding: var(--spacing-md);
-  }
-
-  .function-section {
-    padding: var(--spacing-xs) var(--spacing-md);
-  }
-
   .alliance-tabs-section {
     padding: var(--spacing-xs) var(--spacing-xs);
   }
@@ -4622,8 +4142,5 @@ watch(selectedTokenId, (newTokenId, oldTokenId) => {
     overflow-y: auto;
   }
 
-  :deep(.n-date-picker) {
-    width: 180px !important;
-  }
 }
 </style>
