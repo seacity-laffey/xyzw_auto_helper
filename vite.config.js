@@ -1,8 +1,8 @@
-import { defineConfig } from "vite";
-import vue from "@vitejs/plugin-vue";
-import path from "path";
-import fs from "fs";
-import { fileURLToPath } from "url";
+import { defineConfig } from 'vite';
+import vue from '@vitejs/plugin-vue';
+import path from 'node:path';
+import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -10,11 +10,9 @@ async function safeImport(moduleName, humanName, { warnOnMissing = true } = {}) 
   try {
     return await import(moduleName);
   } catch (error) {
-    if (error?.code === "ERR_MODULE_NOT_FOUND") {
+    if (error?.code === 'ERR_MODULE_NOT_FOUND') {
       if (warnOnMissing) {
-        console.warn(
-          `[vite] Optional dependency "${moduleName}" (${humanName}) not found; continuing without it.`,
-        );
+        console.warn(`[vite] Optional dependency "${moduleName}" (${humanName}) not found; continuing without it.`);
       }
       return null;
     }
@@ -24,79 +22,51 @@ async function safeImport(moduleName, humanName, { warnOnMissing = true } = {}) 
 
 function createManualChunks(id) {
   if (id.includes(`${path.sep}src${path.sep}xyzw${path.sep}`)) {
-    return "xyzw-runtime";
+    return 'xyzw-runtime';
   }
 
   if (!id.includes(`${path.sep}node_modules${path.sep}`)) {
     return undefined;
   }
 
-  if (
-    /[\\/]node_modules[\\/](vue|vue-router|pinia|@vueuse)[\\/]/.test(id)
-  ) {
-    return "vendor-vue";
+  if (/[\\/]node_modules[\\/](vue|vue-router|pinia|@vueuse)[\\/]/.test(id)) {
+    return 'vendor-vue';
   }
 
-  if (
-    /[\\/]node_modules[\\/](naive-ui|@arco-design|@vicons|@css-render|css-render|date-fns)[\\/]/.test(
-      id,
-    )
-  ) {
-    return "vendor-ui";
+  if (/[\\/]node_modules[\\/](naive-ui|@arco-design|@vicons|@css-render|css-render|date-fns)[\\/]/.test(id)) {
+    return 'vendor-ui';
   }
 
   if (/[\\/]node_modules[\\/](xlsx|ssf|cfb|codepage)[\\/]/.test(id)) {
-    return "vendor-xlsx";
+    return 'vendor-xlsx';
   }
 
-  if (
-    /[\\/]node_modules[\\/](axios|crypto-js|event-emitter3|idb|lz4js|moment|p-queue)[\\/]/.test(
-      id,
-    )
-  ) {
-    return "vendor-utils";
+  if (/[\\/]node_modules[\\/](axios|crypto-js|event-emitter3|idb|lz4js|moment|p-queue)[\\/]/.test(id)) {
+    return 'vendor-utils';
   }
 
   return undefined;
 }
 
 export default defineConfig(async ({ command }) => {
-  const isServe = command === "serve";
+  const isServe = command === 'serve';
 
-  const basicSslModule = isServe
-    ? await safeImport("@vitejs/plugin-basic-ssl", "dev HTTPS support")
-    : null;
-  const autoImportModule = await safeImport(
-    "unplugin-auto-import/vite",
-    "auto-imports",
-  );
-  const componentsModule = await safeImport(
-    "unplugin-vue-components/vite",
-    "component auto-registration",
-  );
-  const componentsResolversModule = componentsModule
-    ? await safeImport(
-        "unplugin-vue-components/resolvers",
-        "component resolvers",
-      )
-    : null;
-  const unoCssModule = await safeImport("unocss/vite", "UnoCSS");
-  const vueDevToolsModule = isServe
-    ? await safeImport("vite-plugin-vue-devtools", "Vue DevTools")
-    : null;
-  const vueI18nModule = await safeImport(
-    "@intlify/unplugin-vue-i18n/vite",
-    "Vue I18n pre-compiler",
-  );
+  const basicSslModule = isServe ? await safeImport('@vitejs/plugin-basic-ssl', 'dev HTTPS support') : null;
+  const autoImportModule = await safeImport('unplugin-auto-import/vite', 'auto-imports');
+  const componentsModule = await safeImport('unplugin-vue-components/vite', 'component auto-registration');
+  const componentsResolversModule = componentsModule ? await safeImport('unplugin-vue-components/resolvers', 'component resolvers') : null;
+  const unoCssModule = await safeImport('unocss/vite', 'UnoCSS');
+  const vueDevToolsModule = isServe ? await safeImport('vite-plugin-vue-devtools', 'Vue DevTools') : null;
+  const vueI18nModule = await safeImport('@intlify/unplugin-vue-i18n/vite', 'Vue I18n pre-compiler');
 
   const autoImportPlugin = autoImportModule?.default?.({
-    imports: ["vue", "vue-router", "vue-i18n"],
-    dts: "src/auto-imports.d.ts",
+    imports: ['vue', 'vue-router', 'vue-i18n'],
+    dts: 'src/auto-imports.d.ts',
   });
 
   const { ArcoResolver } = componentsResolversModule ?? {};
   const componentsPlugin = componentsModule?.default?.({
-    dirs: ["src/components"],
+    dirs: ['src/components'],
     resolvers: ArcoResolver
       ? [
           ArcoResolver({
@@ -110,8 +80,8 @@ export default defineConfig(async ({ command }) => {
   const vueDevToolsPlugin = isServe ? vueDevToolsModule?.default?.() : null;
   const basicSslPlugin = isServe ? basicSslModule?.default?.() : null;
   const vueI18nPlugin = vueI18nModule?.default?.({
-    module: "vue-i18n",
-    include: path.resolve(__dirname, "./src/locales/**"),
+    module: 'vue-i18n',
+    include: path.resolve(__dirname, './src/locales/**'),
   });
 
   const plugins = [
@@ -123,23 +93,23 @@ export default defineConfig(async ({ command }) => {
     componentsPlugin,
     vueI18nPlugin,
     {
-      name: "copy-worker",
+      name: 'copy-worker',
       closeBundle() {
         try {
-          const src = path.resolve(__dirname, "worker.js");
+          const src = path.resolve(__dirname, 'worker.js');
           // Cloudflare Pages Advanced Mode expects _worker.js
-          const dest = path.resolve(__dirname, "dist/_worker.js");
+          const dest = path.resolve(__dirname, 'dist/_worker.js');
           if (fs.existsSync(src)) {
             if (!fs.existsSync(path.dirname(dest))) {
               fs.mkdirSync(path.dirname(dest), { recursive: true });
             }
             fs.copyFileSync(src, dest);
-            console.log("\n[copy-worker] worker.js copied to dist/_worker.js");
+            console.log('\n[copy-worker] worker.js copied to dist/_worker.js');
           } else {
-            console.warn("\n[copy-worker] worker.js not found at " + src);
+            console.warn(`\n[copy-worker] worker.js not found at ${src}`);
           }
         } catch (e) {
-          console.error("\n[copy-worker] Error copying worker.js:", e);
+          console.error('\n[copy-worker] Error copying worker.js:', e);
         }
       },
     },
@@ -149,62 +119,60 @@ export default defineConfig(async ({ command }) => {
     plugins,
     resolve: {
       alias: {
-        "@": path.resolve(__dirname, "src"),
-        "@components": path.resolve(__dirname, "src/components"),
-        "@views": path.resolve(__dirname, "src/views"),
-        "@assets": path.resolve(__dirname, "src/assets"),
-        "@utils": path.resolve(__dirname, "src/utils"),
-        "@api": path.resolve(__dirname, "src/api"),
-        "@stores": path.resolve(__dirname, "src/stores"),
+        '@': path.resolve(__dirname, 'src'),
+        '@components': path.resolve(__dirname, 'src/components'),
+        '@views': path.resolve(__dirname, 'src/views'),
+        '@assets': path.resolve(__dirname, 'src/assets'),
+        '@utils': path.resolve(__dirname, 'src/utils'),
+        '@api': path.resolve(__dirname, 'src/api'),
+        '@stores': path.resolve(__dirname, 'src/stores'),
       },
     },
     server: {
-      port: 3000,
+      port: 3111,
       open: true,
       host: true,
       proxy: {
         // 微信登录接口代理
-        "/api/weixin": {
-          target: "https://open.weixin.qq.com",
+        '/api/weixin': {
+          target: 'https://open.weixin.qq.com',
           changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/api\/weixin/, ""),
+          rewrite: path => path.replace(/^\/api\/weixin/, ''),
           secure: true,
           headers: {
-            "User-Agent":
-              "Mozilla/5.0 (Linux; Android 7.0; Mi-4c Build/NRD90M; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/53.0.2785.49 Mobile MQQBrowser/6.2 TBS/043632 Safari/537.36 MicroMessenger/6.6.1.1220(0x26060135) NetType/WIFI Language/zh_CN",
-            Accept:
-              "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-            Referer: "https://open.weixin.qq.com/",
+            'User-Agent':
+              'Mozilla/5.0 (Linux; Android 7.0; Mi-4c Build/NRD90M; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/53.0.2785.49 Mobile MQQBrowser/6.2 TBS/043632 Safari/537.36 MicroMessenger/6.6.1.1220(0x26060135) NetType/WIFI Language/zh_CN',
+            Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            Referer: 'https://open.weixin.qq.com/',
           },
         },
         // 微信扫码状态轮询代理
-        "/api/weixin-long": {
-          target: "https://long.open.weixin.qq.com",
+        '/api/weixin-long': {
+          target: 'https://long.open.weixin.qq.com',
           changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/api\/weixin-long/, ""),
+          rewrite: path => path.replace(/^\/api\/weixin-long/, ''),
           secure: true,
           headers: {
-            "User-Agent":
-              "Mozilla/5.0 (Linux; Android 7.0; Mi-4c Build/NRD90M; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/53.0.2785.49 Mobile MQQBrowser/6.2 TBS/043632 Safari/537.36 MicroMessenger/6.6.1.1220(0x26060135) NetType/WIFI Language/zh_CN",
-            Accept: "*/*",
-            Referer: "https://open.weixin.qq.com/",
+            'User-Agent':
+              'Mozilla/5.0 (Linux; Android 7.0; Mi-4c Build/NRD90M; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/53.0.2785.49 Mobile MQQBrowser/6.2 TBS/043632 Safari/537.36 MicroMessenger/6.6.1.1220(0x26060135) NetType/WIFI Language/zh_CN',
+            Accept: '*/*',
+            Referer: 'https://open.weixin.qq.com/',
           },
         },
         // Hortor登录接口代理
-        "/api/hortor": {
-          target: "https://comb-platform.hortorgames.com",
+        '/api/hortor': {
+          target: 'https://comb-platform.hortorgames.com',
           changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/api\/hortor/, ""),
+          rewrite: path => path.replace(/^\/api\/hortor/, ''),
           secure: true,
           headers: {
-            "User-Agent":
-              "Mozilla/5.0 (Linux; Android 12; 23117RK66C Build/V417IR; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/95.0.4638.74 Mobile Safari/537.36",
-            Accept: "*/*",
-            Host: "comb-platform.hortorgames.com",
-            Connection: "keep-alive",
-            "Content-Type": "text/plain; charset=utf-8",
-            Origin: "https://open.weixin.qq.com",
-            Referer: "https://open.weixin.qq.com/",
+            'User-Agent': 'Mozilla/5.0 (Linux; Android 12; 23117RK66C Build/V417IR; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/95.0.4638.74 Mobile Safari/537.36',
+            Accept: '*/*',
+            Host: 'comb-platform.hortorgames.com',
+            Connection: 'keep-alive',
+            'Content-Type': 'text/plain; charset=utf-8',
+            Origin: 'https://open.weixin.qq.com',
+            Referer: 'https://open.weixin.qq.com/',
           },
         },
       },
@@ -212,8 +180,8 @@ export default defineConfig(async ({ command }) => {
     css: {
       preprocessorOptions: {
         scss: {
-          api: "modern-compiler",
-          additionalData: '@use "@/assets/styles/variables.scss" as vars;',
+          api: 'modern-compiler',
+          additionalData: "@use \"@/assets/styles/variables.scss\" as vars;",
         },
       },
     },

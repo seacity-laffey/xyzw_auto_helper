@@ -6,38 +6,29 @@
         <p>主线推图</p>
       </div>
       <div class="pl-header-actions">
-        <n-switch v-model:value="autoContinue" size="small">
-          <template #checked>自动继续</template>
-          <template #unchecked>手动停止</template>
-        </n-switch>
-        <n-input-number
-          v-model:value="maxRetries"
-          :min="1"
-          :max="999999"
-          size="small"
-          class="retry-input"
-        />
+        <Button size="sm" variant="outline" :aria-expanded="showAccountTools" @click="showAccountTools = !showAccountTools">
+          账号工具 {{ selectedTokenIds.length }}/{{ tokens.length }}
+        </Button>
+        <label class="switch-field">
+          <Switch v-model="autoContinue"></Switch>
+          <span>{{ autoContinue ? "自动继续" : "手动停止" }}</span>
+        </label>
+        <Input class="retry-input w-[110px]" max="999999" min="1" type="number" v-model.number="maxRetries"></Input>
         <span class="retry-label">最大重试</span>
       </div>
     </div>
 
     <!-- 账号列表（上方，勾选模式，4个一行，简洁） -->
-    <n-card class="account-card-top" :content-style="{ padding: '12px 16px' }">
+    <section v-if="showAccountTools" class="account-card-top panel">
       <div class="account-toolbar">
-        <n-input
-          v-model:value="searchKeyword"
-          clearable
-          size="tiny"
-          placeholder="搜索账号"
-          class="search-input"
-        />
-        <n-checkbox
-          :checked="allVisibleSelected"
-          :indeterminate="someVisibleSelected"
-          @update:checked="toggleAllVisible"
-        >
-          全选
-        </n-checkbox>
+        <Input class="search-input w-[180px]" placeholder="搜索账号" v-model="searchKeyword"></Input>
+        <label class="checkbox-field">
+          <Checkbox
+            :model-value="someVisibleSelected ? 'indeterminate' : allVisibleSelected"
+            @update:model-value="toggleAllVisible"
+          ></Checkbox>
+          <span>全选</span>
+        </label>
         <div v-if="tokenGroups.length" class="group-list-inline">
           <button
             v-for="group in tokenGroups"
@@ -59,11 +50,11 @@
           class="token-cell"
           :class="{ selected: selectedTokenIds.includes(token.id) }"
         >
-          <n-checkbox
-            :checked="selectedTokenIds.includes(token.id)"
-            @update:checked="(checked) => toggleToken(token.id, checked)"
+          <Checkbox
+            :model-value="selectedTokenIds.includes(token.id)"
             @click.stop
-          />
+            @update:model-value="(checked) => toggleToken(token.id, checked === true)"
+          ></Checkbox>
           <span class="token-server" :title="token.server || '未知区服'">
             {{ token.server || "未知区服" }}
           </span>
@@ -78,68 +69,56 @@
           ></span>
         </div>
       </div>
-      <n-empty v-else description="暂无账号" size="small" />
-    </n-card>
+      <div v-else class="empty-state">暂无账号</div>
+    </section>
 
     <!-- 操作区：火把配置 + 控制按钮（同行） -->
-    <n-card class="control-card" :content-style="{ padding: '12px 16px' }">
+    <section class="control-card panel">
       <div class="control-row">
         <div class="torch-field">
           <span class="torch-label">火把类型</span>
-          <n-select
-            v-model:value="torchItemId"
-            :options="torchOptions"
-            size="small"
-            class="torch-select"
-          />
+          <select class="native-select torch-select" v-model.number="torchItemId">
+            <option v-for="option in torchOptions" :key="option.value" :value="option.value">
+              {{ option.label }}
+            </option>
+          </select>
         </div>
         <div class="torch-field">
           <span class="torch-label">使用数量（1-999）</span>
-          <n-input-number
-            v-model:value="torchQuantity"
-            :min="1"
-            :max="999"
-            size="small"
-            class="torch-input"
-          />
+          <Input class="torch-input w-[120px] max-sm:w-[100px]" max="999" min="1" type="number" v-model.number="torchQuantity"></Input>
         </div>
-        <n-button
-          size="small"
-          type="primary"
+        <Button
+          size="sm"
           :disabled="!selectedTokenIds.length || !hasAnyRunning"
-          :loading="torchRunning"
           @click="useTorchForSelected"
         >
-          使用火把
-        </n-button>
-        <n-button
-          type="primary"
-          size="small"
+          {{ torchRunning ? "使用中" : "使用火把" }}
+        </Button>
+        <Button
+          size="sm"
           :disabled="!selectedTokenIds.length || allSelectedRunning"
           @click="startSelected"
         >
           开始推图
-        </n-button>
-        <n-button
-          type="error"
-          size="small"
+        </Button>
+        <Button
+          size="sm"
+          variant="destructive"
           :disabled="!hasSelectedRunning"
           @click="stopSelected"
         >
           全部停止
-        </n-button>
+        </Button>
         <div class="control-spacer"></div>
-        <span class="status-text"
-          >已选择 {{ selectedTokenIds.length }} 个账号，正在推图
-          {{ runningCount }} 个账号</span
-        >
-        <n-button size="small" @click="clearSelection">清除选择</n-button>
+        <span class="status-text">已选择 {{ selectedTokenIds.length }} 个账号，正在推图
+          {{ runningCount }} 个账号</span>
+        <Button size="sm" variant="outline" @click="clearSelection">清除选择</Button>
       </div>
-    </n-card>
+    </section>
 
     <!-- 推图卡片区 -->
     <div v-if="runningCards.length" class="running-section">
-      <n-card
+      <section
         v-for="card in runningCards"
         :key="card.tokenId"
         class="running-card"
@@ -154,10 +133,10 @@
               :title="getStatusTitle(card.tokenId)"
             ></span>
           </div>
-          <n-space size="small">
-            <n-tag size="small" type="success">{{ card.wins }}胜</n-tag>
-            <n-tag size="small" type="error">{{ card.losses }}负</n-tag>
-          </n-space>
+          <div class="result-badges">
+            <Badge class="text-success" variant="outline">{{ card.wins }}胜</Badge>
+            <Badge class="text-destructive" variant="outline">{{ card.losses }}负</Badge>
+          </div>
         </div>
         <div class="level-line">
           当前关卡：{{ card.level > 0 ? `${card.level}关` : "--" }}
@@ -167,23 +146,14 @@
         <div class="running-body">
           <template v-if="card.running">
             <div class="countdown-row">
-              <span class="countdown-text"
-                >战斗剩余 {{ formatDuration(card.countdown) }}</span
-              >
-              <n-progress
-                class="inline-progress"
-                type="line"
-                :percentage="progressPercent(card)"
-                :show-indicator="false"
-                :height="8"
-                status="success"
-              />
+              <span class="countdown-text">战斗剩余 {{ formatDuration(card.countdown) }}</span>
+              <div aria-label="战斗倒计时" aria-valuemax="100" aria-valuemin="0" class="inline-progress" role="progressbar" :aria-valuenow="progressPercent(card)">
+                <span :style="{ width: `${progressPercent(card)}%` }"></span>
+              </div>
             </div>
             <div class="card-actions">
               <span>已战斗 {{ card.battles }} 场</span>
-              <n-button size="tiny" type="error" @click="stopOne(card.tokenId)"
-                >停止</n-button
-              >
+              <Button size="sm" variant="destructive" @click="stopOne(card.tokenId)">停止</Button>
             </div>
           </template>
           <template v-else>
@@ -192,54 +162,48 @@
               <span class="err-text" :title="card.lastError || '无'">
                 最近错误：{{ card.lastError || "无" }}
               </span>
-              <n-button
-                size="tiny"
-                type="primary"
-                @click="startOne(card.tokenId)"
-                >启动</n-button
-              >
+              <Button size="sm" @click="startOne(card.tokenId)">启动</Button>
             </div>
           </template>
         </div>
-      </n-card>
+      </section>
     </div>
 
     <!-- 推图日志区 -->
-    <n-card class="log-card" :content-style="{ padding: '12px 16px' }">
-      <template #header>
-        <div class="log-header">
-          <div>
-            推图日志
-            <n-tag size="small">{{ logs.length }}/2000 条</n-tag>
-          </div>
-          <div class="log-actions">
-            <n-checkbox v-model:checked="autoScroll" size="small"
-              >自动滚动</n-checkbox
-            >
-            <n-checkbox v-model:checked="onlyErrors" size="small"
-              >只看错误</n-checkbox
-            >
-            <n-button size="tiny" @click="clearLogs">清空</n-button>
-          </div>
+    <section class="log-card panel">
+      <div class="log-header">
+        <div class="log-title">
+          <strong>推图日志</strong>
+          <Badge variant="outline">{{ logs.length }}/2000 条</Badge>
         </div>
-      </template>
+        <div class="log-actions">
+          <label class="checkbox-field">
+            <Checkbox v-model="autoScroll"></Checkbox>
+            <span>自动滚动</span>
+          </label>
+          <label class="checkbox-field">
+            <Checkbox v-model="onlyErrors"></Checkbox>
+            <span>只看错误</span>
+          </label>
+          <Button size="sm" variant="outline" @click="clearLogs">清空</Button>
+        </div>
+      </div>
       <div class="log-filter">
         <span class="log-filter-label">筛选账号：</span>
-        <n-select
-          v-model:value="logFilterTokenId"
-          :options="logFilterOptions"
-          size="small"
-          clearable
-          placeholder="全部账号"
-          class="log-filter-select"
-        />
-        <n-button
-          size="tiny"
+        <select class="native-select log-filter-select w-[200px] max-sm:w-[100px]" v-model="logFilterTokenId">
+          <option value="">全部账号</option>
+          <option v-for="option in logFilterOptions" :key="option.value" :value="option.value">
+            {{ option.label }}
+          </option>
+        </select>
+        <Button
+          size="sm"
+          variant="outline"
           :disabled="!logFilterTokenId"
           @click="logFilterTokenId = null"
         >
           清除筛选
-        </n-button>
+        </Button>
         <span class="log-filter-count">共 {{ visibleLogs.length }} 条</span>
       </div>
       <div ref="logsContainer" class="log-container">
@@ -253,13 +217,9 @@
           <span class="log-name">[{{ log.tokenName }}]</span>
           <span class="log-msg">{{ log.msg }}</span>
         </div>
-        <n-empty
-          v-if="!visibleLogs.length"
-          description="暂无日志"
-          size="small"
-        />
+        <div v-if="!visibleLogs.length" class="empty-state log-empty">暂无日志</div>
       </div>
-    </n-card>
+    </section>
   </div>
 </template>
 
@@ -274,7 +234,12 @@ import {
   watch,
 } from "vue";
 import { useMessage } from "naive-ui";
-import { useTokenStore } from "@/stores/tokenStore";
+import { batchSelectedTokenIds, useTokenStore } from "@/stores/tokenStore";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { BOSS_NAMES } from "./bossNames.js";
 
 const MAX_LOGS = 2000;
@@ -285,7 +250,8 @@ const TORCH_REFRESH_INTERVAL = 30000;
 const message = useMessage();
 const tokenStore = useTokenStore();
 
-const selectedTokenIds = ref([]);
+const selectedTokenIds = batchSelectedTokenIds;
+const showAccountTools = ref(false);
 const selectedGroupIds = ref([]);
 const searchKeyword = ref("");
 const autoContinue = ref(true);
@@ -312,6 +278,15 @@ const torchOptions = [
 const tokens = computed(() => tokenStore.gameTokens || []);
 const tokenGroups = computed(() => tokenStore.tokenGroups || []);
 
+watch(
+  tokens,
+  (currentTokens) => {
+    const validTokenIds = new Set(currentTokens.map((token) => token.id));
+    selectedTokenIds.value = selectedTokenIds.value.filter((tokenId) => validTokenIds.has(tokenId));
+  },
+  { immediate: true },
+);
+
 const filteredTokens = computed(() => {
   const keyword = searchKeyword.value.trim().toLowerCase();
   const list = [...tokens.value].sort((a, b) => {
@@ -324,7 +299,8 @@ const filteredTokens = computed(() => {
     return left - right;
   });
 
-  if (!keyword) return list;
+  if (!keyword)
+    return list;
   return list.filter((token) => {
     return [token.name, token.server, token.remark, token.id]
       .filter(Boolean)
@@ -340,8 +316,8 @@ const runningCount = computed(() => {
 
 const allVisibleSelected = computed(() => {
   return (
-    filteredTokens.value.length > 0 &&
-    filteredTokens.value.every((token) =>
+    filteredTokens.value.length > 0
+    && filteredTokens.value.every((token) =>
       selectedTokenIds.value.includes(token.id),
     )
   );
@@ -357,8 +333,8 @@ const someVisibleSelected = computed(() => {
 
 const allSelectedRunning = computed(() => {
   return (
-    selectedTokenIds.value.length > 0 &&
-    selectedTokenIds.value.every((tokenId) => isRunning(tokenId))
+    selectedTokenIds.value.length > 0
+    && selectedTokenIds.value.every((tokenId) => isRunning(tokenId))
   );
 });
 
@@ -373,7 +349,8 @@ const hasAnyRunning = computed(() => {
 });
 
 function getTorchLabel(state) {
-  if (!state) return "火把 无";
+  if (!state)
+    return "火把 无";
   const remaining = computeTorchRemaining(state);
   if (state.torchType > 0 && remaining > 0) {
     const name = state.torchTypeName || getTorchName(state.torchType);
@@ -385,7 +362,8 @@ function getTorchLabel(state) {
 const runningCards = computed(() => {
   const ids = new Set(selectedTokenIds.value);
   Object.values(runningStates).forEach((state) => {
-    if (state?.tokenId) ids.add(state.tokenId);
+    if (state?.tokenId)
+      ids.add(state.tokenId);
   });
 
   return [...ids]
@@ -452,10 +430,12 @@ const logFilterOptions = computed(() => {
 watch(
   () => [visibleLogs.value.length, onlyErrors.value, logFilterTokenId.value],
   () => {
-    if (!autoScroll.value) return;
+    if (!autoScroll.value)
+      return;
     nextTick(() => {
       const el = logsContainer.value;
-      if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+      if (el)
+        el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
     });
   },
 );
@@ -483,9 +463,12 @@ function isRunning(tokenId) {
 
 function getStatusClass(tokenId) {
   const status = getWebSocketStatus(tokenId);
-  if (status === "connected") return "status-green";
-  if (status === "connecting") return "status-blue";
-  if (status === "error") return "status-red";
+  if (status === "connected")
+    return "status-green";
+  if (status === "connecting")
+    return "status-blue";
+  if (status === "error")
+    return "status-red";
   return "status-gray";
 }
 
@@ -618,32 +601,37 @@ function clearLogs() {
 function sanitizeError(error) {
   return String(error?.message || error || "")
     .replace(/请求超时: \w+(\s*\(\d+ms\))?/g, "请求超时")
-    .replace(/\b\w+_\w+\b(\s*\(\d+ms\))?/g, "")
+    .replace(/\b\w[\dA-Za-z]*_\w+\b(\s*\(\d+ms\))?/g, "")
     .trim();
 }
 
 function pickNumber(...values) {
   for (const value of values) {
-    if (value === null || value === undefined || value === "") continue;
+    if (value === null || value === undefined || value === "")
+      continue;
     const number = Number(value);
-    if (Number.isFinite(number)) return number;
+    if (Number.isFinite(number))
+      return number;
   }
   return null;
 }
 
 function responseBody(response) {
-  if (response?.body && typeof response.body === "object") return response.body;
+  if (response?.body && typeof response.body === "object")
+    return response.body;
   return response || {};
 }
 
 function getTorchName(torchType) {
-  if (!torchType || torchType === 0) return "";
+  if (!torchType || torchType === 0)
+    return "";
   const option = torchOptions.find((item) => item.value === torchType);
   return option ? option.label : `火把(${torchType})`;
 }
 
 function applyTorchInfo(state, info) {
-  if (!state || !info) return;
+  if (!state || !info)
+    return;
   const type = Number(info.torchType || 0);
   const remaining = Number(info.torchRemaining || 0);
   const settleTime = Number(info.torchSettleTime || 0);
@@ -670,11 +658,12 @@ function readTorchFromResponse(response) {
 }
 
 function computeTorchRemaining(state) {
-  if (!state) return 0;
+  if (!state)
+    return 0;
   // settleTime 是绝对时间戳时才使用它计算倒计时
   if (state.torchSettleTime > 0) {
-    const settleMs =
-      state.torchSettleTime < 1e12
+    const settleMs
+      = state.torchSettleTime < 1e12
         ? state.torchSettleTime * 1000
         : state.torchSettleTime;
     if (settleMs > tickNow.value) {
@@ -683,25 +672,28 @@ function computeTorchRemaining(state) {
   }
   // 否则用基础值做本地倒计时
   if (state.torchBaseTimestamp && state.torchBaseRemaining) {
-    const diff =
-      state.torchBaseRemaining -
-      Math.floor((tickNow.value - state.torchBaseTimestamp) / 1000);
+    const diff
+      = state.torchBaseRemaining
+        - Math.floor((tickNow.value - state.torchBaseTimestamp) / 1000);
     return Math.max(0, diff);
   }
   return Number(state.torchRemaining || 0);
 }
 
 function formatTorchTime(seconds) {
-  if (!seconds || seconds <= 0) return "0分钟";
+  if (!seconds || seconds <= 0)
+    return "0分钟";
   const total = Math.floor(seconds);
   const h = Math.floor(total / 3600);
   const m = Math.floor((total % 3600) / 60);
-  if (h > 0) return `${h}小时${m}分钟`;
+  if (h > 0)
+    return `${h}小时${m}分钟`;
   return `${m}分钟`;
 }
 
 function getBossName(level) {
-  if (!level || level <= 0) return "";
+  if (!level || level <= 0)
+    return "";
   return BOSS_NAMES[level] || "";
 }
 
@@ -711,9 +703,11 @@ function getBossName(level) {
  * 避免关卡推进后仍显示启动时那一关的 BOSS。
  */
 function applyLevel(state, level, serverBossName = "") {
-  if (!state) return;
+  if (!state)
+    return;
   const nextLevel = Number(level) || 0;
-  if (nextLevel > 0) state.level = nextLevel;
+  if (nextLevel > 0)
+    state.level = nextLevel;
 
   if (serverBossName) {
     state.bossName = serverBossName;
@@ -734,7 +728,8 @@ function formatDuration(seconds) {
 }
 
 function progressPercent(card) {
-  if (!card.totalTime) return 0;
+  if (!card.totalTime)
+    return 0;
   return Math.max(
     0,
     Math.min(100, Math.round((1 - card.countdown / card.totalTime) * 100)),
@@ -748,14 +743,16 @@ function sleep(ms) {
 async function waitConnected(tokenId, timeoutMs = 3000) {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
-    if (isConnected(tokenId)) return true;
+    if (isConnected(tokenId))
+      return true;
     await sleep(200);
   }
   return isConnected(tokenId);
 }
 
 async function ensureConnected(tokenId, retryCount = 2) {
-  if (isConnected(tokenId)) return true;
+  if (isConnected(tokenId))
+    return true;
 
   const token = getToken(tokenId);
   const tokenName = token?.name || tokenId;
@@ -802,7 +799,8 @@ async function ensureConnected(tokenId, retryCount = 2) {
 }
 
 async function fetchTorchInfo(tokenId, tokenName, { silent = false } = {}) {
-  if (!isConnected(tokenId)) return null;
+  if (!isConnected(tokenId))
+    return null;
   try {
     const response = await tokenStore.sendMessageWithPromise(
       tokenId,
@@ -812,7 +810,8 @@ async function fetchTorchInfo(tokenId, tokenName, { silent = false } = {}) {
     );
     const info = readTorchFromResponse(response);
     const state = runningStates[tokenId] || initState(tokenId, tokenName);
-    if (state !== runningStates[tokenId]) runningStates[tokenId] = state;
+    if (state !== runningStates[tokenId])
+      runningStates[tokenId] = state;
     applyTorchInfo(state, info);
     if (!silent) {
       if (info.torchType > 0) {
@@ -854,8 +853,8 @@ async function initializeBattleData(tokenId, tokenName) {
       {},
       10000,
     );
-    const version =
-      response?.battleData?.version || response?.body?.battleData?.version;
+    const version
+      = response?.battleData?.version || response?.body?.battleData?.version;
     if (version) {
       tokenStore.setBattleVersion(version);
       addLog(tokenId, tokenName, `battleVersion: ${version}`, "info");
@@ -878,11 +877,11 @@ async function upgradeHangupReward(tokenId, tokenName) {
       {},
       5000,
     );
-    const items =
-      roleInfo?.role?.items ||
-      roleInfo?.body?.role?.items ||
-      roleInfo?.items ||
-      [];
+    const items
+      = roleInfo?.role?.items
+        || roleInfo?.body?.role?.items
+        || roleInfo?.items
+        || [];
     let coinCount = 0;
 
     if (Array.isArray(items)) {
@@ -892,9 +891,9 @@ async function upgradeHangupReward(tokenId, tokenName) {
       coinCount = Number(coin?.num ?? coin?.count ?? coin?.quantity ?? 0);
     } else if (items && typeof items === "object") {
       coinCount = Number(
-        items[KNOWLEDGE_COIN_ITEM_ID]?.num ??
-          items[KNOWLEDGE_COIN_ITEM_ID] ??
-          0,
+        items[KNOWLEDGE_COIN_ITEM_ID]?.num
+        ?? items[KNOWLEDGE_COIN_ITEM_ID]
+        ?? 0,
       );
     }
 
@@ -912,7 +911,8 @@ async function upgradeHangupReward(tokenId, tokenName) {
     let used = 0;
     while (coinCount > 0) {
       const state = runningStates[tokenId];
-      if (!state || state.stopFlag) break;
+      if (!state || state.stopFlag)
+        break;
 
       const upgradeNum = coinCount >= 50 ? 50 : coinCount >= 10 ? 10 : 1;
       try {
@@ -962,7 +962,8 @@ async function upgradeHangupReward(tokenId, tokenName) {
 
 async function runOneBattle(tokenId, tokenName) {
   const state = runningStates[tokenId];
-  if (!state || state.stopFlag) return { stopped: true };
+  if (!state || state.stopFlag)
+    return { stopped: true };
 
   let battleTime = 0;
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -980,8 +981,8 @@ async function runOneBattle(tokenId, tokenName) {
         body.levelId,
         body.body?.currLevel,
       );
-      const syncedBossName =
-        body.bossName || body.body?.bossName || body.role?.bossName || "";
+      const syncedBossName
+        = body.bossName || body.body?.bossName || body.role?.bossName || "";
 
       if (syncedLevel !== null && syncedLevel !== state.level) {
         applyLevel(state, syncedLevel, syncedBossName);
@@ -995,7 +996,8 @@ async function runOneBattle(tokenId, tokenName) {
       } else {
         applyLevel(state, state.level);
       }
-      if (battleTime > 0) break;
+      if (battleTime > 0)
+        break;
 
       state.losses += 1;
       state.retries += 1;
@@ -1008,7 +1010,8 @@ async function runOneBattle(tokenId, tokenName) {
       );
     } catch (error) {
       if (String(error?.message || "").includes("WebSocket") && attempt === 0) {
-        if (await ensureConnected(tokenId)) continue;
+        if (await ensureConnected(tokenId))
+          continue;
       }
 
       state.losses += 1;
@@ -1025,7 +1028,8 @@ async function runOneBattle(tokenId, tokenName) {
   }
 
   if (battleTime <= 0) {
-    if (state.retries >= state.maxRetries) state.stopFlag = true;
+    if (state.retries >= state.maxRetries)
+      state.stopFlag = true;
     return { success: false, error: state.lastError };
   }
 
@@ -1065,7 +1069,8 @@ async function runOneBattle(tokenId, tokenName) {
     }
   }
 
-  if (state.stopFlag) return { stopped: true };
+  if (state.stopFlag)
+    return { stopped: true };
 
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
@@ -1082,8 +1087,8 @@ async function runOneBattle(tokenId, tokenName) {
         body.nextLevel,
         body.levelId,
       );
-      const nextBossName =
-        body.bossName || body.body?.bossName || body.role?.bossName || "";
+      const nextBossName
+        = body.bossName || body.body?.bossName || body.role?.bossName || "";
 
       if (success) {
         state.wins += 1;
@@ -1119,7 +1124,8 @@ async function runOneBattle(tokenId, tokenName) {
     } catch (error) {
       const errorMessage = sanitizeError(error);
       if (String(error?.message || "").includes("WebSocket") && attempt === 0) {
-        if (await ensureConnected(tokenId)) continue;
+        if (await ensureConnected(tokenId))
+          continue;
       }
 
       state.losses += 1;
@@ -1137,7 +1143,8 @@ async function runOneBattle(tokenId, tokenName) {
         if (await ensureConnected(tokenId)) {
           state.consecutiveErrors = 0;
           addLog(tokenId, tokenName, "重连成功，继续推图", "success");
-          if (attempt === 0) continue;
+          if (attempt === 0)
+            continue;
         }
       }
 
@@ -1202,11 +1209,11 @@ async function startOne(tokenId) {
           {},
           10000,
         );
-        const bossName =
-          levelInfo?.bossName ||
-          levelInfo?.body?.bossName ||
-          levelInfo?.role?.bossName ||
-          "";
+        const bossName
+          = levelInfo?.bossName
+            || levelInfo?.body?.bossName
+            || levelInfo?.role?.bossName
+            || "";
         applyLevel(runningStates[tokenId], level, bossName);
         if (runningStates[tokenId].bossName) {
           addLog(
@@ -1245,12 +1252,15 @@ async function startOne(tokenId) {
       }
 
       const result = await runOneBattle(tokenId, tokenName);
-      if (result.stopped) break;
+      if (result.stopped)
+        break;
 
-      if (!state || state.stopFlag) break;
+      if (!state || state.stopFlag)
+        break;
 
       if (!result.success) {
-        if (state.retries >= state.maxRetries) break;
+        if (state.retries >= state.maxRetries)
+          break;
         await sleep(3000);
       } else if (!autoContinue.value) {
         addLog(tokenId, tokenName, "自动继续已关闭，推图暂停", "warning");
@@ -1307,12 +1317,14 @@ function stopOne(tokenId) {
 
 function stopSelected() {
   selectedTokenIds.value.forEach((tokenId) => {
-    if (isRunning(tokenId)) stopOne(tokenId);
+    if (isRunning(tokenId))
+      stopOne(tokenId);
   });
 }
 
 async function useTorchForSelected() {
-  if (!selectedTokenIds.value.length) return;
+  if (!selectedTokenIds.value.length)
+    return;
 
   const option = torchOptions.find((item) => item.value === torchItemId.value);
   const itemName = option?.label || `#${torchItemId.value}`;
@@ -1342,7 +1354,8 @@ async function useTorchForSelected() {
       // 2. 同一连接下立刻查询最新火把状态（不关闭连接）
       try {
         const state = runningStates[tokenId] || initState(tokenId, tokenName);
-        if (state !== runningStates[tokenId]) runningStates[tokenId] = state;
+        if (state !== runningStates[tokenId])
+          runningStates[tokenId] = state;
         const roleInfo = await tokenStore.sendMessageWithPromise(
           tokenId,
           "role_getroleinfo",
@@ -1414,7 +1427,7 @@ onBeforeUnmount(() => {
   height: 100%;
   min-height: 0;
   padding: 16px;
-  background: #f6f8fb;
+  background: var(--background);
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -1429,14 +1442,14 @@ onBeforeUnmount(() => {
 
 .pl-header h2 {
   margin: 0;
-  color: #1f2937;
+  color: var(--foreground);
   font-size: 22px;
   font-weight: 700;
 }
 
 .pl-header p {
   margin: 2px 0 0;
-  color: #667085;
+  color: var(--muted-foreground);
   font-size: 13px;
 }
 
@@ -1451,12 +1464,22 @@ onBeforeUnmount(() => {
   flex-wrap: wrap;
 }
 
+.switch-field,
+.checkbox-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--foreground);
+  font-size: 13px;
+  cursor: pointer;
+}
+
 .retry-input {
   width: 110px;
 }
 
 .retry-label {
-  color: #667085;
+  color: var(--muted-foreground);
   font-size: 13px;
 }
 
@@ -1464,14 +1487,21 @@ onBeforeUnmount(() => {
 .control-card,
 .log-card,
 .running-card {
-  border-radius: 8px;
+  border-radius: var(--radius);
+  box-shadow: none;
 }
 
-.account-card-top :deep(.n-card__content) {
+.panel,
+.running-card {
+  padding: 12px 16px;
+  background: var(--background);
+  border: 1px solid var(--border);
+}
+
+.account-card-top {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 10px 14px;
 }
 
 .search-input {
@@ -1486,9 +1516,9 @@ onBeforeUnmount(() => {
 
 .group-chip {
   border: 1px solid;
-  border-radius: 999px;
-  padding: 2px 8px;
-  background: #fff;
+  border-radius: var(--radius);
+  padding: 3px 8px;
+  background: var(--background);
   font-size: 11px;
   cursor: pointer;
   line-height: 1.4;
@@ -1523,9 +1553,9 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 6px;
   padding: 5px 10px;
-  border-radius: 6px;
-  border: 1px solid #e4e7ec;
-  background: #fff;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--background);
   font-size: 12px;
   line-height: 1.4;
   transition:
@@ -1536,16 +1566,16 @@ onBeforeUnmount(() => {
 }
 
 .token-cell:hover {
-  border-color: #98a2b3;
+  border-color: var(--input);
 }
 
 .token-cell.selected {
-  background: #eef2ff;
-  border-color: #c7d2fe;
+  background: var(--muted);
+  border-color: var(--foreground);
 }
 
 .token-server {
-  color: #667085;
+  color: var(--muted-foreground);
   font-weight: 500;
   max-width: 140px;
   overflow: hidden;
@@ -1554,11 +1584,11 @@ onBeforeUnmount(() => {
 }
 
 .token-sep {
-  color: #98a2b3;
+  color: var(--text-tertiary);
 }
 
 .token-name {
-  color: #101828;
+  color: var(--foreground);
   font-weight: 600;
   flex: 1;
   min-width: 0;
@@ -1571,7 +1601,7 @@ onBeforeUnmount(() => {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #d0d5dd;
+  background: var(--input);
   display: inline-block;
   flex-shrink: 0;
   border: 1px solid rgba(0, 0, 0, 0.05);
@@ -1584,30 +1614,30 @@ onBeforeUnmount(() => {
 }
 
 .status-gray {
-  background: #d0d5dd;
+  background: var(--input);
 }
 
 .status-green {
-  background: #12b76a;
+  background: var(--success);
 }
 
 .status-red {
-  background: #f04438;
+  background: var(--error);
 }
 
 .status-blue {
-  background: #2e90fa;
-  box-shadow: 0 0 0 3px rgba(46, 144, 250, 0.2);
+  background: var(--info);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--info) 20%, transparent);
   animation: pulse 1.2s ease-in-out infinite;
 }
 
 @keyframes pulse {
   0%,
   100% {
-    box-shadow: 0 0 0 3px rgba(46, 144, 250, 0.2);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--info) 20%, transparent);
   }
   50% {
-    box-shadow: 0 0 0 6px rgba(46, 144, 250, 0.05);
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--info) 5%, transparent);
   }
 }
 
@@ -1619,17 +1649,32 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  color: #344054;
+  color: var(--foreground);
   font-size: 11px;
 }
 
 .torch-label {
-  color: #667085;
+  color: var(--muted-foreground);
 }
 
 .torch-select,
 .torch-input {
   width: 120px;
+}
+
+.native-select {
+  height: 36px;
+  padding: 0 30px 0 10px;
+  color: var(--foreground);
+  background: var(--background);
+  border: 1px solid var(--input);
+  border-radius: var(--radius);
+  outline: none;
+}
+
+.native-select:focus-visible {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 1px var(--ring);
 }
 
 .control-spacer {
@@ -1638,7 +1683,7 @@ onBeforeUnmount(() => {
 
 .status-text {
   font-size: 13px;
-  color: #666;
+  color: var(--muted-foreground);
   white-space: nowrap;
 }
 
@@ -1650,11 +1695,11 @@ onBeforeUnmount(() => {
 
 .running-card {
   min-height: 160px;
-  border: 1px solid #e4e7ec;
+  border: 1px solid var(--border);
 }
 
 .running-card.active {
-  border-color: #12b76a;
+  border-color: var(--success);
 }
 
 .running-head {
@@ -1663,6 +1708,13 @@ onBeforeUnmount(() => {
   gap: 8px;
   align-items: center;
   margin-bottom: 6px;
+}
+
+.result-badges,
+.log-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
 }
 
 .card-title {
@@ -1683,17 +1735,17 @@ onBeforeUnmount(() => {
 .waiting-line,
 .countdown-text,
 .card-actions {
-  color: #667085;
+  color: var(--muted-foreground);
   font-size: 12px;
   line-height: 1.6;
 }
 
 .level-line {
-  color: #344054;
+  color: var(--foreground);
 }
 
 .torch-line {
-  color: #b54708;
+  color: var(--warning);
   font-weight: 500;
 }
 
@@ -1709,7 +1761,7 @@ onBeforeUnmount(() => {
 }
 
 .countdown-text {
-  color: #1d2939;
+  color: var(--foreground);
   font-weight: 600;
   white-space: nowrap;
 }
@@ -1717,6 +1769,17 @@ onBeforeUnmount(() => {
 .inline-progress {
   flex: 1;
   min-width: 0;
+  height: 6px;
+  overflow: hidden;
+  background: var(--muted);
+  border-radius: 2px;
+}
+
+.inline-progress span {
+  display: block;
+  height: 100%;
+  background: var(--success);
+  transition: width 200ms ease;
 }
 
 .card-actions {
@@ -1738,6 +1801,11 @@ onBeforeUnmount(() => {
   min-height: 320px;
 }
 
+.log-header {
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
 .log-filter {
   display: flex;
   align-items: center;
@@ -1747,7 +1815,7 @@ onBeforeUnmount(() => {
 }
 
 .log-filter-label {
-  color: #667085;
+  color: var(--muted-foreground);
   font-size: 12px;
   flex-shrink: 0;
 }
@@ -1757,7 +1825,7 @@ onBeforeUnmount(() => {
 }
 
 .log-filter-count {
-  color: #98a2b3;
+  color: var(--text-tertiary);
   font-size: 11px;
 }
 
@@ -1769,26 +1837,38 @@ onBeforeUnmount(() => {
   font-size: 12px;
 }
 
+.empty-state {
+  display: grid;
+  min-height: 56px;
+  place-items: center;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+
+.log-empty {
+  min-height: 240px;
+}
+
 .log-item {
   display: grid;
   grid-template-columns: 74px minmax(110px, 180px) minmax(0, 1fr);
   gap: 8px;
   padding: 3px 6px;
   border-radius: 4px;
-  color: #344054;
+  color: var(--foreground);
 }
 
 .log-item.success {
-  color: #047857;
+  color: var(--success);
 }
 
 .log-item.warning {
-  color: #b54708;
+  color: var(--warning);
 }
 
 .log-item.error {
-  background: #fff1f3;
-  color: #b42318;
+  background: color-mix(in srgb, var(--error) 8%, transparent);
+  color: var(--error);
 }
 
 .log-name,

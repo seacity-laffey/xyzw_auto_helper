@@ -132,6 +132,10 @@ export const selectedTokenId = useLocalStorage("selectedTokenId", "");
 export const selectedToken = computed(() => {
   return gameTokens.value?.find((token) => token.id === selectedTokenId.value);
 });
+export const batchSelectedTokenIds = useLocalStorage<string[]>(
+  "batchSelectedTokenIds",
+  [],
+);
 export const selectedRoleInfo =
   useLocalStorage<RoleResponseBody | null>("selectedRoleInfo", null);
 
@@ -305,6 +309,9 @@ export const useTokenStore = defineStore("tokens", () => {
 
   const removeToken = async (tokenId: string) => {
     gameTokens.value = gameTokens.value.filter((token) => token.id !== tokenId);
+    batchSelectedTokenIds.value = batchSelectedTokenIds.value.filter(
+      (selectedId) => selectedId !== tokenId,
+    );
 
     // 关闭对应的WebSocket连接
     if (wsConnections.value[tokenId]) {
@@ -320,6 +327,16 @@ export const useTokenStore = defineStore("tokens", () => {
     await deleteArrayBuffer(tokenId);
 
     return true;
+  };
+
+  const focusToken = (tokenId: string) => {
+    const token = gameTokens.value.find((item) => item.id === tokenId);
+    if (!token)
+      return null;
+
+    selectedTokenId.value = tokenId;
+    updateToken(tokenId, { lastUsed: new Date().toISOString() });
+    return token;
   };
 
   const selectToken = (tokenId: string, forceReconnect = false) => {
@@ -341,11 +358,7 @@ export const useTokenStore = defineStore("tokens", () => {
       forceReconnect,
     });
 
-    // 更新选中状态
-    selectedTokenId.value = tokenId;
-
-    // 更新最后使用时间
-    updateToken(tokenId, { lastUsed: new Date().toISOString() });
+    focusToken(tokenId);
     //避免点击断开链接
     if (isConnected) {
       return token;
@@ -1237,6 +1250,10 @@ export const useTokenStore = defineStore("tokens", () => {
     try {
       if (data.tokens && Array.isArray(data.tokens)) {
         gameTokens.value = data.tokens;
+        const importedTokenIds = new Set(data.tokens.map((token) => token.id));
+        batchSelectedTokenIds.value = batchSelectedTokenIds.value.filter(
+          (tokenId) => importedTokenIds.has(tokenId),
+        );
         return {
           success: true,
           message: `成功导入 ${data.tokens.length} 个Token`,
@@ -1261,6 +1278,7 @@ export const useTokenStore = defineStore("tokens", () => {
 
     gameTokens.value = [];
     selectedTokenId.value = null;
+    batchSelectedTokenIds.value = [];
 
     // 清空IndexedDB
     await clearAll();
@@ -1522,8 +1540,6 @@ export const useTokenStore = defineStore("tokens", () => {
     //   selectedTokenId.value = savedSelectedId
     // }
 
-    // 清理过期token
-    cleanExpiredTokens();
     // 启动连接监控
     connectionMonitor.startMonitoring();
 
@@ -1657,6 +1673,7 @@ export const useTokenStore = defineStore("tokens", () => {
     // 状态
     gameTokens,
     selectedTokenId,
+    batchSelectedTokenIds,
     wsConnections,
     gameData,
 
@@ -1669,6 +1686,7 @@ export const useTokenStore = defineStore("tokens", () => {
     addToken,
     updateToken,
     removeToken,
+    focusToken,
     selectToken,
 
     // Base64解析方法

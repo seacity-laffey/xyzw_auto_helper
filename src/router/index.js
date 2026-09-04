@@ -8,14 +8,14 @@ const routes = [
     children: [
       {
         path: "",
-        redirect: "/tokens",
+        redirect: "/admin/batch-daily-tasks",
       },
       {
         path: "/tokens",
         name: "TokenManagement",
         component: () => import("@/views/TokenImport/index.vue"),
         meta: {
-          title: "Token 管理",
+          title: "账号管理",
           description: "账号凭证与连接管理",
           requiresToken: false,
         },
@@ -33,7 +33,7 @@ const routes = [
         name: "RoleManagement",
         component: () => import("@/views/GameFeatures.vue"),
         meta: {
-          title: "单个角色",
+          title: "角色详情",
           description: "当前角色功能与状态",
           requiresToken: true,
         },
@@ -72,8 +72,8 @@ const routes = [
     },
   },
   // 兼容历史链接，但不再保留额外页面。
-  { path: "/admin", redirect: "/admin/game-features" },
-  { path: "/admin/dashboard", redirect: "/admin/game-features" },
+  { path: "/admin", redirect: "/admin/batch-daily-tasks" },
+  { path: "/admin/dashboard", redirect: "/admin/batch-daily-tasks" },
   { path: "/admin/daily-tasks", redirect: "/admin/game-features" },
   { path: "/admin/profile", redirect: "/admin/game-features" },
   { path: "/admin/message-test", redirect: "/admin/game-features" },
@@ -112,7 +112,7 @@ router.beforeEach((to) => {
   if (to.meta.requiresToken && !tokenStore.selectedToken) {
     const firstToken = tokenStore.gameTokens[0];
     if (firstToken) {
-      tokenStore.selectToken(firstToken.id);
+      tokenStore.focusToken(firstToken.id);
     }
   }
 

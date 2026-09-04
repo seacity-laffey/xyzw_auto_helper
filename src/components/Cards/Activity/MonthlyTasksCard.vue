@@ -26,47 +26,30 @@
         </div>
       </div>
       <div class="action-row">
-        <button
-          class="action-button secondary"
+        <Button
+          class="monthly-action monthly-action--secondary"
           :disabled="monthLoading || fishToppingUp || arenaToppingUp"
+          variant="outline"
           @click="fetchMonthlyActivity"
         >
           {{ monthLoading ? "刷新中..." : "刷新进度" }}
-        </button>
+        </Button>
 
-        <n-button-group>
-          <n-button
-            class="action-button"
-            :disabled="monthLoading || fishToppingUp"
-            @click="topUpMonthly('fish')"
-          >
-            {{ fishToppingUp ? "补齐中..." : "钓鱼补齐" }}
-          </n-button>
-          <n-dropdown
-            :options="fishMoreOptions"
-            trigger="click"
-            @select="onFishMoreSelect"
-          >
-            <n-button :disabled="monthLoading || fishToppingUp">▾</n-button>
-          </n-dropdown>
-        </n-button-group>
+        <Button
+          class="monthly-action monthly-action--primary"
+          :disabled="monthLoading || fishToppingUp"
+          @click="topUpMonthly('fish')"
+        >
+          {{ fishToppingUp ? "补齐中..." : "钓鱼补齐" }}
+        </Button>
 
-        <n-button-group>
-          <n-button
-            class="action-button"
-            :disabled="monthLoading || arenaToppingUp || !isArenaActivityOpen"
-            @click="topUpMonthly('arena')"
-          >
-            {{ arenaToppingUp ? "补齐中..." : "竞技场补齐" }}
-          </n-button>
-          <n-dropdown
-            :options="arenaMoreOptions"
-            trigger="click"
-            @select="onArenaMoreSelect"
-          >
-            <n-button :disabled="monthLoading || arenaToppingUp || !isArenaActivityOpen">▾</n-button>
-          </n-dropdown>
-        </n-button-group>
+        <Button
+          class="monthly-action monthly-action--primary"
+          :disabled="monthLoading || arenaToppingUp || !isArenaActivityOpen"
+          @click="topUpMonthly('arena')"
+        >
+          {{ arenaToppingUp ? "补齐中..." : "竞技场补齐" }}
+        </Button>
       </div>
       <p class="description muted">
         补齐规则：让“当前天数比例”和“完成比例”一致；若无剩余天数则按满额（{{
@@ -81,6 +64,7 @@
 import { ref, computed, watch, onMounted } from "vue";
 import { useMessage } from "naive-ui";
 import { useTokenStore } from "@/stores/tokenStore";
+import { Button } from "@/components/ui/button";
 import MyCard from "../../Common/MyCard.vue";
 
 const tokenStore = useTokenStore();
@@ -128,9 +112,6 @@ const arenaShouldBe = computed(() =>
     ? ARENA_TARGET
     : Math.min(ARENA_TARGET, Math.ceil(monthProgress.value * ARENA_TARGET)),
 );
-
-const fishMoreOptions = [{ label: "一键完成", key: "complete-fish" }];
-const arenaMoreOptions = [{ label: "一键完成", key: "complete-arena" }];
 
 const isConnected = computed(() => {
   if (!tokenStore.selectedToken) return false;
@@ -186,24 +167,6 @@ const topUpMonthly = (type) => {
   return isFish
     ? autoTopUpFish(need, shouldBe, target)
     : autoTopUpArena(need, shouldBe, target);
-};
-
-const completeMonthly = (type) => {
-  const isFish = type === "fish";
-  const target = isFish ? FISH_TARGET : ARENA_TARGET;
-  const current = isFish ? fishNum.value : arenaNum.value;
-  const need = Math.max(0, target - current);
-  if (need <= 0) return message.success("已满额，无需完成");
-  return isFish
-    ? autoTopUpFish(need, target, target)
-    : autoTopUpArena(need, target, target);
-};
-
-const onFishMoreSelect = (key) => {
-  if (key === "complete-fish") completeMonthly("fish");
-};
-const onArenaMoreSelect = (key) => {
-  if (key === "complete-arena") completeMonthly("arena");
 };
 
 const autoTopUpFish = async (need, shouldBe, target) => {
@@ -389,37 +352,22 @@ defineExpose({ fetchMonthlyActivity });
 .action-row {
   display: flex;
   gap: var(--spacing-sm);
-  .action-button {
-    flex: 1;
-  }
 }
 
-.action-button {
-  width: 100%;
-  padding: var(--spacing-sm) var(--spacing-md);
-  border: none;
-  border-radius: var(--border-radius-medium);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  background: var(--primary-color);
-  color: #fff;
-  &:hover:not(:disabled) {
-    background: var(--primary-color-hover);
-    transform: translateY(-1px);
-  }
-  &:disabled {
-    background: var(--bg-tertiary);
-    color: var(--text-tertiary);
-    cursor: not-allowed;
-  }
-  &.secondary {
-    background: var(--secondary-color);
-    &:hover:not(:disabled) {
-      background: var(--secondary-color-hover);
-    }
-  }
+.monthly-action {
+  min-width: 0;
+  flex: 1;
+}
+
+.monthly-action--secondary:hover:not(:disabled) {
+  border-color: var(--input) !important;
+  background: var(--muted) !important;
+  color: var(--foreground) !important;
+}
+
+.monthly-action--primary:hover:not(:disabled) {
+  background: var(--primary-hover) !important;
+  color: var(--primary-foreground) !important;
 }
 
 .status-indicator {

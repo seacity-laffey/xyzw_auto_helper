@@ -1,9 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: [
-    "./src/views/TokenImport/index.vue",
-    "./src/views/BatchDailyTasks.vue",
-  ],
+  content: ["./index.html", "./src/**/*.{vue,js,ts}"],
   important: "#app",
   corePlugins: {
     preflight: false,
@@ -11,7 +8,32 @@ export default {
   theme: {
     extend: {
       colors: {
-        surface: "var(--surface)",
+        "border": "var(--border)",
+        "input": "var(--input)",
+        "ring": "var(--ring)",
+        "background": "var(--background)",
+        "foreground": "var(--foreground)",
+        "card": {
+          DEFAULT: "var(--card)",
+          foreground: "var(--card-foreground)",
+        },
+        "popover": {
+          DEFAULT: "var(--popover)",
+          foreground: "var(--popover-foreground)",
+        },
+        "muted": {
+          DEFAULT: "var(--muted)",
+          foreground: "var(--muted-foreground)",
+        },
+        "accent": {
+          DEFAULT: "var(--accent)",
+          foreground: "var(--accent-foreground)",
+        },
+        "destructive": {
+          DEFAULT: "var(--destructive)",
+          foreground: "var(--destructive-foreground)",
+        },
+        "surface": "var(--surface)",
         "surface-container-lowest": "var(--surface-container-lowest)",
         "surface-container-low": "var(--surface-container-low)",
         "surface-container": "var(--surface-container)",
@@ -19,13 +41,22 @@ export default {
         "surface-container-highest": "var(--surface-container-highest)",
         "on-surface": "var(--on-surface)",
         "on-surface-variant": "var(--on-surface-variant)",
-        outline: "var(--outline)",
+        "outline": "var(--outline)",
         "outline-variant": "var(--outline-variant)",
-        primary: "var(--primary)",
+        "primary": {
+          DEFAULT: "var(--primary)",
+          foreground: "var(--primary-foreground)",
+        },
         "on-primary": "var(--on-primary)",
-        secondary: "var(--secondary)",
-        tertiary: "var(--tertiary)",
-        error: "var(--error)",
+        "secondary": {
+          DEFAULT: "var(--secondary)",
+          foreground: "var(--secondary-foreground)",
+        },
+        "tertiary": "var(--tertiary)",
+        "error": "var(--error)",
+        "success": "var(--success)",
+        "warning": "var(--warning)",
+        "info": "var(--info)",
       },
       fontFamily: {
         sans: ["Hanken Grotesk", "PingFang SC", "Microsoft YaHei", "sans-serif"],
@@ -38,8 +69,13 @@ export default {
       },
       spacing: {
         "container-margin": "24px",
-        gutter: "16px",
+        "gutter": "16px",
         "card-padding": "20px",
+      },
+      borderRadius: {
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 1px)",
+        sm: "calc(var(--radius) - 2px)",
       },
     },
   },

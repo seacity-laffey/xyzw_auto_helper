@@ -13,23 +13,19 @@
     <!-- 身份牌常驻（嵌入式，Tabs 上方） -->
     <IdentityCard embedded />
 
-    <!-- 下方选卡分区切换（Tabs）：日常｜俱乐部｜活动 -->
-    <n-tabs
-      class="section-tabs"
-      v-model:value="activeSection"
-      type="line"
-      animated
-      size="small"
-    >
-      <n-tab-pane name="daily" tab="日常" />
-      <n-tab-pane name="club" tab="俱乐部" />
-      <n-tab-pane name="activity" tab="活动" />
-      <n-tab-pane v-if="ENABLE_TOOLS_TAB" name="tools" tab="工具" />
-      <n-tab-pane name="saltFieldGroup" tab="盐场" />
-      <n-tab-pane name="peachGroup" tab="蟠桃园" />
-      <n-tab-pane name="rankGroup" tab="排行榜" />
-      <n-tab-pane name="fightPvp" tab="切磋" />
-    </n-tabs>
+    <nav class="section-tabs" aria-label="角色功能分类">
+      <button
+        v-for="item in sectionItems"
+        :key="item.value"
+        type="button"
+        role="tab"
+        :aria-selected="activeSection === item.value"
+        :class="{ active: activeSection === item.value }"
+        @click="activeSection = item.value"
+      >
+        {{ item.label }}
+      </button>
+    </nav>
 
     <!-- 阵容（仅日常） -->
     <TeamFormation v-show="activeSection === 'daily'" />
@@ -78,8 +74,6 @@
 
     <!-- 消耗活动进度（提取组件） -->
     <ConsumptionProgressCard v-if="activeSection === 'tools'" />
-    <!-- 咸王宝库（提取组件） -->
-    <BossTower v-if="activeSection === 'tools'" />
     <!-- 俱乐部排位（暂时隐藏） -->
     <div
       class="status-card legion-match"
@@ -115,8 +109,6 @@
         </button>
       </div>
     </div>
-
-    <!-- 俱乐部赛车（合并自俱乐部赛车 + 疯狂赛车） -->
 
     <!-- 俱乐部签到（已迁移到俱乐部信息-概览，故隐藏原卡片） -->
     <div
@@ -156,9 +148,9 @@
       </div>
     </div>
 
-    <!-- 俱乐部信息与疯狂赛车（同级卡片，仅俱乐部分区） -->
+    <!-- 俱乐部信息与今日俱乐部战统计 -->
     <ClubInfo v-if="activeSection === 'club'" />
-    <ClubCarKing v-if="activeSection === 'club'" />
+    <ClubDailyBattleStats v-if="activeSection === 'club'" />
 
     <!-- 月度任务进度（提取组件） -->
     <MonthlyTasksCard v-show="activeSection === 'activity'" />
@@ -363,7 +355,6 @@ import ConsumptionProgressCard from "../Cards/Activity/ConsumptionProgressCard.v
 import RefineHelperCard from "../Cards/Helper/RefineHelperCard.vue";
 import TowerStatus from "../Tower/TowerStatus.vue";
 import WeirdTowerStatus from "../Tower/WeirdTowerStatus.vue";
-import BossTower from "../Tower/BossTower.vue";
 import PeachInfo from "../Club/PeachInfo.vue";
 import PeachInfoV2 from "../Club/PeachInfoV2.vue";
 import ServerRankList from "../Cards/Rank/ServerRankListPageCard.vue";
@@ -684,6 +675,16 @@ const claimHangUpReward = async () => {
 const ENABLE_LEGION_MATCH = false;
 const ENABLE_LEGION_SIGNIN_CARD = false;
 const ENABLE_TOOLS_TAB = true; // 工具分区开关
+const sectionItems = [
+  { value: "daily", label: "日常" },
+  { value: "club", label: "俱乐部" },
+  { value: "activity", label: "活动" },
+  ...(ENABLE_TOOLS_TAB ? [{ value: "tools", label: "工具" }] : []),
+  { value: "saltFieldGroup", label: "盐场" },
+  { value: "peachGroup", label: "蟠桃园" },
+  { value: "rankGroup", label: "排行榜" },
+  { value: "fightPvp", label: "切磋" },
+];
 
 // 盐场战绩入口已移动至俱乐部信息模块
 
@@ -747,8 +748,8 @@ onUnmounted(() => {
 .game-status-container {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: var(--spacing-lg);
-  padding: var(--spacing-lg);
+  gap: 16px;
+  padding: 0;
 
   // 在大屏幕上限制最大列数以确保卡片有足够宽度
   @media (min-width: 1400px) {
@@ -815,14 +816,44 @@ onUnmounted(() => {
 }
 
 .section-tabs {
-  margin: 0 var(--spacing-sm) var(--spacing-md) var(--spacing-sm);
+  display: flex;
+  min-width: 0;
+  margin: 0 0 4px;
   grid-column: 1 / -1;
   border-bottom: 1px solid var(--border-light);
-  overflow: auto;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
 
-.section-tabs :deep(.n-tabs-pane-wrapper) {
+.section-tabs::-webkit-scrollbar {
   display: none;
+}
+
+.section-tabs button {
+  position: relative;
+  min-width: max-content;
+  height: 40px;
+  padding: 0 14px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.section-tabs button:hover {
+  color: var(--foreground);
+}
+
+.section-tabs button.active {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+.section-tabs button.active::after {
+  position: absolute;
+  inset: auto 12px -1px;
+  height: 2px;
+  background: var(--foreground);
+  content: "";
 }
 
 .warrank-full-container {
@@ -994,7 +1025,7 @@ onUnmounted(() => {
 @media (max-width: 768px) {
   .game-status-container {
     grid-template-columns: 1fr;
-    padding: var(--spacing-sm);
+    padding: 0;
   }
 
   .status-card {

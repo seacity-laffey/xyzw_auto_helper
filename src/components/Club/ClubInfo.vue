@@ -1,7 +1,7 @@
 <template>
-  <MyCard class="club-info" :statusClass="{ active: !!club }">
+  <MyCard class="club-info" :status-class="{ active: !!club }">
     <template #icon>
-      <img src="/icons/1733492491706152.png" alt="俱乐部图标" />
+      <img alt="俱乐部图标" src="/icons/1733492491706152.png">
     </template>
     <template #title>
       <h3>俱乐部信息</h3>
@@ -12,601 +12,573 @@
     </template>
     <template #default>
       <div v-if="!club" class="empty-club">
-        <n-empty description="暂无俱乐部" />
-        <div class="actions">
-          <n-button size="small" @click="refreshClub">刷新</n-button>
-        </div>
+        <UsersRound :size="24"></UsersRound>
+        <strong>暂无俱乐部</strong>
+        <span>刷新后重新读取当前角色的俱乐部状态</span>
+        <Button size="sm" variant="outline" @click="refreshClub">
+          <RotateCw :size="14"></RotateCw>
+          刷新
+        </Button>
       </div>
       <div v-else>
         <div class="toolbar">
-          <n-space size="small">
-            <!-- 申请列表按钮 -->
-            <n-button v-if="canKick" size="small" @click="getApplyList">申请列表</n-button>
-            <n-button size="small" @click="refreshClub">刷新</n-button>
-          </n-space>
+          <Button v-if="canKick" size="sm" variant="outline" @click="getApplyList">
+            <UserRoundPlus :size="14"></UserRoundPlus>
+            申请列表
+          </Button>
+          <Button size="sm" variant="outline" @click="refreshClub">
+            <RotateCw :size="14"></RotateCw>
+            刷新
+          </Button>
         </div>
 
-        <!-- 申请列表悬浮界面 -->
-        <n-modal
-          v-model:show="showApplyList"
-          title="俱乐部申请列表"
-          :mask-closable="true"
-          :show-close-button="true"
-          :close-on-esc="true"
-          preset="card"
-          :show-footer="false"
-          :style="{ width: '700px', maxHeight: '80vh' }"
-          :content-style="{ padding: '0', maxHeight: 'calc(80vh - 60px)', overflow: 'auto' }"
-        >
-          <template #header-extra>
-            <n-space size="small">
-              <n-button
-                size="small"
-                type="primary"
-                @click="approveAll"
+        <Dialog v-model:open="showApplyList">
+          <DialogContent class="max-h-[80vh] max-w-[700px] overflow-hidden p-0">
+            <DialogHeader class="border-b border-border px-5 py-4 pr-14">
+              <DialogTitle>俱乐部申请列表</DialogTitle>
+              <DialogDescription>审核申请加入当前俱乐部的角色</DialogDescription>
+            </DialogHeader>
+            <div class="dialog-toolbar">
+              <Button
+                size="sm"
                 :disabled="applyList.length === 0"
+                @click="approveAll"
               >
                 一键通过
-              </n-button>
-              <n-button
-                size="small"
-                type="error"
-                @click="rejectAll"
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
                 :disabled="applyList.length === 0"
+                @click="rejectAll"
               >
                 一键拒绝
-              </n-button>
-            </n-space>
-          </template>
-          <div v-if="loadingApply" class="loading">
-            <n-spin size="small" />
-            <span style="margin-left: 8px">正在加载申请列表...</span>
-          </div>
-          <div v-else-if="applyList.length === 0" class="empty-apply">
-            <n-empty description="暂无申请" />
-          </div>
-          <div v-else class="apply-list-container">
-            <div
-              class="apply-list"
-              :style="{ maxHeight: '800px', overflowY: 'auto' }"
-            >
-              <div
-                v-for="apply in applyList"
-                :key="apply.roleId"
-                class="apply-item"
-                :class="{ 'apply-item-hover': hoveredItemId === apply.roleId }"
-                @mouseenter="hoveredItemId = apply.roleId"
-                @mouseleave="hoveredItemId = null"
-              >
-                <div class="apply-left">
-                  <n-avatar
-                    :size="28"
-                    :src="apply.headImg || '/icons/xiaoyugan.png'"
-                  />
-                  <div class="apply-info">
-                    <div class="apply-name">
-                      {{ apply.name }}(ID:{{ apply.roleId }})
-                    </div>
-                    <div class="apply-details">
-                      <span>等级: {{ apply.level || 0 }}</span>
-                      <span class="apply-power">{{
-                        formatNumber(apply.power || 0)
-                      }}</span>
-                      <span v-if="apply.serverId"
-                        >服务器: {{ apply.serverId }}</span
-                      >
-                    </div>
-                    <div v-if="apply.applyReason" class="apply-reason">
-                      申请留言: {{ apply.applyReason }}
+              </Button>
+            </div>
+            <div v-if="loadingApply" class="loading">
+              <LoaderCircle class="spinning" :size="17"></LoaderCircle>
+              <span>正在加载申请列表...</span>
+            </div>
+            <div v-else-if="applyList.length === 0" class="empty-apply">
+              <Inbox :size="22"></Inbox>
+              <span>暂无申请</span>
+            </div>
+            <div v-else class="apply-list-container">
+              <div class="apply-list">
+                <div
+                  v-for="apply in applyList"
+                  :key="apply.roleId"
+                  class="apply-item"
+                  :class="{ 'apply-item-hover': hoveredItemId === apply.roleId }"
+                  @mouseenter="hoveredItemId = apply.roleId"
+                  @mouseleave="hoveredItemId = null"
+                >
+                  <div class="apply-left">
+                    <img
+                      alt="申请人头像"
+                      class="apply-avatar"
+                      :src="apply.headImg || '/icons/xiaoyugan.png'"
+                    >
+                    <div class="apply-info">
+                      <div class="apply-name">
+                        {{ apply.name }}(ID:{{ apply.roleId }})
+                      </div>
+                      <div class="apply-details">
+                        <span>等级: {{ apply.level || 0 }}</span>
+                        <span class="apply-power">{{
+                          formatNumber(apply.power || 0)
+                        }}</span>
+                        <span v-if="apply.serverId">服务器: {{ apply.serverId }}</span>
+                      </div>
+                      <div v-if="apply.applyReason" class="apply-reason">
+                        申请留言: {{ apply.applyReason }}
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div class="apply-right">
-                  <n-space size="small">
-                    <n-button
-                      size="tiny"
-                      type="primary"
+                  <div class="apply-right">
+                    <Button
+                      size="sm"
                       @click="approveApply(apply.roleId)"
                     >
                       通过
-                    </n-button>
-                    <n-button size="tiny" @click="rejectApply(apply.roleId)">
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      @click="rejectApply(apply.roleId)"
+                    >
                       拒绝
-                    </n-button>
-                  </n-space>
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
+          </DialogContent>
+        </Dialog>
+
+        <nav aria-label="俱乐部信息视图" class="club-tabs" role="tablist">
+          <button
+            v-for="tab in clubTabs"
+            :key="tab.value"
+            class="club-tab"
+            role="tab"
+            type="button"
+            :aria-selected="activeTab === tab.value"
+            :class="{ active: activeTab === tab.value }"
+            @click="activeTab = tab.value"
+          >
+            {{ tab.label }}
+          </button>
+        </nav>
+
+        <div v-show="activeTab === 'overview'" class="overview" role="tabpanel">
+          <section class="club-profile">
+            <img
+              alt="俱乐部头像"
+              class="club-avatar"
+              :src="club.logo || '/icons/xiaoyugan.png'"
+            >
+            <div class="club-profile-copy">
+              <strong>{{ club.name }}</strong>
+              <div class="club-meta">
+                <Badge variant="outline">ID: {{ club.id }}</Badge>
+                <Badge variant="outline">服务器: {{ club.serverId - 27 }}</Badge>
+                <Badge variant="outline">成员: {{ memberCount }}</Badge>
+              </div>
+            </div>
+            <Button
+              size="sm"
+              :disabled="legionSignedIn"
+              :variant="legionSignedIn ? 'outline' : 'default'"
+              @click="signInLegion"
+            >
+              <ShieldCheck :size="14"></ShieldCheck>
+              {{ legionSignedIn ? "已签到" : "俱乐部签到" }}
+            </Button>
+          </section>
+
+          <dl class="club-metrics">
+            <div>
+              <dt><ChartNoAxesCombined :size="15"></ChartNoAxesCombined>战力</dt>
+              <dd>{{ formatNumber(clubOverview.power) }}</dd>
+            </div>
+            <div>
+              <dt><Flame :size="15"></Flame>红粹</dt>
+              <dd>{{ clubOverview.redQuench }}</dd>
+            </div>
+            <div>
+              <dt><Skull :size="15"></Skull>当前 Boss ID</dt>
+              <dd>{{ clubOverview.currentBossId }}</dd>
+            </div>
+            <div>
+              <dt><HeartPulse :size="15"></HeartPulse>Boss 剩余血量</dt>
+              <dd>{{ clubOverview.currentHP }}</dd>
+            </div>
+          </dl>
+
+          <details
+            v-if="clubOverview.unfoughtBosses?.length"
+            class="boss-summary"
+          >
+            <summary>
+              <span><Skull :size="16"></Skull>Boss 击杀情况</span>
+              <span>
+                已击杀 {{ 150 - clubOverview.unfoughtBosses.length }}/150，遗漏
+                {{ clubOverview.unfoughtBosses.length }}
+              </span>
+            </summary>
+            <div class="boss-list">
+              <Badge
+                v-for="boss in clubOverview.unfoughtBosses"
+                :key="boss"
+                variant="destructive"
+              >
+                {{ boss }}
+              </Badge>
+            </div>
+          </details>
+
+          <section v-if="club.announcement" class="club-detail-section">
+            <header><Megaphone :size="16"></Megaphone><strong>公告</strong></header>
+            <p>{{ club.announcement }}</p>
+          </section>
+
+          <section v-if="leader" class="club-detail-section">
+            <header><UserRound :size="16"></UserRound><strong>会长</strong></header>
+            <div class="leader-row">
+              <img
+                alt="会长头像"
+                :src="leader.headImg || '/icons/xiaoyugan.png'"
+              >
+              <div>
+                <strong>{{ leader.name }}</strong>
+                <span>ID: {{ leader.roleId }}</span>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div
+          ref="exportDom"
+          v-show="activeTab === 'members'"
+          class="members"
+          :class="{ exporting: isExporting }"
+          role="tabpanel"
+        >
+          <div class="member-table-toolbar">
+            <strong>俱乐部成员详情</strong>
+            <div v-if="!isExporting">
+              <Button
+                size="sm"
+                variant="outline"
+                :disabled="batchLoading"
+                @click="fetchAllMembersLineup"
+              >
+                <RotateCw :class="{ spinning: batchLoading }" :size="14"></RotateCw>
+                获取阵容
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                :disabled="isExporting"
+                @click="handleExportImage"
+              >
+                <ImageDown :size="14"></ImageDown>
+                导出图片
+              </Button>
+            </div>
           </div>
-        </n-modal>
+          <div class="member-table-scroll" :class="{ exporting: isExporting }">
+            <table class="member-table">
+              <thead>
+                <tr>
+                  <th>序号</th>
+                  <th>头像</th>
+                  <th>成员</th>
+                  <th>战力</th>
+                  <th>红淬</th>
+                  <th>阵容</th>
+                  <th v-if="!isExporting">职位</th>
+                  <th v-if="canKick && !isExporting">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(member, index) in topMembers" :key="member.roleId">
+                  <td>{{ index + 1 }}</td>
+                  <td>
+                    <img
+                      v-if="member.headImg"
+                      class="member-table-avatar"
+                      :alt="member.name"
+                      :src="member.headImg"
+                    >
+                    <span v-else class="member-table-avatar placeholder">
+                      {{ member.name?.charAt(0) || "?" }}
+                    </span>
+                  </td>
+                  <td>
+                    <button
+                      class="member-link"
+                      type="button"
+                      @click="fetchTargetInfo(member.roleId)"
+                    >
+                      <strong>{{ member.name }}</strong>
+                      <span>ID: {{ member.roleId }}</span>
+                    </button>
+                  </td>
+                  <td>{{ formatNumber(member.power || member.custom?.s_power || 0) }}</td>
+                  <td class="member-red">{{ redQuenchlabel(member.custom?.red_quench_cnt || 0) }}</td>
+                  <td>
+                    <Badge
+                      v-if="member.lineupType"
+                      :style="getLineupBadgeStyle(member.lineupType)"
+                    >
+                      {{ member.lineupType }}
+                    </Badge>
+                    <span v-else>-</span>
+                  </td>
+                  <td v-if="!isExporting">{{ jobLabel(member.job) }}</td>
+                  <td v-if="canKick && !isExporting">
+                    <Button
+                      v-if="member.job !== 1"
+                      size="sm"
+                      variant="destructive"
+                      @click="kickMember(member.roleId, member.name)"
+                    >
+                      踢出
+                    </Button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
 
-        <n-tabs v-model:value="activeTab" type="line" animated>
-          <n-tab-pane name="overview" tab="概览" display-directive="show:lazy">
-            <div class="overview">
-              <n-grid x-gap="12" y-gap="12" cols="2" item-responsive>
-                <!-- 头部信息 -->
-                <n-gi span="2">
-                  <n-card embedded :bordered="false" content-style="padding: 16px;">
-                    <n-thing>
-                      <template #avatar>
-                        <n-avatar
-                          :size="64"
-                          :src="club.logo || '/icons/xiaoyugan.png'"
-                          style="box-shadow: 0 2px 8px rgba(0,0,0,0.1);"
-                        />
-                      </template>
-                      <template #header>
-                        <span style="font-size: 18px; font-weight: bold;">{{ club.name }}</span>
-                      </template>
-                      <template #description>
-                        <n-space size="small" style="margin-top: 4px;">
-                          <n-tag size="small" :bordered="false" type="warning">ID: {{ club.id }}</n-tag>
-                          <n-tag size="small" :bordered="false" type="info">服务器: {{ club.serverId - 27 }}</n-tag>
-                          <n-tag size="small" :bordered="false" type="success">成员: {{ memberCount }}</n-tag>
-                        </n-space>
-                      </template>
-                      <template #header-extra>
-                        <n-button
-                          size="small"
-                          :type="legionSignedIn ? 'success' : 'primary'"
-                          :secondary="legionSignedIn"
-                          @click="signInLegion"
-                          :disabled="legionSignedIn"
-                        >
-                          <template #icon>
-                            <n-icon><ShieldCheckmark /></n-icon>
-                          </template>
-                          {{ legionSignedIn ? "已签到" : "俱乐部签到" }}
-                        </n-button>
-                      </template>
-                    </n-thing>
-                  </n-card>
-                </n-gi>
+        <div v-show="activeTab === 'history'" role="tabpanel">
+          <ClubHistoryRecords inline></ClubHistoryRecords>
+        </div>
 
-                <!-- 统计数据 -->
-                <n-gi>
-                  <n-card size="small" embedded :bordered="false" style="height: 100%;">
-                    <n-statistic label="战力">
-                      <template #prefix>
-                        <n-icon color="#18a058"><BarChart /></n-icon>
-                      </template>
-                      {{ formatNumber(clubOverview.power) }}
-                    </n-statistic>
-                  </n-card>
-                </n-gi>
-                <n-gi>
-                  <n-card size="small" embedded :bordered="false" style="height: 100%;">
-                    <n-statistic label="红粹">
-                      <template #prefix>
-                        <n-icon color="#d03050"><Flame /></n-icon>
-                      </template>
-                      {{ clubOverview.redQuench }}
-                    </n-statistic>
-                  </n-card>
-                </n-gi>
-                <n-gi>
-                  <n-card size="small" embedded :bordered="false" style="height: 100%;">
-                    <n-statistic label="当前BossId">
-                      <template #prefix>
-                        <n-icon color="#8a2be2"><Skull /></n-icon>
-                      </template>
-                      {{ clubOverview.currentBossId }}
-                    </n-statistic>
-                  </n-card>
-                </n-gi>
-                <n-gi>
-                  <n-card size="small" embedded :bordered="false" style="height: 100%;">
-                    <n-statistic label="Boss剩余血量">
-                      <template #prefix>
-                        <n-icon color="#f0a020"><Skull /></n-icon>
-                      </template>
-                      {{ clubOverview.currentHP }}
-                    </n-statistic>
-                  </n-card>
-                </n-gi>
-
-                <!-- Boss 击杀情况 -->
-                <n-gi span="2" v-if="clubOverview.unfoughtBosses && clubOverview.unfoughtBosses.length > 0">
-                  <n-alert type="warning" :bordered="false">
-                    <template #icon>
-                      <n-icon><Skull /></n-icon>
-                    </template>
-                    <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
-                      <div>
-                        <span style="font-weight: bold;">Boss 击杀情况</span>
-                        <div style="margin-top: 4px; font-size: 12px;">
-                          已击杀: {{ 150 - clubOverview.unfoughtBosses.length }} / 150
-                          <span style="margin-left: 12px; color: #d03050;">遗漏: {{ clubOverview.unfoughtBosses.length }}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <n-collapse arrow-placement="right" style="margin-top: 8px;">
-                      <n-collapse-item title="展开查看遗漏Boss列表" name="1">
-                        <n-space size="small" style="margin-top: 8px;">
-                          <n-tag v-for="boss in clubOverview.unfoughtBosses" :key="boss" type="error" size="small" :bordered="false">
-                            {{ boss }}
-                          </n-tag>
-                        </n-space>
-                      </n-collapse-item>
-                    </n-collapse>
-                  </n-alert>
-                </n-gi>
-
-                <!-- 公告 -->
-                <n-gi span="2" v-if="club.announcement">
-                  <n-card size="small" title="公告" embedded :bordered="false">
-                    <template #header-extra>
-                      <n-icon size="18" color="#f0a020"><Megaphone /></n-icon>
-                    </template>
-                    <div style="white-space: pre-wrap; font-size: 13px; line-height: 1.6; color: #666;">
-                      {{ club.announcement }}
-                    </div>
-                  </n-card>
-                </n-gi>
-
-                <!-- 会长 -->
-                <n-gi span="2" v-if="leader">
-                  <n-card size="small" title="会长" embedded :bordered="false">
-                    <template #header-extra>
-                      <n-icon size="18" color="#2080f0"><Person /></n-icon>
-                    </template>
-                    <div style="display: flex; align-items: center; gap: 12px;">
-                      <n-avatar
-                        round
-                        :size="40"
-                        :src="leader.headImg || '/icons/xiaoyugan.png'"
-                        style="border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"
-                      />
-                      <div>
-                        <div style="font-weight: bold; font-size: 14px;">{{ leader.name }}</div>
-                        <div style="font-size: 12px; color: #999;">ID: {{ leader.roleId }}</div>
-                      </div>
-                    </div>
-                  </n-card>
-                </n-gi>
-              </n-grid>
-            </div>
-          </n-tab-pane>
-
-          <n-tab-pane name="members" tab="成员" display-directive="show:lazy">
-            <div class="members" ref="exportDom">
-              <n-data-table
-                :columns="memberColumns"
-                :data="topMembers"
-                :bordered="false"
-                size="small"
-                striped
-                :row-key="(row) => row.roleId"
-                flex-height
-                :scroll-x="650"
-                style="height: 600px"
-              />
-            </div>
-          </n-tab-pane>
-
-          <n-tab-pane
-            name="history"
-            tab="俱乐部历史战绩"
-            display-directive="show:lazy"
-          >
-            <ClubHistoryRecords inline />
-          </n-tab-pane>
-
-          <n-tab-pane
-            name="weirdtower"
-            tab="怪异塔信息"
-            display-directive="show:lazy"
-          >
-            <ClubWeirdTowerInfo inline />
-          </n-tab-pane>
-
-          <n-tab-pane
-            name="carsocre"
-            tab="赛车积分信息"
-            display-directive="show:lazy"
-          >
-            <CarScoreInfo inline />
-          </n-tab-pane>
-        </n-tabs>
+        <div v-show="activeTab === 'weirdtower'" role="tabpanel">
+          <ClubWeirdTowerInfo inline></ClubWeirdTowerInfo>
+        </div>
       </div>
     </template>
   </MyCard>
 
-  <!-- 玩家信息模态框 -->
-  <n-modal
-    v-model:show="showPlayerInfoModal"
-    preset="card"
-    title="成员信息"
-    :style="{ width: '800px' }"
-    :bordered="false"
-    :segmented="{ content: 'soft', footer: 'soft' }"
-    :show-close="false"
-  >
-    <template #header-extra>
-      <span v-if="playerInfo" class="player-id">ID: {{ playerInfo.id }}</span>
-    </template>
+  <Dialog v-model:open="showPlayerInfoModal">
+    <DialogContent class="max-h-[85vh] max-w-[800px] overflow-y-auto">
+      <DialogHeader>
+        <DialogTitle>成员信息</DialogTitle>
+        <DialogDescription v-if="playerInfo">角色 ID: {{ playerInfo.id }}</DialogDescription>
+      </DialogHeader>
 
-    <div v-if="playerInfo" class="player-info-content">
-      <div class="player-info-main">
-        <n-avatar
-          round
-          :size="60"
-          :src="playerInfo.headImg"
-          class="player-avatar"
-        />
-        <div class="player-info-detail">
-          <h3>
-            {{ playerInfo.name }}
-            <n-tag
-              v-if="playerInfo.legacy > 0"
-              :style="{
-                color: '#fff',
-                backgroundColor: legacycolor[playerInfo.legacy]?.value,
-              }"
-              size="small"
-              style="margin-left: 8px"
-            >
-              {{ legacycolor[playerInfo.legacy]?.name || "未知" }}
-            </n-tag>
-          </h3>
-          <div class="detail-row">
-            <span
-              >战力:
-              <span class="highlight">{{
-                formatNumber(playerInfo.power)
-              }}</span></span
-            >
-            <span>服务器: {{ playerInfo.serverName }}</span>
-          </div>
-          <div class="detail-row">
-            <span>俱乐部: {{ playerInfo.legionName }}</span>
-          </div>
-          <div class="detail-row">
-            <span
-              >总红数:
-              <span class="red-text">{{ playerInfo.totalRedCount }}</span></span
-            >
-            <span
-              >总开孔:
-              <span class="blue-text">{{
-                playerInfo.totalHoleCount
-              }}</span></span
-            >
-            <span
-              >四圣:
-              <span class="green-text">{{ playerInfo.holyBeast }}</span></span
-            >
+      <div v-if="playerInfo" class="player-info-content">
+        <div class="player-info-main">
+          <img
+            alt="成员头像"
+            class="player-avatar"
+            :src="playerInfo.headImg || '/icons/xiaoyugan.png'"
+          >
+          <div class="player-info-detail">
+            <h3>
+              {{ playerInfo.name }}
+              <Badge
+                v-if="playerInfo.legacy > 0"
+                :style="{
+                  color: '#fff',
+                  backgroundColor: legacycolor[playerInfo.legacy]?.value,
+                }"
+              >
+                {{ legacycolor[playerInfo.legacy]?.name || "未知" }}
+              </Badge>
+            </h3>
+            <div class="detail-row">
+              <span>战力: <strong class="highlight">{{ formatNumber(playerInfo.power) }}</strong></span>
+              <span>服务器: {{ playerInfo.serverName }}</span>
+            </div>
+            <div class="detail-row">
+              <span>俱乐部: {{ playerInfo.legionName }}</span>
+            </div>
+            <div class="detail-row">
+              <span>总红数: <strong class="red-text">{{ playerInfo.totalRedCount }}</strong></span>
+              <span>总开孔: <strong class="blue-text">{{ playerInfo.totalHoleCount }}</strong></span>
+              <span>四圣: <strong class="green-text">{{ playerInfo.holyBeast }}</strong></span>
+            </div>
           </div>
         </div>
+
+        <section class="hero-section">
+          <div class="section-heading">
+            <h4>武将阵容</h4>
+            <Badge variant="outline">{{ playerInfo.heroList?.length || 0 }} 名</Badge>
+          </div>
+          <div v-if="playerInfo.heroList?.length" class="hero-list">
+            <button
+              v-for="(hero, index) in playerInfo.heroList"
+              :key="hero.heroId || index"
+              class="hero-item"
+              type="button"
+              @click="selectHeroInfo(hero)"
+            >
+              <img
+                alt="武将头像"
+                class="hero-avatar"
+                :src="hero.heroAvate || '/icons/xiaoyugan.png'"
+              >
+              <div class="hero-info">
+                <span class="hero-name">{{ hero.heroName }}</span>
+                <div class="hero-stats">
+                  <span>战力: {{ formatNumber(hero.power || 0) }}</span>
+                  <span>星级: {{ hero.star || 0 }}</span>
+                  <span>红数: {{ hero.red || 0 }}</span>
+                  <span>开孔: {{ hero.hole || 0 }}</span>
+                  <span :class="hero.HolyBeast ? 'opened' : 'closed'">
+                    {{ hero.HolyBeast ? "已开四圣" : "未开四圣" }}
+                  </span>
+                  <span v-if="hero.HolyBeast">四圣等级: {{ hero.HBlevel || 0 }}</span>
+                </div>
+              </div>
+              <ChevronRight :size="16"></ChevronRight>
+            </button>
+          </div>
+          <div v-else class="empty-heroes">
+            <UsersRound :size="22"></UsersRound>
+            <span>未查询到武将信息</span>
+          </div>
+        </section>
       </div>
 
-      <div class="hero-section">
-        <h4>武将阵容</h4>
-        <div
-          v-if="playerInfo.heroList"
-          class="debug-info"
-          style="font-size: 12px; color: #999; margin-bottom: 10px"
-        >
-          武将数量: {{ playerInfo.heroList.length }}
-        </div>
-        <div
-          class="hero-list"
-          v-if="playerInfo.heroList && playerInfo.heroList.length > 0"
-        >
-          <div
-            v-for="(hero, index) in playerInfo.heroList"
-            :key="hero.heroId || index"
-            class="hero-item"
-            @click="selectHeroInfo(hero)"
+      <DialogFooter>
+        <Button variant="outline" @click="showPlayerInfoModal = false">关闭</Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
+
+  <Dialog v-model:open="showHeroModal">
+    <DialogContent class="max-h-[85vh] max-w-[600px] overflow-y-auto">
+      <DialogHeader>
+        <DialogTitle>武将详情</DialogTitle>
+        <DialogDescription>武将属性、鱼灵与装备淬炼信息</DialogDescription>
+      </DialogHeader>
+      <div v-if="heroModealTemp" class="hero-modal-content">
+        <div class="hero-modal-header">
+          <img
+            alt="武将头像"
+            class="hero-modal-avatar"
+            :src="heroModealTemp.heroAvate || '/icons/xiaoyugan.png'"
           >
-            <n-avatar
-              round
-              :size="40"
-              :src="hero.heroAvate"
-              style="cursor: pointer"
-            />
-            <div class="hero-info">
-              <span class="hero-name">{{ hero.heroName }}</span>
-              <div class="hero-stats">
-                <span>战力: {{ formatNumber(hero.power || 0) }}</span>
-                <span>星级: {{ hero.star || 0 }}</span>
-                <span>红数: {{ hero.red || 0 }}</span>
-                <span>开孔: {{ hero.hole || 0 }}</span>
-                <span :class="hero.HolyBeast ? 'opened' : 'closed'">
-                  {{ hero.HolyBeast ? "已开四圣" : "未开四圣" }}
-                </span>
-                <span v-if="hero.HolyBeast"
-                  >四圣等级: {{ hero.HBlevel || 0 }}</span
-                >
+          <div class="hero-modal-basic">
+            <h3 class="hero-modal-name">{{ heroModealTemp.heroName }}</h3>
+            <div class="hero-modal-stats">
+              <span class="stat-item">{{
+                formatNumber(heroModealTemp.power)
+              }}</span>
+              <span class="stat-item">等级: {{ heroModealTemp.level }}</span>
+              <span class="stat-item">星级: {{ heroModealTemp.star }}</span>
+              <Badge :variant="heroModealTemp.HolyBeast ? 'default' : 'outline'">
+                {{ heroModealTemp.HolyBeast ? "已激活" : "未激活" }}
+              </Badge>
+            </div>
+          </div>
+        </div>
+
+        <dl class="hero-detail-grid">
+          <div><dt>战力</dt><dd>{{ formatNumber(heroModealTemp.power) }}</dd></div>
+          <div><dt>等级</dt><dd>{{ heroModealTemp.level }}</dd></div>
+          <div><dt>星级</dt><dd>{{ heroModealTemp.star }}</dd></div>
+          <div><dt>开孔数</dt><dd>{{ heroModealTemp.hole }}</dd></div>
+          <div><dt>红孔数</dt><dd>{{ heroModealTemp.red }}</dd></div>
+          <div><dt>四圣状态</dt><dd>{{ heroModealTemp.HolyBeast ? "已激活" : "未激活" }}</dd></div>
+          <div v-if="heroModealTemp.HolyBeast"><dt>四圣等级</dt><dd>{{ heroModealTemp.HBlevel }}</dd></div>
+          <div><dt>鱼灵</dt><dd>{{ heroModealTemp.PearlInfo?.FishInfo?.name || "无" }}</dd></div>
+          <div><dt>鱼珠技能</dt><dd>{{ heroModealTemp.PearlInfo?.PearlSkill?.name || "无" }}</dd></div>
+          <div class="wash-stat">
+            <dt>鱼灵洗练</dt>
+            <dd>
+              <div v-if="heroModealTemp?.PearlInfo?.slotMap?.length > 0">
+                <div
+                  v-for="item in heroModealTemp.PearlInfo.slotMap"
+                  :key="item.id"
+                  class="ModalEquipment"
+                  :style="`background-color:${item.value}`"
+                ></div>
+              </div>
+              <div v-else>无</div>
+            </dd>
+          </div>
+        </dl>
+
+        <div class="hero-modal-equipment">
+          <h4 class="section-title">装备详情</h4>
+          <div class="equipment-grid">
+            <div class="equipment-item">
+              <span class="equipment-label">武器:</span>
+              <div class="equipment-slots">
+                <div
+                  v-for="(item, idx) in Object.values(
+                    Object.values(heroModealTemp.equipment || {})[0]?.quenches || {},
+                  )"
+                  :key="idx"
+                  class="equipment-slot"
+                  :class="{ 'red-slot': item.colorId === 6 }"
+                ></div>
+              </div>
+            </div>
+            <div class="equipment-item">
+              <span class="equipment-label">衣服:</span>
+              <div class="equipment-slots">
+                <div
+                  v-for="(item, idx) in Object.values(
+                    Object.values(heroModealTemp.equipment || {})[1]?.quenches || {},
+                  )"
+                  :key="idx"
+                  class="equipment-slot"
+                  :class="{ 'red-slot': item.colorId === 6 }"
+                ></div>
+              </div>
+            </div>
+            <div class="equipment-item">
+              <span class="equipment-label">头盔:</span>
+              <div class="equipment-slots">
+                <div
+                  v-for="(item, idx) in Object.values(
+                    Object.values(heroModealTemp.equipment || {})[2]?.quenches || {},
+                  )"
+                  :key="idx"
+                  class="equipment-slot"
+                  :class="{ 'red-slot': item.colorId === 6 }"
+                ></div>
+              </div>
+            </div>
+            <div class="equipment-item">
+              <span class="equipment-label">坐骑:</span>
+              <div class="equipment-slots">
+                <div
+                  v-for="(item, idx) in Object.values(
+                    Object.values(heroModealTemp.equipment || {})[3]?.quenches || {},
+                  )"
+                  :key="idx"
+                  class="equipment-slot"
+                  :class="{ 'red-slot': item.colorId === 6 }"
+                ></div>
               </div>
             </div>
           </div>
         </div>
-        <div v-else class="empty-heroes">
-          <p>未查询到武将信息</p>
-          <!-- 添加调试信息 -->
-          <div
-            v-if="playerInfo.heroList"
-            style="font-size: 12px; color: #999; margin-top: 10px"
-          >
-            武将列表为空
-          </div>
-          <div v-else style="font-size: 12px; color: #999; margin-top: 10px">
-            武将列表未定义
-          </div>
-        </div>
-      </div>
-    </div>
-    <template #footer>
-      <n-button @click="showPlayerInfoModal = false">关闭</n-button>
-    </template>
-  </n-modal>
-
-  <!-- 武将详情模态框 -->
-  <n-modal
-    v-model:show="showHeroModal"
-    class="hero-detail-modal"
-    preset="card"
-    title="武将详情"
-    :style="{ width: '600px' }"
-    :bordered="false"
-    :segmented="{ content: 'soft', footer: 'soft' }"
-  >
-    <div v-if="heroModealTemp" class="hero-modal-content">
-      <div class="hero-modal-header">
-        <n-avatar
-          round
-          :size="80"
-          :src="heroModealTemp.heroAvate"
-          class="hero-modal-avatar"
-        />
-        <div class="hero-modal-basic">
-          <h3 class="hero-modal-name">{{ heroModealTemp.heroName }}</h3>
-          <div class="hero-modal-stats">
-            <span class="stat-item">{{
-              formatNumber(heroModealTemp.power)
-            }}</span>
-            <span class="stat-item">等级: {{ heroModealTemp.level }}</span>
-            <span class="stat-item">星级: {{ heroModealTemp.star }}</span>
-            <n-tag :type="heroModealTemp.HolyBeast ? 'success' : 'warning'">
-              {{ heroModealTemp.HolyBeast ? "已激活" : "未激活" }}
-            </n-tag>
-          </div>
-        </div>
       </div>
 
-      <div class="hero-modal-details">
-        <n-descriptions label-placement="left" column="3" bordered>
-          <n-descriptions-item label="战力">
-            {{ formatNumber(heroModealTemp.power) }}
-          </n-descriptions-item>
-          <n-descriptions-item label="等级">
-            {{ heroModealTemp.level }}
-          </n-descriptions-item>
-          <n-descriptions-item label="星级">
-            {{ heroModealTemp.star }}
-          </n-descriptions-item>
-          <n-descriptions-item label="开孔数">
-            {{ heroModealTemp.hole }}
-          </n-descriptions-item>
-          <n-descriptions-item label="红孔数">
-            {{ heroModealTemp.red }}
-          </n-descriptions-item>
-          <n-descriptions-item label="四圣状态">
-            {{ heroModealTemp.HolyBeast ? "已激活" : "未激活" }}
-          </n-descriptions-item>
-          <n-descriptions-item label="四圣等级" v-if="heroModealTemp.HolyBeast">
-            {{ heroModealTemp.HBlevel }}
-          </n-descriptions-item>
-          <n-descriptions-item label="鱼灵">
-            {{
-              heroModealTemp?.PearlInfo?.FishInfo?.name != undefined
-                ? heroModealTemp.PearlInfo?.FishInfo?.name
-                : "无"
-            }}
-          </n-descriptions-item>
-          <n-descriptions-item label="鱼珠技能">
-            {{
-              heroModealTemp?.PearlInfo?.PearlSkill?.name != undefined
-                ? heroModealTemp.PearlInfo?.PearlSkill?.name
-                : "无"
-            }}
-          </n-descriptions-item>
-          <n-descriptions-item label="鱼灵洗练">
-            <div v-if="heroModealTemp?.PearlInfo?.slotMap?.length > 0">
-              <div
-                v-for="item in heroModealTemp.PearlInfo.slotMap"
-                :key="item.id"
-                class="ModalEquipment"
-                :style="'background-color:' + item.value"
-              ></div>
-            </div>
-            <div v-else>无</div>
-          </n-descriptions-item>
-        </n-descriptions>
-      </div>
-
-      <div class="hero-modal-equipment">
-        <h4 class="section-title">装备详情</h4>
-        <div class="equipment-grid">
-          <div class="equipment-item">
-            <span class="equipment-label">武器:</span>
-            <div class="equipment-slots">
-              <div
-                v-for="(item, idx) in Object.values(
-                  Object.values(heroModealTemp.equipment)[0]?.quenches || {},
-                )"
-                :key="idx"
-                class="equipment-slot"
-                :class="{ 'red-slot': item.colorId === 6 }"
-              ></div>
-            </div>
-          </div>
-          <div class="equipment-item">
-            <span class="equipment-label">衣服:</span>
-            <div class="equipment-slots">
-              <div
-                v-for="(item, idx) in Object.values(
-                  Object.values(heroModealTemp.equipment)[1]?.quenches || {},
-                )"
-                :key="idx"
-                class="equipment-slot"
-                :class="{ 'red-slot': item.colorId === 6 }"
-              ></div>
-            </div>
-          </div>
-          <div class="equipment-item">
-            <span class="equipment-label">头盔:</span>
-            <div class="equipment-slots">
-              <div
-                v-for="(item, idx) in Object.values(
-                  Object.values(heroModealTemp.equipment)[2]?.quenches || {},
-                )"
-                :key="idx"
-                class="equipment-slot"
-                :class="{ 'red-slot': item.colorId === 6 }"
-              ></div>
-            </div>
-          </div>
-          <div class="equipment-item">
-            <span class="equipment-label">坐骑:</span>
-            <div class="equipment-slots">
-              <div
-                v-for="(item, idx) in Object.values(
-                  Object.values(heroModealTemp.equipment)[3]?.quenches || {},
-                )"
-                :key="idx"
-                class="equipment-slot"
-                :class="{ 'red-slot': item.colorId === 6 }"
-              ></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <template #footer>
-      <n-button @click="showHeroModal = false">关闭</n-button>
-    </template>
-  </n-modal>
+      <DialogFooter>
+        <Button variant="outline" @click="showHeroModal = false">关闭</Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, h, reactive, watch, nextTick } from "vue";
-import { useMessage, useDialog, NDataTable, NModal, NAvatar, NTag, NDescriptions, NDescriptionsItem, NButton, NSpace, NIcon, NGrid, NGi, NStatistic, NThing, NAlert, NCollapse, NCollapseItem, NCard } from "naive-ui";
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
+import { useDialog, useMessage } from "naive-ui";
 import { useTokenStore } from "@/stores/tokenStore";
-import { Copy, Refresh, People, BarChart, Flame, Skull, Megaphone, Person, ShieldCheckmark } from "@vicons/ionicons5";
+import {
+  ChartNoAxesCombined,
+  ChevronRight,
+  Flame,
+  HeartPulse,
+  ImageDown,
+  Inbox,
+  LoaderCircle,
+  Megaphone,
+  RotateCw,
+  ShieldCheck,
+  Skull,
+  UserRound,
+  UserRoundPlus,
+  UsersRound,
+} from "@lucide/vue";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import ClubHistoryRecords from "./ClubHistoryRecords.vue";
 import ClubWeirdTowerInfo from "./ClubWeirdTowerInfo.vue";
-import CarScoreInfo from "./CarScoreInfo.vue";
-import { $emit } from "@/stores/events";
-import { HERO_DICT, legacycolor, HeroFillInfo, getLineupType, LINEUP_RULES } from "@/utils/heroList";
-import html2canvas from 'html2canvas';
+import { getLineupType, HERO_DICT, HeroFillInfo, legacycolor, LINEUP_RULES } from "@/utils/heroList";
+import html2canvas from "html2canvas";
 import { downloadCanvasAsImage } from "@/utils/imageExport";
 
 const tokenStore = useTokenStore();
 const message = useMessage();
 const dialog = useDialog();
+const clubTabs = [
+  { label: "概览", value: "overview" },
+  { label: "成员", value: "members" },
+  { label: "俱乐部历史战绩", value: "history" },
+  { label: "怪异塔信息", value: "weirdtower" },
+];
 
 const info = computed(() => tokenStore.gameData?.legionInfo || null);
 const club = computed(() => info.value?.info || null);
@@ -617,7 +589,8 @@ const memberCount = computed(() => members.value.length);
 
 const leader = computed(() => {
   const lid = club.value?.leaderId;
-  if (!lid) return null;
+  if (!lid)
+    return null;
   return members.value.find((m) => Number(m.roleId) === Number(lid)) || null;
 });
 
@@ -626,12 +599,14 @@ const topMembers = computed(() => {
     // 1. 职位排序：会长(1) > 副会长(2) > 成员(0)
     const jobA = a.job === 0 ? 99 : a.job;
     const jobB = b.job === 0 ? 99 : b.job;
-    if (jobA !== jobB) return jobA - jobB;
+    if (jobA !== jobB)
+      return jobA - jobB;
 
     // 2. 红淬排序：降序
     const redA = Number(a.custom?.red_quench_cnt || 0);
     const redB = Number(b.custom?.red_quench_cnt || 0);
-    if (redA !== redB) return redB - redA;
+    if (redA !== redB)
+      return redB - redA;
 
     // 3. 战力排序：降序（兜底）
     const powerA = Number(a.power || a.custom?.s_power || 0);
@@ -651,7 +626,7 @@ const exportDom = ref(null);
 
 // 提取英雄信息
 const getHeroInfo = (heroObj) => {
-  //统计总红数
+  // 统计总红数
   let redCount = 0;
   let holeCount = 0;
   let heroList = [];
@@ -673,13 +648,14 @@ const getHeroInfo = (heroObj) => {
 
     heroesToProcess.forEach((hero, index) => {
       // 跳过无效英雄数据
-      if (!hero) return;
+      if (!hero)
+        return;
 
       // 兼容 id 和 heroId
       const id = hero.heroId || hero.id;
-      
-      let heroInfo = HERO_DICT[id] || {};
-      let equipmentInfo = hero.equipment
+
+      const heroInfo = HERO_DICT[id] || {};
+      const equipmentInfo = hero.equipment
         ? getEquipment(hero.equipment)
         : { redCount: 0, holeCount: 0 };
 
@@ -687,24 +663,24 @@ const getHeroInfo = (heroObj) => {
       const heroId = id || `unknown_${index}`;
       const heroName = hero.heroName || hero.name || heroInfo.name || `未知武将_${index}`;
 
-      let tempObj = {
-        heroId: heroId, //英雄ID
-        artifactId: hero.artifactId || "", //英雄装备ID，用于匹配鱼灵信息
-        power: hero.power || 0, //英雄战力
-        star: hero.star || 0, //英雄星级
-        equipment: hero.equipment, //英雄具体孔数和红数
-        heroName: heroName, //英雄姓名
+      const tempObj = {
+        heroId, // 英雄ID
+        artifactId: hero.artifactId || "", // 英雄装备ID，用于匹配鱼灵信息
+        power: hero.power || 0, // 英雄战力
+        star: hero.star || 0, // 英雄星级
+        equipment: hero.equipment, // 英雄具体孔数和红数
+        heroName, // 英雄姓名
         heroAvate: hero.heroAvate || hero.headImg || heroInfo.avatar || "",
-        level: hero.level || 0, //英雄等级
-        hole: equipmentInfo.holeCount, //英雄开孔数量
-        red: equipmentInfo.redCount, //英雄红数
+        level: hero.level || 0, // 英雄等级
+        hole: equipmentInfo.holeCount, // 英雄开孔数量
+        red: equipmentInfo.redCount, // 英雄红数
         // 兼容 hB 和 fourBasest
-        HolyBeast: (hero.hB?.active === true) || (hero.fourBasest?.level > 0), //激活四圣
-        HBlevel: hero.hB?.order || hero.fourBasest?.level || 0, //四圣等级
+        HolyBeast: (hero.hB?.active === true) || (hero.fourBasest?.level > 0), // 激活四圣
+        HBlevel: hero.hB?.order || hero.fourBasest?.level || 0, // 四圣等级
         // 添加英雄详情信息
         skillList: hero.skillList || [],
         attributeList: hero.attributeList || [],
-        battleTeamSlot: hero.battleTeamSlot, //阵容站位
+        battleTeamSlot: hero.battleTeamSlot, // 阵容站位
       };
 
       // 只添加有效的英雄
@@ -720,7 +696,7 @@ const getHeroInfo = (heroObj) => {
   }
   // 按站位排序
   heroList.sort((a, b) => a.battleTeamSlot - b.battleTeamSlot);
-  
+
   return { redCount, holeCount, heroList };
 };
 
@@ -728,9 +704,9 @@ const getHeroInfo = (heroObj) => {
 const getEquipment = (equipment) => {
   let redCount = 0;
   let holeCount = 0;
-  //遍历4件装备
+  // 遍历4件装备
   Object.values(equipment).forEach((equ) => {
-    //遍历每件装备的属性
+    // 遍历每件装备的属性
     Object.values(equ.quenches).forEach((item) => {
       holeCount++;
       if (item.colorId == 6) {
@@ -747,10 +723,12 @@ const selectHeroInfo = (heroInfo) => {
 };
 
 const fetchAllMembersLineup = async () => {
-  if (batchLoading.value) return;
+  if (batchLoading.value)
+    return;
 
   const token = tokenStore.selectedToken;
-  if (!token) return;
+  if (!token)
+    return;
 
   const wsStatus = tokenStore.getWebSocketStatus(token.id);
   if (wsStatus !== "connected") {
@@ -759,7 +737,8 @@ const fetchAllMembersLineup = async () => {
   }
 
   const memberList = members.value;
-  if (!memberList.length) return;
+  if (!memberList.length)
+    return;
 
   batchLoading.value = true;
   message.loading("正在获取成员阵容信息...");
@@ -784,7 +763,7 @@ const fetchAllMembersLineup = async () => {
               includeHeroDetail: true,
               includePearl: true,
             },
-            5000
+            5000,
           );
 
           if (roleRes && roleRes.roleInfo) {
@@ -793,15 +772,15 @@ const fetchAllMembersLineup = async () => {
               const res = getHeroInfo(roleRes.roleInfo.heroes);
               heroList = res.heroList;
             }
-            
+
             const lineupType = getLineupType(heroList);
 
             if (
-              tokenStore.gameData?.legionInfo?.info?.members &&
-              tokenStore.gameData.legionInfo.info.members[roleId]
+              tokenStore.gameData?.legionInfo?.info?.members
+              && tokenStore.gameData.legionInfo.info.members[roleId]
             ) {
-              tokenStore.gameData.legionInfo.info.members[roleId].lineupType =
-                lineupType;
+              tokenStore.gameData.legionInfo.info.members[roleId].lineupType
+                = lineupType;
             }
           }
         } catch (e) {
@@ -830,30 +809,9 @@ const handleExportImage = async () => {
     isExporting.value = true;
     message.loading("正在生成图片，请稍候...");
 
-    // 等待Vue更新DOM（移除操作列等）
+    // 导出状态会移除操作列并展开内部滚动区域。
     await nextTick();
-
-    // 获取 table-container
-    const tableContainer = exportDom.value.querySelector('.n-data-table');
-    
-    // 临时调整表格容器高度，确保所有内容可见
-    if (tableContainer) {
-      // 尝试找到 n-data-table 的滚动容器
-      const scrollContainer = tableContainer.querySelector('.n-data-table-base-table-body');
-      if (scrollContainer) {
-        // 保存原始样式
-        scrollContainer.dataset.originalHeight = scrollContainer.style.height;
-        scrollContainer.dataset.originalOverflow = scrollContainer.style.overflow;
-
-        // 强制展开
-        scrollContainer.style.height = "auto";
-        scrollContainer.style.overflow = "visible";
-      }
-      
-      // 保存外层table容器的样式
-      tableContainer.dataset.originalHeight = tableContainer.style.height;
-      tableContainer.style.height = "auto";
-    }
+    await document.fonts?.ready;
 
     // 5. 用html2canvas渲染DOM为Canvas
     const canvas = await html2canvas(exportDom.value, {
@@ -874,36 +832,6 @@ const handleExportImage = async () => {
     console.error("DOM转图片失败：", err);
     message.error("导出图片失败，请重试");
   } finally {
-    // 恢复原始样式
-    const tableContainer = exportDom.value?.querySelector('.n-data-table');
-    if (tableContainer) {
-      const scrollContainer = tableContainer.querySelector('.n-data-table-base-table-body');
-      if (scrollContainer) {
-        if (scrollContainer.dataset.originalHeight) {
-          scrollContainer.style.height = scrollContainer.dataset.originalHeight;
-        } else {
-          scrollContainer.style.removeProperty('height');
-        }
-
-        if (scrollContainer.dataset.originalOverflow) {
-          scrollContainer.style.overflow = scrollContainer.dataset.originalOverflow;
-        } else {
-          scrollContainer.style.removeProperty('overflow');
-        }
-
-        delete scrollContainer.dataset.originalHeight;
-        delete scrollContainer.dataset.originalOverflow;
-      }
-      
-      // 恢复外层table容器样式
-      if (tableContainer.dataset.originalHeight) {
-        tableContainer.style.height = tableContainer.dataset.originalHeight;
-      } else {
-        tableContainer.style.removeProperty('height');
-      }
-      delete tableContainer.dataset.originalHeight;
-    }
-    
     isExporting.value = false;
   }
 };
@@ -932,7 +860,7 @@ const fetchTargetInfo = async (roleId) => {
         bottleType: 0,
         includeBottleTeam: false,
         isSearch: false,
-        roleId: roleId,
+        roleId,
         includeHero: true,
         includeHeroDetail: true,
         includePearl: true,
@@ -973,25 +901,25 @@ const fetchTargetInfo = async (roleId) => {
     const roleMaxRed = result.roleInfo.maxRed || 0;
 
     // 从俱乐部信息中获取红淬数据（如果有）
-    const legionRedQuench =
-      result.legionInfo?.statistics?.["battle:red:quench"] || roleRedQuench;
-    const legionMaxRed =
-      result.legionInfo?.statistics?.["red:quench"] || roleMaxRed;
-    const legionMaxPower =
-      result.legionInfo?.statistics?.["max:power"] ||
-      result.roleInfo.maxPower ||
-      0;
+    const legionRedQuench
+      = result.legionInfo?.statistics?.["battle:red:quench"] || roleRedQuench;
+    const legionMaxRed
+      = result.legionInfo?.statistics?.["red:quench"] || roleMaxRed;
+    const legionMaxPower
+      = result.legionInfo?.statistics?.["max:power"]
+        || result.roleInfo.maxPower
+        || 0;
 
     // 计算阵容类型
     const lineupType = getLineupType(heroAndholdAndRed.heroList);
 
     // 更新本地成员列表中的阵容信息（如果存在）
     if (
-      tokenStore.gameData?.legionInfo?.info?.members &&
-      tokenStore.gameData.legionInfo.info.members[roleId]
+      tokenStore.gameData?.legionInfo?.info?.members
+      && tokenStore.gameData.legionInfo.info.members[roleId]
     ) {
-      tokenStore.gameData.legionInfo.info.members[roleId].lineupType =
-        lineupType;
+      tokenStore.gameData.legionInfo.info.members[roleId].lineupType
+        = lineupType;
     }
 
     const playerData = {
@@ -1008,13 +936,13 @@ const fetchTargetInfo = async (roleId) => {
       maxPower: formatNumber(legionMaxPower),
       currentRedDrum: roleRedQuench,
       maxRedDrum: roleMaxRed,
-      totalRedCount: totalRedCount,
-      totalHoleCount: totalHoleCount,
-      legionRedQuench: legionRedQuench,
-      legionMaxRed: legionMaxRed,
+      totalRedCount,
+      totalHoleCount,
+      legionRedQuench,
+      legionMaxRed,
       heroList: heroAndholdAndRed.heroList,
       legacy: result.roleInfo.legacy?.color || 0,
-      lineupType: lineupType,
+      lineupType,
     };
 
     playerInfo.value = playerData;
@@ -1028,226 +956,22 @@ const fetchTargetInfo = async (roleId) => {
   }
 };
 
-// 成员表格列定义
-const memberColumns = computed(() => {
-  const cols = [
-    {
-      title: "序号",
-      key: "index",
-      width: 60,
-      align: "center",
-      render: (_, index) => index + 1,
-    },
-    {
-      title: "头像",
-      key: "headImg",
-      width: 60,
-      align: "center",
-      render: (row) => {
-        if (row.headImg) {
-          return h("img", {
-            src: row.headImg,
-            class: "member-avatar-cell",
-            style: {
-              width: "32px",
-              height: "32px",
-              borderRadius: "50%",
-              objectFit: "cover",
-            },
-            alt: row.name,
-          });
-        }
-        return h(
-          "div",
-          {
-            class: "member-avatar-placeholder-cell",
-            style: {
-              width: "32px",
-              height: "32px",
-              borderRadius: "50%",
-              background: "#f0f0f0",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "14px",
-              color: "#999",
-            },
-          },
-          row.name?.charAt(0) || "?",
-        );
-      },
-    },
-    {
-      title: "成员",
-      key: "name",
-      align: "left",
-      minWidth: 150, // 增加最小宽度
-      render: (row) => {
-        return h(
-          "div",
-          {
-            style: {
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "center", // 垂直居中
-              cursor: "pointer",
-              whiteSpace: "nowrap", // 防止换行
-            },
-            onClick: () => fetchTargetInfo(row.roleId),
-          },
-          [
-            h(
-              "span",
-              { style: { fontWeight: "500", color: "#1890ff", lineHeight: "1.2" } },
-              row.name,
-            ),
-            h(
-              "span",
-              { style: { fontSize: "12px", color: "#999", lineHeight: "1.2", marginTop: "2px" } },
-              `ID: ${row.roleId}`,
-            ),
-          ],
-        );
-      },
-    },
-    {
-      title: "战力",
-      key: "power",
-      width: 100,
-      align: "center",
-      render: (row) => formatNumber(row.power || row.custom?.s_power || 0),
-    },
-    {
-      title: "红淬",
-      key: "redQuench",
-      width: 80,
-      align: "center",
-      render: (row) =>
-        h(
-          "span",
-          { style: { color: "#ff4d4f" } },
-          redQuenchlabel(row.custom?.red_quench_cnt || 0),
-        ),
-    },
-    {
-      title: "阵容",
-      key: "lineupType",
-      width: 80,
-      align: "center",
-      render: (row) => {
-        if (!row.lineupType) return "-";
-        const rule = LINEUP_RULES.find((r) => r.name === row.lineupType);
-        const colorProps = rule ? rule.colorProps : {};
-        return h(
-          NTag,
-          {
-            size: "small",
-            bordered: false,
-            color: colorProps,
-          },
-          { default: () => row.lineupType },
-        );
-      },
-    },
-  ];
-
-  if (!isExporting.value) {
-    cols.push({
-      title: "职位",
-      key: "job",
-      width: 80,
-      align: "center",
-      render: (row) => jobLabel(row.job),
-    });
-  }
-
-  if (canKick.value && !isExporting.value) {
-    cols.push({
-      title: "操作",
-      key: "actions",
-      width: 80,
-      align: "center",
-      render: (row) => {
-        if (row.job !== 1) {
-          return h(
-            NButton,
-            {
-              size: "tiny",
-              type: "error",
-              ghost: true,
-              style: { fontSize: "12px" },
-              onClick: () => kickMember(row.roleId, row.name),
-            },
-            { default: () => "踢出" },
-          );
-        }
-        return null;
-      },
-    });
-  }
-
-  return [
-    {
-      title: () => h(
-        "div",
-        {
-          style: {
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            width: "100%",
-            padding: "0 8px"
-          },
-        },
-        [
-            h("span", { style: { fontSize: "16px", fontWeight: "bold", color: "#333" } }, "俱乐部成员详情"),
-            !isExporting.value ? h(
-                'div',
-                { style: { display: 'flex', gap: '8px' } },
-                [
-                    h(
-                        NButton,
-                        {
-                            size: 'tiny',
-                            type: 'primary',
-                            secondary: true,
-                            onClick: (e) => { e.stopPropagation(); fetchAllMembersLineup(); },
-                            disabled: batchLoading.value
-                        },
-                        {
-                            default: () => '获取阵容',
-                            icon: () => h(NIcon, null, { default: () => h(Refresh) })
-                        }
-                    ),
-                    h(
-                        NButton,
-                        {
-                            size: 'tiny',
-                            type: 'info',
-                            secondary: true,
-                            onClick: (e) => { e.stopPropagation(); handleExportImage(); },
-                            disabled: isExporting.value
-                        },
-                        {
-                            default: () => '导出图片',
-                            icon: () => h(NIcon, null, { default: () => h(Copy) })
-                        }
-                    )
-                ]
-            ) : null
-        ]
-      ),
-      key: "title_group",
-      align: "center",
-      children: cols,
-    },
-  ];
-});
+const getLineupBadgeStyle = (lineupType) => {
+  const colors = LINEUP_RULES.find((rule) => rule.name === lineupType)?.colorProps;
+  if (!colors)
+    return {};
+  return {
+    backgroundColor: colors.color,
+    borderColor: colors.color,
+    color: colors.textColor,
+  };
+};
 
 // 获取当前角色在俱乐部中的职位
 const currentMemberJob = computed(() => {
   const roleId = tokenStore.gameData?.roleInfo?.role?.roleId;
-  if (!roleId) return 0;
+  if (!roleId)
+    return 0;
   const currentMember = members.value.find(
     (m) => Number(m.roleId) === Number(roleId),
   );
@@ -1262,7 +986,8 @@ const canKick = computed(() => {
 // 踢出成员
 const kickMember = (roleId, name) => {
   const token = tokenStore.selectedToken;
-  if (!token) return;
+  if (!token)
+    return;
 
   dialog.warning({
     title: "确认踢出",
@@ -1293,7 +1018,8 @@ const kickMember = (roleId, name) => {
 // 获取申请列表
 const getApplyList = async () => {
   const token = tokenStore.selectedToken;
-  if (!token) return;
+  if (!token)
+    return;
 
   // 显示申请列表界面
   showApplyList.value = true;
@@ -1308,14 +1034,14 @@ const getApplyList = async () => {
       token.id,
       "legion_applylist",
       {},
-      10000 // 10秒超时
+      10000, // 10秒超时
     );
-    
+
     // 直接处理响应数据
     handleApplyListResp({ body: responseBody });
   } catch (error) {
     loadingApply.value = false;
-    message.error("获取申请列表失败: " + (error.message || "未知错误"));
+    message.error(`获取申请列表失败: ${error.message || "未知错误"}`);
     console.error("获取申请列表出错:", error);
   }
 };
@@ -1323,7 +1049,8 @@ const getApplyList = async () => {
 // 通过申请
 const approveApply = (roleId) => {
   const token = tokenStore.selectedToken;
-  if (!token) return;
+  if (!token)
+    return;
 
   // 发送通过申请命令
   tokenStore.sendMessage(token.id, "legion_agree", {
@@ -1333,7 +1060,7 @@ const approveApply = (roleId) => {
   // 从申请列表中移除该成员
   applyList.value = applyList.value.filter((apply) => apply.roleId !== roleId);
   message.info(`已通过成员 ID: ${roleId} 的申请`);
-  
+
   // 刷新俱乐部信息
   setTimeout(() => {
     refreshClub();
@@ -1343,7 +1070,8 @@ const approveApply = (roleId) => {
 // 拒绝申请
 const rejectApply = (roleId) => {
   const token = tokenStore.selectedToken;
-  if (!token) return;
+  if (!token)
+    return;
 
   // 发送拒绝申请命令
   tokenStore.sendMessage(token.id, "legion_ignore", {
@@ -1358,10 +1086,12 @@ const rejectApply = (roleId) => {
 // 一键通过所有申请
 const approveAll = () => {
   const token = tokenStore.selectedToken;
-  if (!token) return;
+  if (!token)
+    return;
 
   const count = applyList.value.length;
-  if (count === 0) return;
+  if (count === 0)
+    return;
 
   // 遍历所有申请项，发送通过命令
   applyList.value.forEach((apply) => {
@@ -1373,7 +1103,7 @@ const approveAll = () => {
   // 清空申请列表
   applyList.value = [];
   message.success(`已通过所有 ${count} 个申请`);
-  
+
   // 刷新俱乐部信息
   setTimeout(() => {
     refreshClub();
@@ -1383,10 +1113,12 @@ const approveAll = () => {
 // 一键拒绝所有申请
 const rejectAll = () => {
   const token = tokenStore.selectedToken;
-  if (!token) return;
+  if (!token)
+    return;
 
   const count = applyList.value.length;
-  if (count === 0) return;
+  if (count === 0)
+    return;
 
   // 遍历所有申请项，发送拒绝命令
   applyList.value.forEach((apply) => {
@@ -1423,7 +1155,7 @@ const handleApplyListResp = (session) => {
       message.info("暂无申请");
       return;
     }
-    
+
     if (typeof responseBody === "object") {
       // 处理对象类型的响应
 
@@ -1440,27 +1172,27 @@ const handleApplyListResp = (session) => {
           name: role.name,
           power: role.power,
           roleId: role.roleId,
-          serverId: role.ext?.["server_id"] || "",
-          applyReason: role.ext?.["legion_apply_reason"] || "",
+          serverId: role.ext?.server_id || "",
+          applyReason: role.ext?.legion_apply_reason || "",
         }));
         // 停止加载状态
         loadingApply.value = false;
         message.success(`获取到 ${validRoles.length} 个申请`);
       } else if (
-        Array.isArray(responseBody.applyList) ||
-        Array.isArray(responseBody.list) ||
-        Array.isArray(responseBody.data)
+        Array.isArray(responseBody.applyList)
+        || Array.isArray(responseBody.list)
+        || Array.isArray(responseBody.data)
       ) {
         // 兼容其他可能的数组字段
-        const applyArray =
-          responseBody.applyList || responseBody.list || responseBody.data;
+        const applyArray
+          = responseBody.applyList || responseBody.list || responseBody.data;
         // 过滤掉无效的申请项，并提取服务区和申请留言信息
         applyList.value = applyArray
           .filter((apply) => apply.roleId && apply.name)
           .map((apply) => ({
             ...apply,
-            serverId: apply.ext?.["server_id"] || "",
-            applyReason: apply.ext?.["legion_apply_reason"] || "",
+            serverId: apply.ext?.server_id || "",
+            applyReason: apply.ext?.legion_apply_reason || "",
           }));
         loadingApply.value = false;
         message.success(`获取到 ${applyList.value.length} 个申请`);
@@ -1471,8 +1203,8 @@ const handleApplyListResp = (session) => {
           .filter((apply) => apply.roleId && apply.name)
           .map((apply) => ({
             ...apply,
-            serverId: apply.ext?.["server_id"] || "",
-            applyReason: apply.ext?.["legion_apply_reason"] || "",
+            serverId: apply.ext?.server_id || "",
+            applyReason: apply.ext?.legion_apply_reason || "",
           }));
         loadingApply.value = false;
         message.success(`获取到 ${applyList.value.length} 个申请`);
@@ -1489,8 +1221,8 @@ const handleApplyListResp = (session) => {
         .filter((apply) => apply.roleId && apply.name)
         .map((apply) => ({
           ...apply,
-          serverId: apply.ext?.["server_id"] || "",
-          applyReason: apply.ext?.["legion_apply_reason"] || "",
+          serverId: apply.ext?.server_id || "",
+          applyReason: apply.ext?.legion_apply_reason || "",
         }));
       loadingApply.value = false;
       message.success(`获取到 ${applyList.value.length} 个申请`);
@@ -1532,8 +1264,8 @@ onUnmounted(() => {
 // 今日是否已进行俱乐部签到
 const legionSignedIn = computed(() => {
   const ts = Number(
-    tokenStore.gameData?.roleInfo?.role?.statisticsTime?.["legion:sign:in"] ||
-      0,
+    tokenStore.gameData?.roleInfo?.role?.statisticsTime?.["legion:sign:in"]
+    || 0,
   );
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -1543,7 +1275,8 @@ const legionSignedIn = computed(() => {
 
 const signInLegion = () => {
   const token = tokenStore.selectedToken;
-  if (!token || legionSignedIn.value) return;
+  if (!token || legionSignedIn.value)
+    return;
   tokenStore.sendMessage(token.id, "legion_signin");
   tokenStore.sendMessage(token.id, "role_getroleinfo");
   message.info("俱乐部签到");
@@ -1559,17 +1292,17 @@ const clubOverview = computed(() => {
   const power = Number(base.power ?? i.power ?? base.s_power ?? i.s_power ?? 0);
   const dan = base.dan ?? i.dan ?? base.rank ?? i.rank ?? "-";
   const redQuench = Number(
-    base.redQuenchCnt ??
-      i.redQuenchCnt ??
-      stats["red:quench"] ??
-      stats["red_quench"] ??
-      0,
+    base.redQuenchCnt
+    ?? i.redQuenchCnt
+    ?? stats["red:quench"]
+    ?? stats.red_quench
+    ?? 0,
   );
-  const lastWarRank =
-    stats["last:war:rank"] ??
-    stats["lastWarRank"] ??
-    stats["legion:last:war:rank"] ??
-    "-";
+  const lastWarRank
+    = stats["last:war:rank"]
+      ?? stats.lastWarRank
+      ?? stats["legion:last:war:rank"]
+      ?? "-";
   const noApply = Boolean(base.noApply ?? i.noApply);
 
   const currentHP = formatNumber(boss.currentHP || 0);
@@ -1595,9 +1328,10 @@ const clubOverview = computed(() => {
 
 const refreshClub = () => {
   const token = tokenStore.selectedToken;
-  if (!token) return;
+  if (!token)
+    return;
   tokenStore.sendMessage(token.id, "legion_getinfo");
-  
+
   // 如果当前在成员页，也刷新阵容信息
   if (activeTab.value === "members") {
     fetchAllMembersLineup();
@@ -1605,34 +1339,43 @@ const refreshClub = () => {
 };
 
 const jobLabel = (job) => {
-  if (job === 1) return "会长";
-  if (job === 2) return "副会长";
+  if (job === 1)
+    return "会长";
+  if (job === 2)
+    return "副会长";
   return "成员";
 };
 
 const redQuenchlabel = (redQuenchl) => {
-  return redQuenchl + "红";
+  return `${redQuenchl}红`;
 };
 
 const formatNumber = (num) => {
   const n = Number(num || 0);
-  if (n >= 1e12) return (n / 1e12).toFixed(2) + "兆";
-  if (n >= 1e8) return (n / 1e8).toFixed(2) + "亿";
-  if (n >= 1e4) return (n / 1e4).toFixed(2) + "万";
+  if (n >= 1e12)
+    return `${(n / 1e12).toFixed(2)}兆`;
+  if (n >= 1e8)
+    return `${(n / 1e8).toFixed(2)}亿`;
+  if (n >= 1e4)
+    return `${(n / 1e4).toFixed(2)}万`;
   return String(n);
 };
 </script>
 
 <style scoped lang="scss">
 .club-info {
+  min-width: 0;
+
   .toolbar {
     display: flex;
     justify-content: flex-end;
+    gap: var(--spacing-xs);
     margin-bottom: var(--spacing-sm);
   }
 
   .overview {
-    /* No specific styles needed for grid layout */
+    display: grid;
+    gap: var(--spacing-sm);
   }
 
   .members-list {
@@ -1684,12 +1427,351 @@ const formatNumber = (num) => {
   }
 
   .empty-club {
+    min-height: 176px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-xs);
     text-align: center;
+    color: var(--text-secondary);
   }
 
-  .empty-club .actions {
-    margin-top: var(--spacing-sm);
+  .empty-club strong {
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
   }
+
+  .empty-club > span {
+    margin-bottom: var(--spacing-xs);
+    font-size: var(--font-size-xs);
+  }
+}
+
+.club-tabs {
+  display: flex;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-md);
+  overflow-x: auto;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.members {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.members.exporting {
+  width: 650px;
+  max-width: none;
+  background: #fff;
+  --bg-primary: #fff;
+  --bg-secondary: #fafafa;
+  --bg-tertiary: #f5f5f5;
+  --border-color: #e5e5e5;
+  --text-primary: #171717;
+  --text-secondary: #525252;
+  --text-tertiary: #a3a3a3;
+}
+
+.member-table-toolbar {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  border: 1px solid var(--border-color);
+  border-bottom: 0;
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+
+.member-table-toolbar > strong {
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+}
+
+.member-table-toolbar > div {
+  display: flex;
+  gap: var(--spacing-xs);
+}
+
+.member-table-scroll {
+  max-width: 100%;
+  max-height: 552px;
+  overflow: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+
+.member-table-scroll.exporting {
+  max-height: none;
+  overflow: visible;
+}
+
+.member-table {
+  width: 100%;
+  min-width: 650px;
+  border-spacing: 0;
+  border-collapse: separate;
+  color: var(--text-primary);
+  font-size: var(--font-size-xs);
+}
+
+.member-table th,
+.member-table td {
+  height: 44px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border-color);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.member-table th {
+  position: sticky;
+  z-index: 1;
+  top: 0;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
+.member-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.member-table tbody tr:nth-child(even) {
+  background: var(--bg-secondary);
+}
+
+.member-table th:nth-child(1),
+.member-table td:nth-child(1),
+.member-table th:nth-child(2),
+.member-table td:nth-child(2) {
+  width: 56px;
+}
+
+.member-table th:nth-child(3),
+.member-table td:nth-child(3) {
+  width: 150px;
+  text-align: left;
+}
+
+.member-table-avatar {
+  display: inline-grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 1px solid var(--border-color);
+  border-radius: 50%;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  object-fit: cover;
+}
+
+.member-link {
+  display: grid;
+  gap: 2px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.member-link:hover strong {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.member-link span {
+  color: var(--text-tertiary);
+  font-size: 11px;
+}
+
+.member-red {
+  color: var(--error-color);
+}
+
+.club-tab {
+  flex: 0 0 auto;
+  min-height: 38px;
+  padding: 0 2px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
+.club-tab:hover {
+  color: var(--text-primary);
+}
+
+.club-tab.active {
+  border-bottom-color: var(--text-primary);
+  color: var(--text-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.club-profile,
+.club-detail-section,
+.boss-summary {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-primary);
+}
+
+.club-profile {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+}
+
+.club-avatar {
+  width: 52px;
+  height: 52px;
+  flex: 0 0 52px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  object-fit: cover;
+}
+
+.club-profile-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.club-profile-copy > strong {
+  display: block;
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: var(--font-size-lg);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.club-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-xs);
+}
+
+.club-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--spacing-sm);
+  margin: 0;
+}
+
+.club-metrics > div {
+  min-width: 0;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-primary);
+}
+
+.club-metrics dt {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+}
+
+.club-metrics dd {
+  margin: 5px 0 0;
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.boss-summary {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-color: color-mix(in srgb, var(--warning-color) 38%, var(--border-color));
+}
+
+.boss-summary summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+}
+
+.boss-summary summary > span:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.boss-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  padding-top: var(--spacing-sm);
+}
+
+.club-detail-section {
+  padding: var(--spacing-md);
+}
+
+.club-detail-section header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: var(--spacing-sm);
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+}
+
+.club-detail-section p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.65;
+  white-space: pre-wrap;
+}
+
+.leader-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.leader-row img {
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--border-color);
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.leader-row div {
+  display: grid;
+  gap: 2px;
+}
+
+.leader-row span {
+  color: var(--text-tertiary);
+  font-size: var(--font-size-xs);
 }
 
 .status-icon {
@@ -1737,30 +1819,55 @@ const formatNumber = (num) => {
   background: currentColor;
 }
 
-/* 申请列表样式 */
+.dialog-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-bottom: 1px solid var(--border-color);
+}
+
 .loading {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  gap: var(--spacing-xs);
+  min-height: 160px;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.spinning {
+  animation: club-spin 800ms linear infinite;
+}
+
+@keyframes club-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .empty-apply {
-  padding: 30px 0;
+  display: grid;
+  min-height: 160px;
+  place-items: center;
+  align-content: center;
+  gap: var(--spacing-xs);
+  color: var(--text-tertiary);
+  font-size: var(--font-size-sm);
 }
 
 .apply-list-container {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  padding: 0 var(--spacing-md) var(--spacing-md);
 }
 
 .apply-list {
-  max-height: 200px;
+  max-height: calc(80vh - 176px);
   overflow-y: auto;
-  padding-right: 8px;
-  border-radius: 8px;
   border: 1px solid var(--border-color);
+  border-radius: var(--radius);
   background: var(--bg-primary);
 }
 
@@ -1772,32 +1879,32 @@ const formatNumber = (num) => {
   margin: 0;
   border-bottom: 1px solid var(--border-color);
   background: var(--bg-primary);
-  cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background 150ms ease;
 }
 
 .apply-item:last-child {
   border-bottom: none;
 }
 
-/* 悬停效果 */
 .apply-item-hover {
   background: var(--bg-tertiary);
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-/* 选中状态 */
-.apply-item-selected {
-  background: var(--primary-color-light);
-  border-left: 3px solid var(--primary-color);
 }
 
 .apply-left {
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 12px;
   flex: 1;
+}
+
+.apply-avatar {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  border: 1px solid var(--border-color);
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 .apply-info {
@@ -1839,24 +1946,6 @@ const formatNumber = (num) => {
   gap: 8px;
 }
 
-/* 批量操作栏样式 */
-.apply-actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  background: var(--bg-tertiary);
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
-}
-
-.selected-info {
-  font-size: var(--font-size-sm);
-  color: var(--text-secondary);
-  margin-left: auto;
-}
-
-/* 滚动条样式 */
 .apply-list::-webkit-scrollbar {
   width: 6px;
 }
@@ -1875,59 +1964,69 @@ const formatNumber = (num) => {
   background: var(--text-tertiary);
 }
 
-/* 玩家信息模态框样式 */
 .player-info-content {
-  padding: 20px;
+  min-width: 0;
 }
 
 .player-info-main {
   display: flex;
   align-items: center;
   gap: 16px;
-  margin-bottom: 20px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid var(--border-light, #eee);
+  padding: var(--spacing-md);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
 }
 
 .player-avatar {
-  border: 2px solid var(--primary-color, #1890ff);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  width: 56px;
+  height: 56px;
+  flex: 0 0 56px;
+  border: 1px solid var(--border-color);
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 .player-info-detail h3 {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
   margin: 0 0 8px 0;
-  font-size: var(--font-size-lg, 16px);
-  font-weight: var(--font-weight-bold, bold);
-}
-
-.player-info-detail p {
-  margin: 0 0 4px 0;
-  font-size: var(--font-size-sm, 14px);
-  color: var(--text-secondary, #666);
+  color: var(--text-primary);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
 }
 
 .player-info-detail .detail-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 16px;
   margin-bottom: 4px;
   font-size: var(--font-size-sm, 14px);
   color: var(--text-secondary, #666);
 }
 
-.red-text { color: #ff4d4f; }
-.green-text { color: #52c41a; }
-.blue-text { color: #1890ff; }
-.highlight { color: #1890ff; font-weight: bold; }
+.red-text { color: var(--error-color); }
+.green-text { color: var(--success-color); }
+.blue-text,
+.highlight { color: var(--text-primary); }
 
-/* 武将列表样式 */
 .hero-section {
-  margin-top: 20px;
-  
+  margin-top: var(--spacing-md);
+
   h4 {
-    margin: 0 0 12px 0;
-    font-size: var(--font-size-base, 14px);
-    font-weight: var(--font-weight-bold, bold);
+    margin: 0;
+    color: var(--text-primary);
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-bold);
   }
+}
+
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-sm);
 }
 
 .hero-list {
@@ -1937,47 +2036,60 @@ const formatNumber = (num) => {
 }
 
 .hero-item {
+  width: 100%;
   display: flex;
   align-items: center;
   gap: 12px;
-  background: var(--bg-secondary, #f9f9f9);
-  padding: 12px 16px;
-  border-radius: var(--border-radius-sm, 4px);
-  border: 1px solid var(--border-light, #eee);
-  transition: all var(--transition-fast, 0.3s ease);
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font: inherit;
+  text-align: left;
   cursor: pointer;
+  transition: border-color 150ms ease, background 150ms ease;
 
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.1));
-    border-color: var(--primary-color, #1890ff);
+    border-color: var(--text-tertiary);
+    background: var(--bg-secondary);
   }
 }
 
+.hero-avatar {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  border: 1px solid var(--border-color);
+  border-radius: 50%;
+  object-fit: cover;
+}
+
 .hero-info {
+  min-width: 0;
   display: flex;
+  flex: 1;
   flex-direction: column;
   gap: 4px;
-  flex: 1;
 }
 
 .hero-name {
-  font-size: var(--font-size-sm, 14px);
-  font-weight: var(--font-weight-medium, 500);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
 }
 
 .hero-stats {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  font-size: var(--font-size-xs, 12px);
-  color: var(--text-secondary, #666);
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
 
   span {
-    padding: 2px 6px;
-    background: var(--bg-primary, #fff);
-    border-radius: var(--border-radius-full, 99px);
-    border: 1px solid var(--border-light, #eee);
+    padding: 1px 5px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    background: var(--bg-secondary);
   }
 
   span.opened {
@@ -1994,160 +2106,225 @@ const formatNumber = (num) => {
 }
 
 .empty-heroes {
-  background: var(--bg-secondary, #f9f9f9);
-  padding: 30px;
-  border-radius: var(--border-radius-sm, 4px);
-  border: 1px solid var(--border-light, #eee);
+  display: grid;
+  min-height: 120px;
+  place-items: center;
+  align-content: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-lg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-secondary);
   text-align: center;
-  color: var(--text-secondary, #666);
-  font-size: var(--font-size-sm, 14px);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
 }
 
-/* 武将详情模态框样式 */
-.hero-detail-modal {
-  .hero-modal-content {
-    padding: 20px 0;
-  }
+.hero-modal-content {
+  display: grid;
+  gap: var(--spacing-md);
+}
 
-  .hero-modal-header {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    margin-bottom: 20px;
-  }
+.hero-modal-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
 
-  .hero-modal-avatar {
-    width: 100px;
-    height: 100px;
-    border-radius: 50%;
-    background: var(--bg-secondary, #f9f9f9);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    border: 2px solid var(--border-light, #eee);
+.hero-modal-avatar {
+  width: 72px;
+  height: 72px;
+  flex: 0 0 72px;
+  border: 1px solid var(--border-color);
+  border-radius: 50%;
+  background: var(--bg-secondary);
+  object-fit: cover;
+}
 
-    img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-  }
+.hero-modal-basic {
+  min-width: 0;
+  flex: 1;
+}
 
-  .hero-modal-basic {
-    flex: 1;
-  }
+.hero-modal-name {
+  margin: 0 0 var(--spacing-xs);
+  color: var(--text-primary);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+}
 
-  .hero-modal-name {
-    margin: 0 0 10px 0;
-    font-size: var(--font-size-lg, 16px);
-    font-weight: var(--font-weight-bold, bold);
-  }
+.hero-modal-stats {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+}
 
-  .hero-modal-stats {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    font-size: var(--font-size-sm, 14px);
-    color: var(--text-secondary, #666);
+.hero-modal-stats .stat-item {
+  padding: 3px 7px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-secondary);
+}
 
-    .stat-item {
-      padding: 4px 8px;
-      background: var(--bg-secondary, #f9f9f9);
-      border-radius: var(--border-radius-sm, 4px);
-      border: 1px solid var(--border-light, #eee);
-    }
-  }
+.hero-detail-grid {
+  display: grid;
+  margin: 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-top: 1px solid var(--border-color);
+  border-left: 1px solid var(--border-color);
+}
 
-  .hero-modal-details {
-    margin-bottom: 20px;
+.hero-detail-grid > div {
+  min-width: 0;
+  padding: var(--spacing-sm);
+  border-right: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+}
 
-    :deep(.n-descriptions) {
-      font-size: var(--font-size-sm, 14px);
+.hero-detail-grid dt {
+  margin-bottom: 4px;
+  color: var(--text-tertiary);
+  font-size: var(--font-size-xs);
+}
 
-      .n-descriptions-item-label {
-        font-weight: var(--font-weight-medium, 500);
-        color: var(--text-primary, #333);
-      }
+.hero-detail-grid dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+}
 
-      .n-descriptions-item-content {
-        color: var(--text-secondary, #666);
-      }
-    }
-  }
+.hero-detail-grid .wash-stat {
+  grid-column: span 3;
+}
 
-  .hero-modal-equipment {
-    margin-top: 20px;
-  }
+.hero-modal-equipment {
+  margin-top: var(--spacing-xs);
+}
 
-  .section-title {
-    margin: 0 0 15px 0;
-    font-size: var(--font-size-base, 14px);
-    font-weight: var(--font-weight-bold, bold);
-  }
+.section-title {
+  margin: 0 0 var(--spacing-sm);
+  color: var(--text-primary);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-bold);
+}
 
-  .equipment-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 15px;
-  }
+.equipment-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-sm);
+}
 
-  .equipment-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
+.equipment-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+}
 
-  .equipment-label {
-    font-size: var(--font-size-sm, 14px);
-    color: var(--text-primary, #333);
-    font-weight: var(--font-weight-medium, 500);
-    width: 60px;
-  }
+.equipment-label {
+  width: 48px;
+  flex: 0 0 48px;
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+}
 
-  .equipment-slots {
-    display: flex;
-    gap: 6px;
-  }
+.equipment-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
 
-  .equipment-slot {
-    width: 20px;
-    height: 20px;
-    border: 1px solid var(--border-light, #eee);
-    border-radius: var(--border-radius-sm, 4px);
-    background: var(--bg-secondary, #f9f9f9);
-  }
+.equipment-slot {
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--border-color);
+  border-radius: 2px;
+  background: var(--bg-secondary);
+}
 
-  .equipment-slot.red-slot {
-    background: var(--error-color, #ff4d4f);
-    border-color: var(--error-color, #ff4d4f);
-  }
+.equipment-slot.red-slot {
+  border-color: var(--error-color);
+  background: var(--error-color);
+}
 
-  /* 鱼灵洗练颜色块 */
-  .ModalEquipment {
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    margin-right: 4px;
-    display: inline-block;
-    vertical-align: middle;
-  }
+.ModalEquipment {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  margin-right: 4px;
+  border: 1px solid var(--border-color);
+  border-radius: 50%;
+  vertical-align: middle;
 }
 
 @media (max-width: 768px) {
-  .hero-detail-modal {
-    :deep(.n-modal-content) {
-      padding: 0 !important;
-    }
+  .club-tabs {
+    gap: var(--spacing-md);
+  }
 
-    .hero-modal-header {
-      flex-direction: column;
-      text-align: center;
-    }
+  .club-profile {
+    display: grid;
+    grid-template-columns: 52px minmax(0, 1fr);
+  }
 
-    .equipment-grid {
-      grid-template-columns: 1fr;
-    }
+  .club-profile > button {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .club-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .club-metrics dd {
+    font-size: var(--font-size-lg);
+  }
+
+  .boss-summary summary {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .apply-item {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  .apply-right {
+    width: 100%;
+    padding-left: 44px;
+  }
+
+  .apply-right > button {
+    flex: 1;
+  }
+
+  .player-info-main {
+    align-items: flex-start;
+  }
+
+  .hero-modal-header {
+    align-items: flex-start;
+  }
+
+  .hero-detail-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hero-detail-grid .wash-stat {
+    grid-column: span 2;
+  }
+
+  .equipment-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>

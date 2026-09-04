@@ -52,6 +52,7 @@ export function useIndexedDB(config: DBConfig = {}): UseIndexedDBReturn {
   const isReady = ref(false);
   const error = ref<string | null>(null);
   const db = ref<IDBPDatabase<ArrayBufferDB> | null>(null);
+  let initializationPromise: Promise<void> | null = null;
 
   /**
    * 初始化数据库
@@ -92,6 +93,13 @@ export function useIndexedDB(config: DBConfig = {}): UseIndexedDBReturn {
     }
   };
 
+  const getDatabase = async () => {
+    if (!db.value && initializationPromise) {
+      await initializationPromise;
+    }
+    return db.value;
+  };
+
   /**
    * 存储 ArrayBuffer 数据
    */
@@ -100,7 +108,8 @@ export function useIndexedDB(config: DBConfig = {}): UseIndexedDBReturn {
     data: ArrayBuffer,
     metadata?: Record<string, any>,
   ): Promise<boolean> => {
-    if (!db.value) {
+    const database = await getDatabase();
+    if (!database) {
       error.value = "数据库未初始化";
       return false;
     }
@@ -114,7 +123,7 @@ export function useIndexedDB(config: DBConfig = {}): UseIndexedDBReturn {
         updatedAt: new Date(),
       };
 
-      await db.value.put(storeName, item);
+      await database.put(storeName, item);
       console.log(
         `✅ ArrayBuffer 存储成功，键: ${key}, 大小: ${data.byteLength} 字节`,
       );
@@ -131,13 +140,14 @@ export function useIndexedDB(config: DBConfig = {}): UseIndexedDBReturn {
    * 获取 ArrayBuffer 数据
    */
   const getArrayBuffer = async (key: string): Promise<ArrayBuffer | null> => {
-    if (!db.value) {
+    const database = await getDatabase();
+    if (!database) {
       error.value = "数据库未初始化";
       return null;
     }
 
     try {
-      const result = await db.value.get(storeName, key);
+      const result = await database.get(storeName, key);
 
       if (!result) {
         console.warn(`⚠️ 未找到键为 "${key}" 的数据`);
@@ -160,13 +170,14 @@ export function useIndexedDB(config: DBConfig = {}): UseIndexedDBReturn {
    * 获取所有存储的键
    */
   const getAllKeys = async (): Promise<string[]> => {
-    if (!db.value) {
+    const database = await getDatabase();
+    if (!database) {
       error.value = "数据库未初始化";
       return [];
     }
 
     try {
-      return await db.value.getAllKeys(storeName);
+      return await database.getAllKeys(storeName);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "未知错误";
       error.value = `获取键列表失败: ${errorMessage}`;
@@ -179,13 +190,14 @@ export function useIndexedDB(config: DBConfig = {}): UseIndexedDBReturn {
    * 删除指定的 ArrayBuffer 数据
    */
   const deleteArrayBuffer = async (key: string): Promise<boolean> => {
-    if (!db.value) {
+    const database = await getDatabase();
+    if (!database) {
       error.value = "数据库未初始化";
       return false;
     }
 
     try {
-      await db.value.delete(storeName, key);
+      await database.delete(storeName, key);
       console.log(`✅ ArrayBuffer 删除成功，键: ${key}`);
       return true;
     } catch (err) {
@@ -200,13 +212,14 @@ export function useIndexedDB(config: DBConfig = {}): UseIndexedDBReturn {
    * 清空所有数据
    */
   const clearAll = async (): Promise<boolean> => {
-    if (!db.value) {
+    const database = await getDatabase();
+    if (!database) {
       error.value = "数据库未初始化";
       return false;
     }
 
     try {
-      await db.value.clear(storeName);
+      await database.clear(storeName);
       console.log("✅ 所有 ArrayBuffer 数据已清空");
       return true;
     } catch (err) {
@@ -224,12 +237,13 @@ export function useIndexedDB(config: DBConfig = {}): UseIndexedDBReturn {
     totalSize: number;
     keyCount: number;
   }> => {
-    if (!db.value) {
+    const database = await getDatabase();
+    if (!database) {
       return { totalSize: 0, keyCount: 0 };
     }
 
     try {
-      const allItems = await db.value.getAll(storeName);
+      const allItems = await database.getAll(storeName);
       const totalSize = allItems.reduce(
         (size, item) => size + item.data.byteLength,
         0,
@@ -243,7 +257,7 @@ export function useIndexedDB(config: DBConfig = {}): UseIndexedDBReturn {
     }
   };
 
-  initDB();
+  initializationPromise = initDB();
 
   return {
     // 状态

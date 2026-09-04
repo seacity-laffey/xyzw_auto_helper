@@ -7,107 +7,117 @@
             class="role-avatar"
             :src="tokenStore.selectedToken?.avatar || '/icons/xiaoyugan.png'"
             alt="当前角色头像"
-          />
+          >
           <div>
-            <span class="context-label">CURRENT ROLE</span>
             <h2>{{ tokenStore.selectedToken?.name || "未选择角色" }}</h2>
             <div class="role-metadata">
-              <n-tag v-if="tokenStore.selectedToken?.server" type="success" size="small">
+              <Badge v-if="tokenStore.selectedToken?.server" variant="outline">
                 {{ tokenStore.selectedToken.server }}
-              </n-tag>
+              </Badge>
               <span class="token-id">{{ tokenStore.selectedToken?.id }}</span>
             </div>
           </div>
         </div>
         <div class="connection-actions">
           <span class="connection-summary">
-            <span class="connection-summary-dot" :class="{ connected: isConnected }" />
+            <span class="connection-summary-dot" :class="connectionStatus"></span>
             {{ connectionStatusText }}
           </span>
-          <n-button @click="toggleConnection">
-            <template #icon><n-icon><Wifi /></n-icon></template>
-            {{ isConnected ? "断开连接" : "重新连接" }}
-          </n-button>
+          <Button
+            variant="outline"
+            size="sm"
+            :disabled="isConnectionPending"
+            @click="toggleConnection"
+          >
+            <LoaderCircle
+              v-if="isConnectionPending"
+              class="connection-spinner"
+            ></LoaderCircle>
+            <WifiOff v-else-if="isConnected"></WifiOff>
+            <Wifi v-else></Wifi>
+            {{ connectionActionText }}
+          </Button>
+          <Button size="sm" @click="openGame">
+            <Gamepad2></Gamepad2>
+            打开游戏
+          </Button>
         </div>
       </div>
     </div>
 
-    <!-- 反馈提示区域 -->
-    <div v-if="showFeedback" class="feedback-section" />
-
-    <!-- 功能模块网格 -->
-    <div class="features-grid-section">
+    <div v-if="isConnected" class="features-grid-section">
       <div class="container">
-        <GameStatus />
+        <GameStatus></GameStatus>
       </div>
     </div>
-
-    <!-- WebSocket 连接状态 -->
-    <div class="ws-status-section">
-      <div class="container">
-        <div class="ws-status-card">
-          <div class="status-header">
-            <h3>连接状态</h3>
-            <n-button text type="primary" @click="toggleConnection">
-              {{ isConnected ? "断开连接" : "重新连接" }}
-            </n-button>
-          </div>
-          <div class="status-content">
-            <div class="status-item">
-              <span>WebSocket状态:</span>
-              <span :class="connectionClass">{{ connectionStatusText }}</span>
-            </div>
-            <div v-if="tokenStore.selectedToken" class="status-item">
-              <span>当前Token:</span>
-              <span>{{ tokenStore.selectedToken.name || "未命名Token" }}</span>
-            </div>
-            <div v-if="lastActivity" class="status-item">
-              <span>最后活动:</span>
-              <span>{{ lastActivity }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <section
+      v-else
+      class="connection-empty-state"
+      data-testid="role-connection-empty"
+    >
+      <LoaderCircle
+        v-if="isConnectionPending"
+        class="connection-empty-icon connection-spinner"
+      ></LoaderCircle>
+      <WifiOff v-else class="connection-empty-icon"></WifiOff>
+      <p>{{ connectionStatusText }}</p>
+    </section>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from "vue";
+import { computed, onMounted, onUnmounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useMessage } from "naive-ui";
+import { Gamepad2, LoaderCircle, Wifi, WifiOff } from "@lucide/vue";
 import { useTokenStore } from "@/stores/tokenStore";
-import { Wifi } from "@vicons/ionicons5";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import useIndexedDB from "@/hooks/useIndexedDB";
+import { prepareEmbeddedGameSession } from "@/utils/gameLauncher";
+import { buildEmbeddedGameLocation } from "@/utils/embeddedGameRoute.js";
+import { resolveEmbeddedGameBinData } from "@/utils/embeddedGameStorage.js";
+import { getTokenId } from "@/utils/token";
 
 const router = useRouter();
 const message = useMessage();
 const tokenStore = useTokenStore();
-
-// 响应式数据
-const showFeedback = ref(true);
-const lastActivity = ref(null);
+const { getArrayBuffer } = useIndexedDB();
 
 // 计算属性
 const connectionStatus = computed(() => {
-  if (!tokenStore.selectedToken) return "disconnected";
-  const status = tokenStore.getWebSocketStatus(tokenStore.selectedToken.id);
-  return status === "connected" ? "connected" : "disconnected";
+  if (!tokenStore.selectedToken)
+    return "disconnected";
+  return tokenStore.getWebSocketStatus(tokenStore.selectedToken.id);
 });
 
 const connectionStatusText = computed(() => {
-  if (!tokenStore.selectedToken) return "未选择Token";
-  const status = tokenStore.getWebSocketStatus(tokenStore.selectedToken.id);
-  return status === "connected" ? "已连接" : "未连接";
-});
-
-const connectionClass = computed(() => {
-  return connectionStatus.value === "connected"
-    ? "status-connected"
-    : "status-disconnected";
+  if (!tokenStore.selectedToken)
+    return "未选择Token";
+  const labels = {
+    connected: "已连接",
+    connecting: "连接中",
+    disconnecting: "断开中",
+    disconnected: "未连接",
+    error: "连接失败",
+  };
+  return labels[connectionStatus.value] || "未连接";
 });
 
 const isConnected = computed(() => {
   return connectionStatus.value === "connected";
+});
+
+const isConnectionPending = computed(() => {
+  return ["connecting", "disconnecting"].includes(connectionStatus.value);
+});
+
+const connectionActionText = computed(() => {
+  if (connectionStatus.value === "connecting")
+    return "上线中";
+  if (connectionStatus.value === "disconnecting")
+    return "下线中";
+  return isConnected.value ? "下线" : "上线";
 });
 
 const pickArenaTargetId = (targets) => {
@@ -118,13 +128,15 @@ const pickArenaTargetId = (targets) => {
     targets?.targetList?.[0] ||
     targets?.list?.[0];
 
-  if (candidate?.roleId) return candidate.roleId;
-  if (candidate?.id) return candidate.id;
+  if (candidate?.roleId)
+    return candidate.roleId;
+  if (candidate?.id)
+    return candidate.id;
   return targets?.roleId || targets?.id;
 };
 
 // 方法
-const handleFeatureAction = async (featureType) => {
+const _handleFeatureAction = async (featureType) => {
   if (!tokenStore.selectedToken) {
     message.warning("请先选择Token");
     router.push("/tokens");
@@ -225,7 +237,11 @@ const connectWebSocket = () => {
     const token = tokenStore.selectedToken.token;
 
     // 使用 tokenStore 的 WebSocket 连接管理
-    tokenStore.createWebSocketConnection(tokenId, token);
+    tokenStore.createWebSocketConnection(
+      tokenId,
+      token,
+      tokenStore.selectedToken.wsUrl,
+    );
     message.info("正在建立 WebSocket 连接...");
 
     // 等待连接建立
@@ -259,17 +275,32 @@ const toggleConnection = () => {
   }
 };
 
+const openGame = async () => {
+  const token = tokenStore.selectedToken;
+  if (!token) {
+    message.warning("请先选择一个账号");
+    return;
+  }
+
+  const binData = await resolveEmbeddedGameBinData(token, getArrayBuffer, {
+    identifyBuffer: getTokenId,
+  });
+  if (!binData) {
+    message.error("未找到该账号的本机 BIN 数据，请重新导入 BIN");
+    return;
+  }
+
+  prepareEmbeddedGameSession(token, binData);
+  await router.push(buildEmbeddedGameLocation([token.id], "role"));
+};
+
 // handleWebSocketMessage 已移除，消息处理由 tokenStore 负责
 
 // 生命周期
 onMounted(() => {
-  // 检查是否需要连接 WebSocket
   if (tokenStore.selectedToken) {
     const status = tokenStore.getWebSocketStatus(tokenStore.selectedToken.id);
-    if (status !== "connected") {
-      connectWebSocket();
-    } else {
-      // 如果已连接，立即获取初始数据
+    if (status === "connected") {
       initializeGameData();
     }
   }
@@ -284,7 +315,8 @@ watch(
     return { status: conn?.status, lastError: conn?.lastError };
   },
   (cur) => {
-    if (!cur) return;
+    if (!cur)
+      return;
     if (cur.status === "error" && cur.lastError) {
       const err = String(cur.lastError.error || "").toLowerCase();
       if (err.includes("token") && err.includes("expired")) {
@@ -307,7 +339,8 @@ watch(
 
 // 初始化游戏数据
 const initializeGameData = async () => {
-  if (!tokenStore.selectedToken) return;
+  if (!tokenStore.selectedToken)
+    return;
 
   try {
     const tokenId = tokenStore.selectedToken.id;
@@ -321,7 +354,7 @@ const initializeGameData = async () => {
       "fight_startlevel",
     );
     tokenStore.setBattleVersion(res?.battleData?.version);
-  } catch (error) {
+  } catch {
     // 静默处理初始化异常
   }
 };
@@ -333,15 +366,15 @@ onUnmounted(() => {
 
 <style scoped lang="scss">
 .game-features-page {
-  min-height: calc(100dvh - 68px);
-  background: var(--surface);
+  min-height: calc(100dvh - 56px);
+  background: var(--background);
   padding-bottom: calc(var(--spacing-md) + env(safe-area-inset-bottom));
 }
 
 .role-context-band {
-  background: var(--surface-container-low);
+  background: var(--background);
   border-bottom: 1px solid var(--border-light);
-  padding: 18px 0;
+  padding: 12px 0;
 }
 
 .role-context {
@@ -359,10 +392,11 @@ onUnmounted(() => {
 }
 
 .role-avatar {
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
   object-fit: cover;
-  border-radius: 50%;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
 }
 
 .role-metadata,
@@ -380,19 +414,32 @@ onUnmounted(() => {
 .connection-summary-dot {
   width: 7px;
   height: 7px;
-  background: var(--error);
+  background: var(--outline);
   border-radius: 50%;
 }
 
-.connection-summary-dot.connected { background: var(--primary); }
+.connection-summary-dot.connected { background: var(--success); }
 
-.role-identity h2 {
-  margin: 2px 0 5px;
-  color: var(--on-surface);
-  font-size: 18px;
+.connection-summary-dot.connecting,
+.connection-summary-dot.disconnecting { background: var(--warning); }
+
+.connection-summary-dot.error { background: var(--error); }
+
+.connection-spinner {
+  animation: connection-spin 0.8s linear infinite;
 }
 
-.context-label,
+@keyframes connection-spin {
+  to { transform: rotate(360deg); }
+}
+
+.role-identity h2 {
+  margin: 0 0 4px;
+  color: var(--on-surface);
+  font-size: 15px;
+  font-weight: 650;
+}
+
 .token-id {
   color: var(--on-surface-variant);
   font: 500 10px/1.2 "JetBrains Mono", monospace;
@@ -403,6 +450,28 @@ onUnmounted(() => {
   max-width: 1400px;
   margin: 0 auto;
   padding: 0 var(--spacing-lg);
+}
+
+.connection-empty-state {
+  display: grid;
+  min-height: clamp(320px, calc(100dvh - 170px), 720px);
+  place-content: center;
+  justify-items: center;
+  gap: 10px;
+  color: var(--on-surface-variant);
+}
+
+.connection-empty-icon {
+  width: 28px;
+  height: 28px;
+  stroke-width: 1.5;
+}
+
+.connection-empty-state p {
+  margin: 0;
+  color: var(--on-surface);
+  font-size: 14px;
+  font-weight: 600;
 }
 
 @media (max-width: 768px) {
@@ -488,7 +557,7 @@ onUnmounted(() => {
 
 // 功能模块网格
 .features-grid-section {
-  padding: 20px 0;
+  padding: 16px 0;
 }
 
 .features-grid {
@@ -726,7 +795,7 @@ onUnmounted(() => {
     padding: 0 var(--spacing-md);
   }
 
-  .game-features-page { min-height: calc(100dvh - 62px); }
+  .game-features-page { min-height: calc(100dvh - 56px); }
   .role-context { align-items: flex-start; flex-direction: column; }
   .connection-actions { width: 100%; justify-content: space-between; }
 

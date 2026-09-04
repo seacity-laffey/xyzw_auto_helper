@@ -371,6 +371,10 @@ export function registerDefaultCommands(reg: CommandRegistry) {
     .register("warguess_getguesscoinreward")
     .register("legion_payloadsignup") // 蟠桃报名
 
+    // 俱乐部战
+    .register("club_getinfo")
+    .register("club_getdefenserecord")
+
     // 珍宝阁相关
     .register("collection_claimfreereward")
     .register("collection_goodslist")
@@ -1221,6 +1225,9 @@ export class XyzwWebSocketClient {
       // 军团信息
       legion_getinforesp: "legion_getinfo",
       legion_getinforresp: "legion_getinfo",
+      // 俱乐部战
+      club_getinforesp: "club_getinfo",
+      club_getdefenserecordresp: "club_getdefenserecord",
       // 车辆相关响应映射
       car_getrolecarresp: "car_getrolecar",
       car_refreshresp: "car_refresh",

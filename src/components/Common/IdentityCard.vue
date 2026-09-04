@@ -26,18 +26,16 @@
           <div class="role-info-section">
             <div class="role-name">
               {{ roleInfo.name || "未知角色" }}
-              <n-tag
+              <Badge
                 v-if="roleInfo.legacy > 0"
                 :style="{
                   color: '#fff',
                   backgroundColor: legacycolor[roleInfo.legacy]?.value,
                   marginLeft: '8px',
                 }"
-                size="small"
-                :bordered="false"
               >
                 {{ legacycolor[roleInfo.legacy]?.name || "未知" }}
-              </n-tag>
+              </Badge>
             </div>
             <div class="role-stats">
               <span class="level-text">Lv.{{ roleInfo.level || 1 }}</span>
@@ -59,11 +57,11 @@
         </div>
       </div>
       <div v-if="hasRole && showExpand" class="resources-toggle">
-        <n-button text @click="isExpanded = !isExpanded">
+        <Button variant="ghost" size="sm" @click="isExpanded = !isExpanded">
           {{ isExpanded ? "收起" : "展开全部" }}
-        </n-button>
+        </Button>
       </div>
-      <div v-else class="loading">正在获取角色信息...</div>
+      <div v-else class="loading">{{ roleEmptyStateText }}</div>
     </div>
   </div>
   <transition v-else name="drop">
@@ -102,18 +100,16 @@
             <div class="role-info-section">
               <div class="role-name">
                 {{ roleInfo.name || "未知角色" }}
-                <n-tag
+                <Badge
                   v-if="roleInfo.legacy > 0"
                   :style="{
                     color: '#fff',
                     backgroundColor: legacycolor[roleInfo.legacy]?.value,
                     marginLeft: '8px',
                   }"
-                  size="small"
-                  :bordered="false"
                 >
                   {{ legacycolor[roleInfo.legacy]?.name || "未知" }}
-                </n-tag>
+                </Badge>
               </div>
               <div class="role-stats">
                 <span class="level-text">Lv.{{ roleInfo.level || 1 }}</span>
@@ -128,7 +124,7 @@
           </div>
           <div class="glow-border" />
         </div>
-        <div v-else class="loading">正在获取角色信息...</div>
+        <div v-else class="loading">{{ roleEmptyStateText }}</div>
       </div>
     </div>
   </transition>
@@ -138,6 +134,8 @@
 import { ref, computed, onMounted, watch } from "vue";
 import { useTokenStore } from "@/stores/tokenStore";
 import { legacycolor as rawLegacyColor } from "@/utils/heroList";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 const legacycolor = rawLegacyColor as any;
 
@@ -171,7 +169,17 @@ const roleInfo = computed(() => {
   };
 });
 
-const hasRole = computed(() => Object.keys(roleInfo.value || {}).length > 0);
+const hasRole = computed(() =>
+  wsStatus.value === "connected"
+  && Object.keys(roleInfo.value || {}).length > 0,
+);
+const roleEmptyStateText = computed(() => {
+  if (wsStatus.value === "error")
+    return "连接失败，请重新上线";
+  if (wsStatus.value === "disconnected" || wsStatus.value === "disconnecting")
+    return "账号未上线";
+  return "正在获取角色信息...";
+});
 
 const defaultAvatars = [
   "/icons/1733492491706148.png",
@@ -678,9 +686,9 @@ watch(() => roleInfo.value, initializeAvatar, { deep: true });
 .identity-card.embedded {
   width: 100%;
   position: relative;
-  background: linear-gradient(180deg, var(--bg-primary), var(--bg-secondary));
-  border-radius: var(--border-radius-xl);
-  padding: var(--spacing-lg);
+  background: var(--background);
+  border-radius: var(--radius);
+  padding: 16px;
   box-shadow: none;
   border: 1px solid var(--border-light);
 }
@@ -697,9 +705,10 @@ watch(() => roleInfo.value, initializeAvatar, { deep: true });
   top: 0;
   width: 360px;
   background: var(--bg-primary);
-  border-radius: var(--border-radius-xl);
-  padding: var(--spacing-lg);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 16px;
+  box-shadow: var(--shadow-medium);
 }
 
 /* 下落动画 */
@@ -782,9 +791,10 @@ watch(() => roleInfo.value, initializeAvatar, { deep: true });
 
 .role-profile-header {
   position: relative;
-  border-radius: var(--border-radius-large);
-  padding: 16px;
+  padding: 12px;
   overflow: hidden;
+  background: var(--surface-container-low);
+  border-left: 2px solid var(--foreground);
 }
 
 .role-profile-content {
@@ -804,9 +814,9 @@ watch(() => roleInfo.value, initializeAvatar, { deep: true });
 .role-avatar {
   width: 56px;
   height: 56px;
-  border-radius: 12px;
+  border-radius: var(--radius);
   object-fit: cover;
-  border: 2px solid rgba(255, 255, 255, 0.6);
+  border: 1px solid var(--border);
 }
 
 .role-name {
@@ -881,71 +891,7 @@ watch(() => roleInfo.value, initializeAvatar, { deep: true });
 }
 
 .glow-border {
-  position: absolute;
-  inset: 0;
-  border-radius: var(--border-radius-large);
-  background: linear-gradient(
-    45deg,
-    rgba(102, 126, 234, 0.4),
-    rgba(118, 75, 162, 0.4),
-    rgba(254, 202, 87, 0.4),
-    rgba(102, 126, 234, 0.4)
-  );
-  background-size: 300% 300%;
-  opacity: 0.6;
-  z-index: 1;
-  animation: glowAnimation 6s ease-in-out infinite;
-}
-
-@keyframes glowAnimation {
-  0%,
-  100% {
-    background-position: 0% 50%;
-  }
-
-  50% {
-    background-position: 100% 50%;
-  }
-}
-
-.rank-beginner .role-profile-header {
-  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
-}
-
-.rank-known .role-profile-header {
-  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-}
-
-.rank-veteran .role-profile-header {
-  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-}
-
-.rank-master .role-profile-header {
-  background: linear-gradient(135deg, #e9d5ff 0%, #ddd6fe 100%);
-}
-
-.rank-hero .role-profile-header {
-  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-}
-
-.rank-overlord .role-profile-header {
-  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-}
-
-.rank-supreme .role-profile-header {
-  background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%);
-}
-
-.rank-emperor .role-profile-header {
-  background: linear-gradient(135deg, #fee2e2 0%, #dc2626 20%);
-}
-
-.rank-legend .role-profile-header {
-  background: linear-gradient(135deg, #ede9fe 0%, #7c3aed 30%);
-}
-
-.rank-infinite .role-profile-header {
-  background: linear-gradient(135deg, #fef3c7 0%, #fbbf24 30%, #f59e0b 100%);
+  display: none;
 }
 
 .resources {
@@ -962,9 +908,9 @@ watch(() => roleInfo.value, initializeAvatar, { deep: true });
 }
 
 .res-item {
-  background: var(--bg-primary);
+  background: var(--surface-container-low);
   border: 1px solid var(--border-light);
-  border-radius: 10px;
+  border-radius: var(--radius);
   padding: 8px 10px;
   min-height: var(--res-item-height);
   display: flex;

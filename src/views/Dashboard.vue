@@ -70,6 +70,9 @@ import {
 } from "@vicons/ionicons5";
 import useIndexedDB from "@/hooks/useIndexedDB";
 import { prepareEmbeddedGameSession } from "@/utils/gameLauncher";
+import { buildEmbeddedGameLocation } from "@/utils/embeddedGameRoute.js";
+import { resolveEmbeddedGameBinData } from "@/utils/embeddedGameStorage.js";
+import { getTokenId } from "@/utils/token";
 
 const router = useRouter();
 const message = useMessage();
@@ -82,13 +85,15 @@ const openGame = async () => {
     message.warning("请先选择一个Token");
     return;
   }
-  const binData = await getArrayBuffer(token.id);
+  const binData = await resolveEmbeddedGameBinData(token, getArrayBuffer, {
+    identifyBuffer: getTokenId,
+  });
   if (!binData) {
-    message.error("未找到该Token的BIN数据");
+    message.error("未找到该Token的本机BIN数据，请重新导入BIN");
     return;
   }
   prepareEmbeddedGameSession(token, binData);
-  router.push("/game");
+  router.push(buildEmbeddedGameLocation([token.id], "dashboard"));
 };
 
 // 响应式数据
