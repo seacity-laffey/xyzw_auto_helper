@@ -4,8 +4,9 @@
       <n-loading-bar-provider>
         <n-notification-provider>
           <n-dialog-provider>
-            <div id="app">
-              <router-view />
+            <div class="app-root">
+              <router-view></router-view>
+              <AppMessageHost></AppMessageHost>
             </div>
           </n-dialog-provider>
         </n-notification-provider>
@@ -18,9 +19,10 @@
 import { computed, onMounted, onUnmounted } from "vue";
 import { darkTheme } from "naive-ui";
 import { useTheme } from "@/composables/useTheme";
+import AppMessageHost from "@/components/Common/AppMessageHost.vue";
 
-const { isDark, initTheme, setupSystemThemeListener, updateReactiveState } =
-  useTheme();
+const { isDark, initTheme, setupSystemThemeListener, updateReactiveState }
+  = useTheme();
 
 // Naive UI 主题
 const naiveTheme = computed(() => {

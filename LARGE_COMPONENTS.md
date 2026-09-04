@@ -19,7 +19,7 @@ static media from the component refactor queue.
 
 | Priority | Component | Size | Main responsibilities | Next boundary |
 | --- | --- | ---: | --- | --- |
-| P0 | `src/views/BatchDailyTasks.vue` | 4,255 lines / 122 KiB | Scheduler runtime, batch settings, helper dialogs, and task execution orchestration | Move scheduler runtime into a composable; then extract batch settings |
+| P2 | `src/views/BatchDailyTasks.vue` | 1,998 lines / 57 KiB | Scheduler runtime, recipient lookup, and task execution orchestration | Isolate recipient lookup; then move the scheduler loop behind a tested runtime contract |
 | P0 | `src/components/Club/ClubWarRankV2.vue` | 5,701 lines / 151 KiB | Ranking query, map/detail presentation, member analysis, exports, dialogs | Separate ranking summary, detail table, and export sheet before moving request state |
 | P1 | `src/components/Club/ClubWarRank.vue` | 3,886 lines / 104 KiB | Legacy salt-field ranking presentation and actions | Confirm active style-switch requirements, then share stable data transforms with V2 |
 | P1 | `src/components/Cards/Activity/UnlimitedLineup.vue` | 3,510 lines / 92 KiB | Player lookup, lineup analysis, editing, export, multiple dialogs | Extract lookup form, lineup board, and export renderer |
@@ -101,6 +101,27 @@ completed extraction.
   form, Cron preview, selection state, and CSS.
 - Browser coverage verifies daily task creation, Cron editing with five-run
   preview, enable persistence, countdown presentation, and confirmed deletion.
+
+### Batch operation dialogs
+
+- Extracted runtime settings, dream purchase selection, resource helpers, month
+  cheer, account group management, and legacy gift presentation into six
+  focused components under `src/components/Batch/`.
+- Replaced the extracted Naive UI modals, data table, upload control, and vicons
+  with source-owned shadcn-vue controls, semantic tables and inputs, and Lucide
+  icons. `BatchDailyTasks.vue` no longer contains Naive UI template elements.
+- Moved group editing into its owning component and replaced browser `confirm()`
+  with an inline confirmation state. WebSocket lookup, gift execution, scheduler
+  runtime, and task functions remain in the parent.
+- Removed roughly 350 lines of scoped styles whose selectors belonged to already
+  extracted panels. Activity availability, runtime settings, token sorting,
+  embedded-game launching, config transfer, and scheduled-task persistence now
+  live in focused composables.
+- The parent decreased from 4,268 lines / 122 KiB to 1,998 lines / 57 KiB and no
+  longer meets either critical threshold.
+- Browser coverage verifies runtime-setting persistence, nested dream settings,
+  helper inputs, gift validation state, and the full group create/edit/member/
+  delete lifecycle.
 
 ## Non-Business Large Files
 
