@@ -20,7 +20,7 @@ static media from the component refactor queue.
 | Priority | Component | Size | Main responsibilities | Next boundary |
 | --- | --- | ---: | --- | --- |
 | P2 | `src/views/BatchDailyTasks.vue` | 1,998 lines / 57 KiB | Scheduler runtime, recipient lookup, and task execution orchestration | Isolate recipient lookup; then move the scheduler loop behind a tested runtime contract |
-| P0 | `src/components/Club/ClubWarRankV2.vue` | 3,854 lines / 105 KiB | Ranking query, table presentation, member analysis, exports | Extract the ranking table state surface before moving request state |
+| P0 | `src/components/Club/ClubWarRankV2.vue` | 3,791 lines / 105 KiB | Ranking query, column rendering, member analysis, exports | Separate column renderers and request-state orchestration |
 | P1 | `src/components/Club/ClubWarRank.vue` | 3,886 lines / 104 KiB | Legacy salt-field ranking presentation and actions | Confirm active style-switch requirements, then share stable data transforms with V2 |
 | P1 | `src/components/Cards/Activity/UnlimitedLineup.vue` | 3,510 lines / 92 KiB | Player lookup, lineup analysis, editing, export, multiple dialogs | Extract lookup form, lineup board, and export renderer |
 | P1 | `src/components/Club/PeachInfoV2.vue` | 3,487 lines / 91 KiB | Peach event state, opponent analysis, battle actions, history, exports | Extract overview, opponent panel, and battle history |
@@ -35,6 +35,18 @@ Sizes are a snapshot taken on 2026-09-04 and should be refreshed after each
 completed extraction.
 
 ## Completed Extractions
+
+### Club war ranking table states
+
+- Extracted data-table mounting, loading feedback, and empty feedback into
+  `src/components/Club/ClubWarRankingTable.vue`.
+- Replaced Naive UI spin/empty components and the final vicons usage in
+  `ClubWarRankV2.vue` with Lucide-based source-owned states; the complex Naive
+  data table remains isolated behind a small presentation contract.
+- Kept column renderers, grouped row data, row classification, and image-export
+  ownership in the parent.
+- Reduced `ClubWarRankV2.vue` from 3,854 to 3,791 lines. Browser coverage verifies
+  data, loading, and empty transitions plus desktop/mobile overflow behavior.
 
 ### Club war alliance summary
 

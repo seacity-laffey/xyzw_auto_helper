@@ -28,39 +28,13 @@
           :total="battleRecords1.legionRankList.length"
           @select="setActiveAlliance"
         />
-        <!-- 加载状态 -->
-        <div v-if="loading1" class="loading-state">
-          <n-spin size="large">
-            <template #description> 正在加载盐场匹配数据... </template>
-          </n-spin>
-        </div>
-
-        <!-- 匹配列表 -->
-        <div
-          v-else-if="battleRecords1 && battleRecords1.legionRankList"
-          class="table-container"
-        >
-          <n-data-table
-            :columns="saltTableColumns"
-            :data="groupedSaltTableData"
-            :bordered="true"
-            :class="['salt-table']"
-            :row-class-name="getSaltTableRowClassName"
-            size="small"
-            :scroll-x="1380"
-          />
-        </div>
-
-        <!-- 空状态 -->
-        <div v-else-if="!loading1" class="empty-state">
-          <n-empty description="暂无盐场匹配数据" size="large">
-            <template #icon>
-              <n-icon>
-                <DocumentText />
-              </n-icon>
-            </template>
-          </n-empty>
-        </div>
+        <ClubWarRankingTable
+          :columns="saltTableColumns"
+          :has-data="Boolean(battleRecords1?.legionRankList)"
+          :loading="loading1"
+          :row-class-name="getSaltTableRowClassName"
+          :rows="groupedSaltTableData"
+        />
       </div>
     </div>
 
@@ -99,8 +73,8 @@ import { downloadCanvasAsImage } from "@/utils/imageExport";
 import ClubHeroDetailDialog from "@/components/Club/ClubHeroDetailDialog.vue";
 import ClubPlayerDuelDialog from "@/components/Club/ClubPlayerDuelDialog.vue";
 import ClubWarAllianceSummary from "@/components/Club/ClubWarAllianceSummary.vue";
+import ClubWarRankingTable from "@/components/Club/ClubWarRankingTable.vue";
 import ClubWarRankToolbar from "@/components/Club/ClubWarRankToolbar.vue";
-import { DocumentText } from "@vicons/ionicons5";
 import {
   getLastSaturday,
   formatTimestamp1,
@@ -2194,43 +2168,6 @@ watch(selectedTokenId, (newTokenId, oldTokenId) => {
   display: flex;
   flex-direction: column;
   background: var(--bg-primary);
-
-  // 加载状�?
-  .loading-state {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex: 1;
-    background: var(--bg-primary);
-    height: 100%;
-
-    :deep(.n-spin) {
-      font-size: var(--font-size-lg);
-
-      .n-spin-description {
-        font-size: var(--font-size-sm);
-        color: var(--text-secondary);
-      }
-    }
-  }
-
-  // 空状�?
-  .empty-state {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex: 1;
-    background: var(--bg-primary);
-    height: 100%;
-
-    :deep(.n-empty) {
-      font-size: var(--font-size-sm);
-
-      .n-empty-description {
-        color: var(--text-secondary);
-      }
-    }
-  }
 
   // 表格容器
   .table-container {
