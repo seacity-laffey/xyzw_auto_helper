@@ -20,7 +20,7 @@ static media from the component refactor queue.
 | Priority | Component | Size | Main responsibilities | Next boundary |
 | --- | --- | ---: | --- | --- |
 | P2 | `src/views/BatchDailyTasks.vue` | 1,998 lines / 57 KiB | Scheduler runtime, recipient lookup, and task execution orchestration | Isolate recipient lookup; then move the scheduler loop behind a tested runtime contract |
-| P0 | `src/components/Club/ClubWarRankV2.vue` | 4,146 lines / 112 KiB | Ranking query, table presentation, member analysis, exports | Extract the alliance summary and ranking table before moving request state |
+| P0 | `src/components/Club/ClubWarRankV2.vue` | 3,854 lines / 105 KiB | Ranking query, table presentation, member analysis, exports | Extract the ranking table state surface before moving request state |
 | P1 | `src/components/Club/ClubWarRank.vue` | 3,886 lines / 104 KiB | Legacy salt-field ranking presentation and actions | Confirm active style-switch requirements, then share stable data transforms with V2 |
 | P1 | `src/components/Cards/Activity/UnlimitedLineup.vue` | 3,510 lines / 92 KiB | Player lookup, lineup analysis, editing, export, multiple dialogs | Extract lookup form, lineup board, and export renderer |
 | P1 | `src/components/Club/PeachInfoV2.vue` | 3,487 lines / 91 KiB | Peach event state, opponent analysis, battle actions, history, exports | Extract overview, opponent panel, and battle history |
@@ -35,6 +35,19 @@ Sizes are a snapshot taken on 2026-09-04 and should be refreshed after each
 completed extraction.
 
 ## Completed Extractions
+
+### Club war alliance summary
+
+- Extracted the salt-field announcement, fetch timestamp, alliance counts, and
+  active-alliance filter into `src/components/Club/ClubWarAllianceSummary.vue`.
+- Kept alliance classification and filtering rules in `ClubWarRankV2.vue`; the
+  child receives counts and reports only the selected alliance.
+- Replaced the oversized legacy colored tabs with compact semantic buttons while
+  preserving distinct alliance accents and horizontal mobile navigation.
+- Updated the parent's scoped export selectors to cross the component boundary,
+  preserving the fixed 1,380 px image export layout.
+- Reduced `ClubWarRankV2.vue` from 4,146 to 3,854 lines. Browser coverage verifies
+  counts, selection state, event delivery, and mobile overflow behavior.
 
 ### Club war ranking toolbar
 

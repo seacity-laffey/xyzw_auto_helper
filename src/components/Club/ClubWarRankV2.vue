@@ -19,91 +19,15 @@
 
       <!-- 表格内容区 -->
       <div ref="exportDom" class="table-content">
-        <!-- 公告区域 -->
-        <div
-          v-if="battleRecords1 && battleRecords1.legionRankList"
-          class="announcement-section"
-        >
-          <div class="announcement-content">
-            <span class="announcement-text">
-              {{ saltAnnouncementText }}
-            </span>
-            <span class="announcement-fetch-time">
-              {{ saltFetchTimeText }}
-            </span>
-          </div>
-        </div>
-
-        <!-- 联盟分类标签栏 -->
-        <div
-          v-if="battleRecords1 && battleRecords1.legionRankList"
-          class="alliance-tabs-section"
-        >
-          <div
-            class="alliance-tab alliance-dalianmeng"
-            :class="{ active: activeAlliance === '大联盟' }"
-            @click="setActiveAlliance('大联盟')"
-          >
-            <span class="tab-text">大联盟</span>
-            <span class="tab-count">{{
-              getActiveAllianceCount("大联盟")
-            }}</span>
-          </div>
-          <div
-            class="alliance-tab alliance-mengmeng"
-            :class="{ active: activeAlliance === '梦盟' }"
-            @click="setActiveAlliance('梦盟')"
-          >
-            <span class="tab-text">梦盟</span>
-            <span class="tab-count">{{ getActiveAllianceCount("梦盟") }}</span>
-          </div>
-          <div
-            class="alliance-tab alliance-zhengyi"
-            :class="{ active: activeAlliance === '正义联盟' }"
-            @click="setActiveAlliance('正义联盟')"
-          >
-            <span class="tab-text">正义联盟</span>
-            <span class="tab-count">{{
-              getActiveAllianceCount("正义联盟")
-            }}</span>
-          </div>
-          <div
-            class="alliance-tab alliance-longmeng"
-            :class="{ active: activeAlliance === '龙盟' }"
-            @click="setActiveAlliance('龙盟')"
-          >
-            <span class="tab-text">龙盟</span>
-            <span class="tab-count">{{ getActiveAllianceCount("龙盟") }}</span>
-          </div>
-          <div
-            class="alliance-tab alliance-ximeng"
-            :class="{ active: activeAlliance === '曦盟' }"
-            @click="setActiveAlliance('曦盟')"
-          >
-            <span class="tab-text">曦盟</span>
-            <span class="tab-count">{{ getActiveAllianceCount("曦盟") }}</span>
-          </div>
-          <div
-            class="alliance-tab alliance-unknown"
-            :class="{ active: activeAlliance === '未知联盟' }"
-            @click="setActiveAlliance('未知联盟')"
-          >
-            <span class="tab-text">未知联盟</span>
-            <span class="tab-count">{{
-              getActiveAllianceCount("未知联盟")
-            }}</span>
-          </div>
-          <div
-            class="alliance-tab alliance-all"
-            :class="{ active: activeAlliance === 'all' }"
-            @click="setActiveAlliance('all')"
-          >
-            <span class="tab-text">全部</span>
-            <span class="tab-count">{{
-              battleRecords1.legionRankList.length
-            }}</span>
-          </div>
-        </div>
+        <ClubWarAllianceSummary
+          v-if="battleRecords1?.legionRankList"
+          :active-alliance="activeAlliance"
+          :announcement="saltAnnouncementText"
+          :counts="allianceCounts"
+          :fetch-time="saltFetchTimeText"
+          :total="battleRecords1.legionRankList.length"
+          @select="setActiveAlliance"
+        />
         <!-- 加载状态 -->
         <div v-if="loading1" class="loading-state">
           <n-spin size="large">
@@ -174,6 +98,7 @@ import html2canvas from "html2canvas";
 import { downloadCanvasAsImage } from "@/utils/imageExport";
 import ClubHeroDetailDialog from "@/components/Club/ClubHeroDetailDialog.vue";
 import ClubPlayerDuelDialog from "@/components/Club/ClubPlayerDuelDialog.vue";
+import ClubWarAllianceSummary from "@/components/Club/ClubWarAllianceSummary.vue";
 import ClubWarRankToolbar from "@/components/Club/ClubWarRankToolbar.vue";
 import { DocumentText } from "@vicons/ionicons5";
 import {
@@ -1506,6 +1431,15 @@ const getActiveAllianceCount = (alliance) => {
   }).length;
 };
 
+const allianceCounts = computed(() =>
+  Object.fromEntries(
+    allianceOptions.map((option) => [
+      option.value,
+      getActiveAllianceCount(option.value),
+    ]),
+  ),
+);
+
 // 格式化战�?
 const formatPower = (power) => {
   if (!power) return "0";
@@ -2250,217 +2184,6 @@ watch(selectedTokenId, (newTokenId, oldTokenId) => {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-}
-
-// 公告区域
-.announcement-section {
-  background: #bae0ff;
-  border: 1px solid #1677ff;
-  padding: var(--spacing-md);
-  margin-bottom: var(--spacing-sm);
-  border-radius: 8px;
-  box-shadow: var(--shadow-sm);
-  flex-shrink: 0;
-
-  .announcement-content {
-    display: flex;
-    justify-content: center;
-    align-items: baseline;
-    gap: 14px;
-    flex-wrap: wrap;
-
-    .announcement-text {
-      color: #8b4513;
-      font-size: 22px !important;
-      font-weight: var(--font-weight-bold);
-      text-align: center;
-      line-height: 1.5;
-      max-width: 800px;
-    }
-
-    .announcement-fetch-time {
-      color: rgba(139, 69, 19, 0.7);
-      font-size: 12px !important;
-      font-weight: var(--font-weight-bold);
-      text-align: center;
-      line-height: 1;
-      white-space: nowrap;
-    }
-  }
-}
-
-// 联盟分类标签�?
-.alliance-tabs-section {
-  display: flex;
-  background: var(--bg-secondary);
-  padding: var(--spacing-xs);
-  gap: var(--spacing-xs);
-  flex-shrink: 0;
-
-  .alliance-tab {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--spacing-xs);
-    box-sizing: border-box;
-    height: 34px;
-    padding: var(--spacing-sm) var(--spacing-md);
-    border-radius: var(--border-radius-md);
-    font-size: var(--font-size-sm);
-    line-height: 1;
-    font-weight: var(--font-weight-medium);
-    color: var(--text-primary);
-    cursor: pointer;
-    transition: all var(--transition-fast);
-    border: 1px solid transparent;
-
-    &:hover {
-      transform: translateY(-1px);
-    }
-
-    &.active {
-      box-shadow: var(--shadow-medium);
-    }
-
-    // 全部 - 蓝色
-    &.alliance-all {
-      background: #f3f4f6;
-      border-color: #d1d5db;
-      color: #374151;
-
-      &:hover {
-        background: #e5e7eb;
-      }
-
-      &.active {
-        background: #e5e7eb;
-        color: #111827;
-        border-color: #9ca3af;
-      }
-    }
-
-    // 大联�?- 绿色
-    &.alliance-dalianmeng {
-      background: rgba(82, 196, 26, 0.18);
-      border-color: rgba(82, 196, 26, 0.2);
-      color: #237804;
-
-      &:hover {
-        background: rgba(82, 196, 26, 0.22);
-      }
-
-      &.active {
-        background: rgba(82, 196, 26, 0.26);
-        color: #135200;
-        border-color: rgba(82, 196, 26, 0.38);
-      }
-    }
-
-    // 梦盟 - 橙色
-    &.alliance-mengmeng {
-      background: rgba(250, 173, 20, 0.2);
-      border-color: rgba(250, 173, 20, 0.22);
-      color: #ad6800;
-
-      &:hover {
-        background: rgba(250, 173, 20, 0.24);
-      }
-
-      &.active {
-        background: rgba(250, 173, 20, 0.28);
-        color: #873800;
-        border-color: rgba(250, 173, 20, 0.4);
-      }
-    }
-
-    // 正义联盟 - 红色
-    &.alliance-zhengyi {
-      background: rgba(245, 34, 45, 0.18);
-      border-color: rgba(245, 34, 45, 0.2);
-      color: #cf1322;
-
-      &:hover {
-        background: rgba(245, 34, 45, 0.22);
-      }
-
-      &.active {
-        background: rgba(245, 34, 45, 0.26);
-        color: #a8071a;
-        border-color: rgba(245, 34, 45, 0.36);
-      }
-    }
-
-    // 龙盟 - 紫色
-    &.alliance-longmeng {
-      background: rgba(114, 46, 209, 0.18);
-      border-color: rgba(114, 46, 209, 0.2);
-      color: #531dab;
-
-      &:hover {
-        background: rgba(114, 46, 209, 0.22);
-      }
-
-      &.active {
-        background: rgba(114, 46, 209, 0.26);
-        color: #391085;
-        border-color: rgba(114, 46, 209, 0.36);
-      }
-    }
-
-    // 曦盟 - 青色
-    &.alliance-ximeng {
-      background: rgba(19, 194, 194, 0.18);
-      border-color: rgba(19, 194, 194, 0.2);
-      color: #08979c;
-
-      &:hover {
-        background: rgba(19, 194, 194, 0.22);
-      }
-
-      &.active {
-        background: rgba(19, 194, 194, 0.26);
-        color: #006d75;
-        border-color: rgba(19, 194, 194, 0.38);
-      }
-    }
-
-    // 未知联盟 - 默认白色
-    &.alliance-unknown {
-      background: #ffffff;
-      border-color: #d9d9d9;
-      color: #4b5563;
-
-      &:hover {
-        background: #f9fafb;
-      }
-
-      &.active {
-        background: #f3f4f6;
-        color: #111827;
-        border-color: #d1d5db;
-      }
-    }
-
-    .tab-text {
-      font-size: var(--font-size-sm);
-      line-height: 1;
-    }
-
-    .tab-count {
-      font-size: var(--font-size-xs);
-      line-height: 1;
-      background: rgba(255, 255, 255, 0.62);
-      padding: 2px 6px;
-      border-radius: 10px;
-      font-weight: var(--font-weight-bold);
-
-      .alliance-tab.active & {
-        background: rgba(255, 255, 255, 0.3);
-        color: white;
-      }
-    }
-  }
 }
 
 // 表格内容�?
@@ -3443,8 +3166,8 @@ watch(selectedTokenId, (newTokenId, oldTokenId) => {
     min-height: 0 !important;
   }
 
-  .announcement-section,
-  .alliance-tabs-section,
+  :deep(.announcement-section),
+  :deep(.alliance-tabs-section),
   .table-container,
   :deep(.n-data-table),
   :deep(.n-data-table-wrapper),
@@ -3460,8 +3183,9 @@ watch(selectedTokenId, (newTokenId, oldTokenId) => {
     overflow: visible !important;
   }
 
-  .alliance-tabs-section {
-    display: flex !important;
+  :deep(.alliance-tabs-section) {
+    display: grid !important;
+    grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
     width: 1380px !important;
     min-width: 1380px !important;
     max-width: none !important;
@@ -3490,16 +3214,6 @@ watch(selectedTokenId, (newTokenId, oldTokenId) => {
 
 // 响应式设置
 @media (max-width: 1200px) {
-  .alliance-tabs-section {
-    overflow-x: auto;
-    justify-content: flex-start;
-
-    .alliance-tab {
-      flex: 0 0 auto;
-      white-space: nowrap;
-    }
-  }
-
   .table-container {
     overflow-x: auto;
   }
@@ -4109,7 +3823,7 @@ watch(selectedTokenId, (newTokenId, oldTokenId) => {
     padding: var(--spacing-xs);
   }
 
-  .alliance-tabs-section {
+  :deep(.alliance-tabs-section) {
     padding: var(--spacing-xs) var(--spacing-xs);
   }
 
@@ -4118,23 +3832,17 @@ watch(selectedTokenId, (newTokenId, oldTokenId) => {
     overflow-y: hidden;
   }
 
-  .announcement-section,
-  .alliance-tabs-section,
+  :deep(.announcement-section),
+  :deep(.alliance-tabs-section),
   .table-container {
     width: 1380px;
     min-width: 1380px;
     max-width: none;
   }
 
-  .alliance-tabs-section {
+  :deep(.alliance-tabs-section) {
     overflow: visible;
-    justify-content: center;
-
-    .alliance-tab {
-      flex: 1 1 0;
-      min-width: 0;
-      white-space: nowrap;
-    }
+    grid-template-columns: repeat(7, minmax(0, 1fr));
   }
 
   .table-container {
