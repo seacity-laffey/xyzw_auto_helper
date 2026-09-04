@@ -20,7 +20,7 @@ static media from the component refactor queue.
 | Priority | Component | Size | Main responsibilities | Next boundary |
 | --- | --- | ---: | --- | --- |
 | P2 | `src/views/BatchDailyTasks.vue` | 1,998 lines / 57 KiB | Scheduler runtime, recipient lookup, and task execution orchestration | Isolate recipient lookup; then move the scheduler loop behind a tested runtime contract |
-| P0 | `src/components/Club/ClubWarRankV2.vue` | 5,305 lines / 141 KiB | Ranking query, map/detail presentation, member analysis, exports, dialogs | Extract the player duel dialog, then separate ranking summary and export presentation before moving request state |
+| P0 | `src/components/Club/ClubWarRankV2.vue` | 4,629 lines / 125 KiB | Ranking query, map/detail presentation, member analysis, exports, dialogs | Separate ranking summary and export presentation before moving request state |
 | P1 | `src/components/Club/ClubWarRank.vue` | 3,886 lines / 104 KiB | Legacy salt-field ranking presentation and actions | Confirm active style-switch requirements, then share stable data transforms with V2 |
 | P1 | `src/components/Cards/Activity/UnlimitedLineup.vue` | 3,510 lines / 92 KiB | Player lookup, lineup analysis, editing, export, multiple dialogs | Extract lookup form, lineup board, and export renderer |
 | P1 | `src/components/Club/PeachInfoV2.vue` | 3,487 lines / 91 KiB | Peach event state, opponent analysis, battle actions, history, exports | Extract overview, opponent panel, and battle history |
@@ -35,6 +35,20 @@ Sizes are a snapshot taken on 2026-09-04 and should be refreshed after each
 completed extraction.
 
 ## Completed Extractions
+
+### Club player duel dialog
+
+- Extracted opponent identity, duel controls, progress, results, and lineup
+  presentation from `ClubWarRankV2.vue` into
+  `src/components/Club/ClubPlayerDuelDialog.vue`.
+- Kept WebSocket requests, sequential duel execution, result aggregation, and
+  selected-hero state in the parent behind explicit props and intent events.
+- Replaced the Naive UI modal, avatars, inputs, progress, tags, and buttons in
+  this boundary with source-owned shadcn-vue controls and semantic HTML.
+- Removed debug-only lineup labels and obsolete parent styles, and reduced
+  `ClubWarRankV2.vue` from 5,305 to 4,629 lines.
+- Browser coverage verifies count validation, action events, result controls,
+  hero selection, and horizontal layout at desktop and 390 px mobile widths.
 
 ### Club hero detail dialog
 

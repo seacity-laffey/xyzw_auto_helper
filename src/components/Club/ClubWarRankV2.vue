@@ -63,9 +63,9 @@
           </div>
           <div class="stat-item">
             <span class="stat-label">总俱乐部数:</span>
-            <n-tag type="success">{{
-              battleRecords1?.legionRankList?.length || 0
-            }}</n-tag>
+            <n-tag type="success">
+              {{ battleRecords1?.legionRankList?.length || 0 }}
+            </n-tag>
           </div>
         </div>
       </div>
@@ -104,9 +104,10 @@
             <template #icon>
               <n-icon>
                 <Refresh />
-              </n-icon> </template
-            >刷新</n-button
-          >
+              </n-icon>
+            </template>
+            刷新
+          </n-button>
           <n-button
             type="primary"
             size="small"
@@ -117,9 +118,10 @@
             <template #icon>
               <n-icon>
                 <Copy />
-              </n-icon> </template
-            >导出</n-button
-          >
+              </n-icon>
+            </template>
+            导出
+          </n-button>
           <n-button
             :type="isEditMode ? 'warning' : 'default'"
             size="small"
@@ -141,8 +143,8 @@
             @click="hcSort"
             class="action-btn sort-btn"
           >
-            红淬排序</n-button
-          >
+            红淬排序
+          </n-button>
           <n-button
             type="info"
             size="small"
@@ -151,8 +153,8 @@
             class="action-btn sort-btn"
             v-if="ScoreShow === 1"
           >
-            积分排序</n-button
-          >
+            积分排序
+          </n-button>
         </div>
       </div>
 
@@ -279,299 +281,20 @@
       </div>
     </div>
 
-    <!-- 玩家信息模态框 -->
-    <n-modal
-      v-model:show="showPlayerInfoModal"
-      preset="card"
-      title="对手信息"
-      :style="{ width: '800px' }"
-      :bordered="false"
-      :segmented="{ content: 'soft', footer: 'soft' }"
-      :show-close="false"
-    >
-      <template #header-extra>
-        <span v-if="playerInfo" class="player-id">ID: {{ playerInfo.id }}</span>
-      </template>
-
-      <div v-if="playerInfo" class="player-info-content">
-        <div class="player-info-main">
-          <n-avatar
-            round
-            :size="60"
-            :src="playerInfo.headImg"
-            class="player-avatar"
-          />
-          <div class="player-info-detail">
-            <h3>
-              {{ playerInfo.name }}
-              <n-tag
-                v-if="playerInfo.legacy > 0"
-                :style="{
-                  color: '#fff',
-                  backgroundColor: legacycolor[playerInfo.legacy]?.value,
-                }"
-                size="small"
-                style="margin-left: 8px"
-              >
-                {{ legacycolor[playerInfo.legacy]?.name || "未知" }}
-              </n-tag>
-            </h3>
-            <p>
-              区服: {{ playerInfo.serverName || "未知" }} | 战力:
-              {{ formatPower(playerInfo.power) }}
-            </p>
-            <p>俱乐部: {{ playerInfo.legionName || "无" }}</p>
-            <p>
-              总红数: {{ playerInfo.totalRedCount || 0 }} | 总开孔数:
-              {{ playerInfo.totalHoleCount || 0 }} | 四圣数:
-              {{ playerInfo.holyBeast || 0 }}
-            </p>
-          </div>
-        </div>
-
-        <div class="action-section">
-          <div style="display: flex; align-items: center; gap: 8px; flex: 1">
-            <div class="fight-count-container">
-              <label for="fightCount" class="fight-count-label"
-                >切磋次数:</label
-              >
-              <n-input
-                id="fightCount"
-                v-model:value="fightCount"
-                type="number"
-                placeholder="请输入切磋次数"
-                min="1"
-                max="100"
-                :step="1"
-                class="fight-count-input"
-                size="small"
-                @input="validateFightCount"
-              />
-              <div class="fight-count-hint">范围: 1-100</div>
-            </div>
-            <n-button
-              type="tertiary"
-              @click="showPlayerInfoModal = false"
-              size="small"
-              style="margin-right: 8px"
-            >
-              关闭
-            </n-button>
-          </div>
-          <n-button
-            type="primary"
-            @click="handleDuel"
-            :disabled="!isFightCountValid"
-          >
-            切磋
-          </n-button>
-        </div>
-
-        <!-- 切磋进度和结果 -->
-        <div v-if="fightProgress.visible" class="fight-progress">
-          <div class="progress-info">
-            <div class="progress-title">切磋进行中</div>
-            <div class="progress-stats">
-              <span>总次数: {{ fightProgress.totalCount }}</span>
-              <span>已完成: {{ fightProgress.completedCount }}</span>
-              <span>剩余: {{ fightProgress.remainingCount }}</span>
-              <span>胜: {{ fightProgress.winCount }}</span>
-              <span>负: {{ fightProgress.lossCount }}</span>
-            </div>
-          </div>
-          <n-progress
-            type="line"
-            :percentage="fightProgress.percentage"
-            :show-indicator="false"
-            :stroke-width="8"
-            status="processing"
-          />
-        </div>
-
-        <!-- 最终结果统计 -->
-        <div v-if="fightResult.visible" class="fight-result">
-          <!-- 结果标题和统计信息 -->
-          <div class="result-header">
-            <h4 class="result-title">切磋结果</h4>
-            <div class="result-summary">
-              <div class="summary-item">
-                <span class="summary-label">总次数：</span>
-                <span class="summary-value">{{ fightResult.totalCount }}</span>
-              </div>
-              <div class="summary-item">
-                <span class="summary-label">胜：</span>
-                <span class="summary-value win">{{
-                  fightResult.winCount
-                }}</span>
-              </div>
-              <div class="summary-item">
-                <span class="summary-label">负：</span>
-                <span class="summary-value loss">{{
-                  fightResult.lossCount
-                }}</span>
-              </div>
-              <div class="summary-item">
-                <span class="summary-label">胜率：</span>
-                <span class="summary-value"
-                  >{{
-                    (
-                      (fightResult.winCount / fightResult.totalCount) *
-                      100
-                    ).toFixed(2)
-                  }}%</span
-                >
-              </div>
-              <div class="summary-item">
-                <span class="summary-label">我方掉将率：</span>
-                <span class="summary-value"
-                  >{{
-                    (
-                      (dieStats.ourDieHeroGameCount / fightResult.totalCount) *
-                      100
-                    ).toFixed(2)
-                  }}%</span
-                >
-              </div>
-              <div class="summary-item">
-                <span class="summary-label">敌方掉将率：</span>
-                <span class="summary-value"
-                  >{{
-                    (
-                      (dieStats.enemyDieHeroGameCount /
-                        fightResult.totalCount) *
-                      100
-                    ).toFixed(2)
-                  }}%</span
-                >
-              </div>
-            </div>
-          </div>
-
-          <!-- 战斗结果列表 -->
-          <div class="result-list">
-            <div
-              v-for="(battle, index) in fightResult.resultCount"
-              :key="index"
-              :class="['battle-result-item', battle.isWin ? 'win' : 'loss']"
-            >
-              <div class="battle-header">
-                <span class="battle-index">第 {{ index + 1 }} 场</span>
-                <n-tag :type="battle.isWin ? 'success' : 'error'" size="small">
-                  {{ battle.isWin ? "胜利" : "失败" }}
-                </n-tag>
-              </div>
-
-              <div class="battle-details">
-                <div class="battle-side left-side">
-                  <n-avatar
-                    round
-                    :size="32"
-                    :src="battle.leftheadImg"
-                    class="side-avatar"
-                  />
-                  <div class="side-info">
-                    <span class="side-name">{{
-                      battle.leftName || "未知"
-                    }}</span>
-                    <span class="side-power">战力: {{ battle.leftpower }}</span>
-                    <span class="side-die"
-                      >掉将: {{ battle.leftDieHero }} 个</span
-                    >
-                  </div>
-                </div>
-
-                <div class="battle-vs">VS</div>
-
-                <div class="battle-side right-side">
-                  <n-avatar
-                    round
-                    :size="32"
-                    :src="battle.rightheadImg"
-                    class="side-avatar"
-                  />
-                  <div class="side-info">
-                    <span class="side-name">{{
-                      battle.rightName || "未知"
-                    }}</span>
-                    <span class="side-power"
-                      >战力: {{ battle.rightpower }}</span
-                    >
-                    <span class="side-die"
-                      >掉将: {{ battle.rightDieHero }} 个</span
-                    >
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="result-actions">
-            <n-button type="primary" @click="resetFightResult"
-              >重新切磋</n-button
-            >
-            <n-button @click="fightResult.visible = false">关闭结果</n-button>
-          </div>
-        </div>
-
-        <div class="player-heroes">
-          <h4>武将阵容</h4>
-          <!-- 添加调试信息 -->
-          <div
-            v-if="playerInfo.heroList"
-            class="debug-info"
-            style="font-size: 12px; color: #999; margin-bottom: 10px"
-          >
-            武将数量: {{ playerInfo.heroList.length }}
-          </div>
-          <div
-            class="hero-list"
-            v-if="playerInfo.heroList && playerInfo.heroList.length > 0"
-          >
-            <div
-              v-for="(hero, index) in playerInfo.heroList"
-              :key="hero.heroId || index"
-              class="hero-item"
-              @click="selectHeroInfo(hero)"
-            >
-              <n-avatar
-                round
-                :size="40"
-                :src="hero.heroAvate"
-                style="cursor: pointer"
-              />
-              <div class="hero-info">
-                <span class="hero-name">{{ hero.heroName }}</span>
-                <div class="hero-stats">
-                  <span>战力: {{ formatPower(hero.power || 0) }}</span>
-                  <span>星级: {{ hero.star || 0 }}</span>
-                  <span>红数: {{ hero.red || 0 }}</span>
-                  <span>开�? {{ hero.hole || 0 }}</span>
-                  <span :class="hero.HolyBeast ? 'opened' : 'closed'">
-                    {{ hero.HolyBeast ? "已开四圣" : "未开四圣" }}
-                  </span>
-                  <span v-if="hero.HolyBeast"
-                    >四圣等级: {{ hero.HBlevel || 0 }}</span
-                  >
-                </div>
-              </div>
-            </div>
-          </div>
-          <div v-else class="empty-heroes">
-            <p>未查询到武将信息</p>
-            <!-- 添加调试信息 -->
-            <div
-              v-if="playerInfo.heroList"
-              style="font-size: 12px; color: #999; margin-top: 10px"
-            >
-              武将列表为空
-            </div>
-            <div v-else style="font-size: 12px; color: #999; margin-top: 10px">
-              武将列表未定�?
-            </div>
-          </div>
-        </div>
-      </div>
-    </n-modal>
+    <ClubPlayerDuelDialog
+      v-model:open="showPlayerInfoModal"
+      :die-stats="dieStats"
+      :fight-count="fightCount"
+      :fight-count-valid="isFightCountValid"
+      :fight-progress="fightProgress"
+      :fight-result="fightResult"
+      :player="playerInfo"
+      @close-result="fightResult.visible = false"
+      @duel="handleDuel"
+      @reset-result="resetFightResult"
+      @select-hero="selectHeroInfo"
+      @update:fight-count="handleFightCountUpdate"
+    />
 
     <ClubHeroDetailDialog
       v-model:open="showHeroModal"
@@ -586,9 +309,6 @@ import {
   useMessage,
   NCheckboxGroup,
   NCheckbox,
-  NModal,
-  NAvatar,
-  NInput,
   NInputNumber,
   NSelect,
 } from "naive-ui";
@@ -596,6 +316,7 @@ import { useTokenStore } from "@/stores/tokenStore";
 import html2canvas from "html2canvas";
 import { downloadCanvasAsImage } from "@/utils/imageExport";
 import ClubHeroDetailDialog from "@/components/Club/ClubHeroDetailDialog.vue";
+import ClubPlayerDuelDialog from "@/components/Club/ClubPlayerDuelDialog.vue";
 import {
   Refresh,
   Copy,
@@ -614,7 +335,6 @@ import {
 import {
   HERO_DICT,
   HeroFillInfo,
-  legacycolor,
   getLineupType,
   LINEUP_RULES,
 } from "@/utils/heroList";
@@ -1601,6 +1321,11 @@ const handleHeroClick = (hero) => {
 const validateFightCount = (value) => {
   const num = parseInt(value);
   isFightCountValid.value = !isNaN(num) && num >= 1 && num <= 100;
+};
+
+const handleFightCountUpdate = (value) => {
+  fightCount.value = value;
+  validateFightCount(value);
 };
 
 // 重置切磋结果
@@ -2716,407 +2441,6 @@ watch(selectedTokenId, (newTokenId, oldTokenId) => {
 </script>
 
 <style scoped lang="scss">
-// 模态框样式
-.player-info-content {
-  padding: 20px;
-}
-
-.player-info-main {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 20px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid var(--border-light);
-}
-
-.player-avatar {
-  border: 2px solid var(--primary-color);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.player-info-detail h3 {
-  margin: 0 0 8px 0;
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-bold);
-}
-
-.player-info-detail p {
-  margin: 0 0 4px 0;
-  font-size: var(--font-size-sm);
-  color: var(--text-secondary);
-}
-
-.action-section {
-  margin: 15px 0;
-  display: flex;
-  justify-content: flex-start;
-}
-
-.fight-count-container {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-right: auto;
-}
-
-.fight-count-label {
-  font-size: var(--font-size-sm);
-  color: var(--text-primary);
-  font-weight: var(--font-weight-medium);
-  white-space: nowrap;
-}
-
-.fight-count-input {
-  width: 100px;
-}
-
-.fight-count-hint {
-  font-size: var(--font-size-xs);
-  color: var(--text-secondary);
-}
-
-.fight-count-error {
-  font-size: var(--font-size-xs);
-  color: var(--error-color);
-  margin-left: 4px;
-}
-
-.fight-progress {
-  margin: 15px 0;
-  padding: 15px;
-  background: var(--bg-secondary);
-  border-radius: var(--border-radius-sm);
-  border: 1px solid var(--border-light);
-}
-
-.progress-info {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
-.progress-title {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  color: var(--text-primary);
-}
-
-.progress-stats {
-  display: flex;
-  gap: 15px;
-  font-size: var(--font-size-xs);
-  color: var(--text-secondary);
-}
-
-.fight-result {
-  margin: 15px 0;
-  padding: 15px;
-  background: var(--bg-secondary);
-  border-radius: var(--border-radius-sm);
-  border: 1px solid var(--border-light);
-}
-
-.fight-result h4 {
-  margin: 0 0 12px 0;
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-bold);
-}
-
-.result-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 12px;
-}
-
-.result-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: var(--font-size-sm);
-}
-
-.result-label {
-  color: var(--text-secondary);
-}
-
-.result-value {
-  font-weight: var(--font-weight-medium);
-  color: var(--text-primary);
-}
-
-.result-value.win {
-  color: var(--success-color);
-}
-
-.result-value.loss {
-  color: var(--error-color);
-}
-
-.result-actions {
-  margin-top: 15px;
-  display: flex;
-  justify-content: flex-start;
-  gap: 8px;
-}
-
-/* 切磋结果显示样式 */
-.fight-result {
-  margin: 15px 0;
-  padding: 15px;
-  background: var(--bg-secondary);
-  border-radius: var(--border-radius-sm);
-  border: 1px solid var(--border-light);
-}
-
-.result-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--border-light);
-}
-
-.result-title {
-  margin: 0;
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-bold);
-  color: var(--text-primary);
-}
-
-.result-summary {
-  display: flex;
-  gap: 15px;
-  font-size: var(--font-size-sm);
-  flex-wrap: wrap;
-}
-
-.summary-item {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.summary-label {
-  color: var(--text-secondary);
-}
-
-.summary-value {
-  font-weight: var(--font-weight-medium);
-  color: var(--text-primary);
-}
-
-.summary-value.win {
-  color: var(--success-color);
-}
-
-.summary-value.loss {
-  color: var(--error-color);
-}
-
-.result-list {
-  margin-bottom: 15px;
-}
-
-.battle-result-item {
-  margin-bottom: 10px;
-  padding: 12px;
-  background: var(--bg-primary);
-  border-radius: var(--border-radius-sm);
-  border: 1px solid var(--border-light);
-  border-left: 4px solid var(--border-light);
-  transition: all var(--transition-fast);
-}
-
-.battle-result-item.win {
-  border-left-color: var(--success-color);
-  background: rgba(var(--success-color-rgb), 0.03);
-}
-
-.battle-result-item.loss {
-  border-left-color: var(--error-color);
-  background: rgba(var(--error-color-rgb), 0.03);
-}
-
-.battle-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
-.battle-index {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  color: var(--text-primary);
-}
-
-.battle-details {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
-.battle-side {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex: 1;
-}
-
-.side-avatar {
-  flex-shrink: 0;
-}
-
-.side-info {
-  flex: 1;
-  font-size: var(--font-size-sm);
-}
-
-.side-name {
-  display: block;
-  font-weight: var(--font-weight-medium);
-  color: var(--text-primary);
-  margin-bottom: 3px;
-}
-
-.side-power {
-  display: block;
-  color: var(--text-secondary);
-  margin-bottom: 2px;
-}
-
-.side-die {
-  display: block;
-  color: var(--text-secondary);
-  font-size: var(--font-size-xs);
-}
-
-.battle-vs {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-bold);
-  color: var(--text-secondary);
-  margin: 0 10px;
-}
-
-/* 响应式设�?*/
-@media (max-width: 768px) {
-  .result-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-  }
-
-  .result-summary {
-    gap: 10px;
-  }
-
-  .battle-details {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-  }
-
-  .battle-side {
-    width: 100%;
-  }
-
-  .battle-vs {
-    align-self: center;
-    margin: 5px 0;
-    transform: rotate(90deg);
-  }
-}
-
-.player-heroes {
-  margin-top: 20px;
-}
-
-.player-heroes h4 {
-  margin: 0 0 12px 0;
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-bold);
-}
-
-.hero-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 12px;
-}
-
-.hero-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: var(--bg-secondary);
-  padding: 12px 16px;
-  border-radius: var(--border-radius-sm);
-  border: 1px solid var(--border-light);
-  transition: all var(--transition-fast);
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-sm);
-    border-color: var(--primary-color);
-  }
-}
-
-.hero-info {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex: 1;
-}
-
-.hero-name {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-}
-
-.hero-stats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  font-size: var(--font-size-xs);
-  color: var(--text-secondary);
-}
-
-.hero-stats span {
-  padding: 2px 6px;
-  background: var(--bg-primary);
-  border-radius: var(--border-radius-full);
-  border: 1px solid var(--border-light);
-}
-
-.hero-stats span.opened {
-  background: rgba(var(--success-color-rgb), 0.1);
-  color: var(--success-color);
-  border-color: var(--success-color);
-}
-
-.hero-stats span.closed {
-  background: rgba(var(--warning-color-rgb), 0.1);
-  color: var(--warning-color);
-  border-color: var(--warning-color);
-}
-
-.empty-heroes {
-  background: var(--bg-secondary);
-  padding: 30px;
-  border-radius: var(--border-radius-sm);
-  border: 1px solid var(--border-light);
-  text-align: center;
-  color: var(--text-secondary);
-  font-size: var(--font-size-sm);
-}
-
-.player-id {
-  font-size: var(--font-size-sm);
-  color: var(--text-secondary);
-}
-
 // 主容器样�?
 // 主容器样�?
 .club-warrank-container {

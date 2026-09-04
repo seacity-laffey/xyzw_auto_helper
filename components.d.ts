@@ -38,6 +38,7 @@ declare module 'vue' {
     ClubHistoryRecords: typeof import('./src/components/Club/ClubHistoryRecords.vue')['default']
     ClubInfo: typeof import('./src/components/Club/ClubInfo.vue')['default']
     ClubMonthBattleRecords: typeof import('./src/components/Club/ClubMonthBattleRecords.vue')['default']
+    ClubPlayerDuelDialog: typeof import('./src/components/Club/ClubPlayerDuelDialog.vue')['default']
     ClubRank: typeof import('./src/components/Club/ClubRank.vue')['default']
     ClubWarRank: typeof import('./src/components/Club/ClubWarRank.vue')['default']
     ClubWarRankV2: typeof import('./src/components/Club/ClubWarRankV2.vue')['default']
