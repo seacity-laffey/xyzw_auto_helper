@@ -6,23 +6,7 @@ interface CodedSession extends XyzwSession {
   code?: number;
 }
 
-export const TowerPlugin = ({
-  onSome,
-}: EVM) => {
-
-  onSome(["bosstower_getinforesp", "bosstower_getinfo"], (data: XyzwSession) => {
-    gameLogger.verbose(`收到咸王宝库信息事件: ${data.tokenId}`, data);
-    const { body } = data;
-    gameLogger.debug("咸王宝库body:", body);
-    if (!body) {
-      gameLogger.debug("咸王宝库响应为空");
-      return;
-    }
-
-    data.gameData.value.bossTowerInfo = body;
-    data.gameData.value.lastUpdated = new Date().toISOString();
-  });
-
+export const TowerPlugin = ({ onSome }: EVM) => {
   onSome(
     ["evotowerinforesp", "evotower_getinforesp", "evotower_getinfo"],
     (data: XyzwSession) => {
@@ -52,13 +36,14 @@ export const TowerPlugin = ({
     }
   });
 
-
   onSome(["fight_starttower", "fight_starttowerresp"], (data: XyzwSession) => {
     gameLogger.verbose(`收到爬塔战斗开始事件: ${data.tokenId}`, data);
 
     // 处理"上座塔奖励未领取"错误 (1500040)
     if ((data as CodedSession).code === 1500040) {
-      gameLogger.warn(`爬塔失败: 上座塔奖励未领取 (Code: 1500040) - 尝试自动领取`);
+      gameLogger.warn(
+        `爬塔失败: 上座塔奖励未领取 (Code: 1500040) - 尝试自动领取`,
+      );
       const { gameData, client } = data;
       const roleInfo = gameData.value.roleInfo;
       // 尝试从角色信息获取当前塔层数
@@ -70,7 +55,7 @@ export const TowerPlugin = ({
         if (rewardFloor > 0) {
           gameLogger.info(`发起自动领取奖励请求: 第${rewardFloor}层奖励`);
           client?.send("tower_claimreward", { rewardId: rewardFloor });
-          
+
           // 领取后刷新数据
           setTimeout(() => {
             client?.send("role_getroleinfo", {});
@@ -135,19 +120,20 @@ export const TowerPlugin = ({
         }
       }, 1500);
     }
-
   });
 
-  onSome(["tower_claimreward", "tower_claimrewardresp"], (data: XyzwSession) => {
-    const { body, client } = data;
-    if (!body) {
-      gameLogger.warn("爬塔战斗开始响应为空");
-      return;
-    }
-    // 奖励领取成功后更新角色信息
-    setTimeout(() => {
-      client?.send("role_getroleinfo", {});
-    }, 500);
-  });
-
-}
+  onSome(
+    ["tower_claimreward", "tower_claimrewardresp"],
+    (data: XyzwSession) => {
+      const { body, client } = data;
+      if (!body) {
+        gameLogger.warn("爬塔战斗开始响应为空");
+        return;
+      }
+      // 奖励领取成功后更新角色信息
+      setTimeout(() => {
+        client?.send("role_getroleinfo", {});
+      }, 500);
+    },
+  );
+};

@@ -4,21 +4,21 @@
     :class="{
       'full-grid': activeSection === 'fightPvp',
       'full-page-mode':
-        activeSection === 'saltFieldGroup' ||
-        activeSection === 'peachGroup' ||
-        activeSection === 'rankGroup',
+        activeSection === 'saltFieldGroup'
+        || activeSection === 'peachGroup'
+        || activeSection === 'rankGroup',
       'club-mode': activeSection === 'club',
     }"
   >
     <!-- 身份牌常驻（嵌入式，Tabs 上方） -->
-    <IdentityCard embedded />
+    <IdentityCard embedded></IdentityCard>
 
-    <nav class="section-tabs" aria-label="角色功能分类">
+    <nav aria-label="角色功能分类" class="section-tabs">
       <button
         v-for="item in sectionItems"
         :key="item.value"
-        type="button"
         role="tab"
+        type="button"
         :aria-selected="activeSection === item.value"
         :class="{ active: activeSection === item.value }"
         @click="activeSection = item.value"
@@ -28,176 +28,100 @@
     </nav>
 
     <!-- 阵容（仅日常） -->
-    <TeamFormation v-show="activeSection === 'daily'" />
+    <TeamFormation v-if="activeSection === 'daily'"></TeamFormation>
 
     <!-- 每日任务状态（仅日常） -->
-    <DailyTaskStatus v-show="activeSection === 'daily'" />
+    <DailyTaskStatus v-if="activeSection === 'daily'"></DailyTaskStatus>
 
     <!-- 咸将塔状态 -->
-    <TowerStatus v-show="activeSection === 'daily' && isShowTowerStatus" />
+    <TowerStatus v-if="activeSection === 'daily' && isShowTowerStatus"></TowerStatus>
 
     <!-- 怪异塔状态 -->
-    <WeirdTowerStatus v-show="activeSection === 'daily'" />
+    <WeirdTowerStatus v-if="activeSection === 'daily'"></WeirdTowerStatus>
 
     <!-- 盐罐机器人状态（提取组件） -->
-    <BottleHelperCard v-show="activeSection === 'daily'" />
+    <BottleHelperCard v-if="activeSection === 'daily'"></BottleHelperCard>
 
     <!-- 挂机状态（提取组件） -->
-    <HangUpStatusCard v-show="activeSection === 'daily'" />
+    <HangUpStatusCard v-if="activeSection === 'daily'"></HangUpStatusCard>
 
     <!-- 无限阵容助手（提取组件） -->
-    <UnlimitedLineup v-show="activeSection === 'tools'" />
+    <UnlimitedLineup v-if="activeSection === 'tools'"></UnlimitedLineup>
 
     <!-- 宝箱助手（提取组件） -->
-    <BoxHelperCard v-show="activeSection === 'tools'" />
+    <BoxHelperCard v-if="activeSection === 'tools'"></BoxHelperCard>
 
     <!-- 钓鱼助手（提取组件） -->
-    <FishHelperCard v-show="activeSection === 'tools'" />
+    <FishHelperCard v-if="activeSection === 'tools'"></FishHelperCard>
 
     <!-- 招募助手（提取组件） -->
-    <RecruitHelperCard v-show="activeSection === 'tools'" />
+    <RecruitHelperCard v-if="activeSection === 'tools'"></RecruitHelperCard>
 
     <!-- 升星助手（提取组件） -->
-    <StarUpgradeCard v-if="activeSection === 'tools'" />
+    <StarUpgradeCard v-if="activeSection === 'tools'"></StarUpgradeCard>
 
     <!-- 竞技场助手（提取组件） -->
-    <FightHelperCard v-if="activeSection === 'tools'" />
+    <FightHelperCard v-if="activeSection === 'tools'"></FightHelperCard>
 
     <!-- 梦境助手（提取组件） -->
-    <DreamHelperCard v-if="activeSection === 'tools'" />
+    <DreamHelperCard v-if="activeSection === 'tools'"></DreamHelperCard>
 
     <!-- 武将升级助手（提取组件） -->
-    <HeroUpgradeCard v-if="activeSection === 'tools'" />
+    <HeroUpgradeCard v-if="activeSection === 'tools'"></HeroUpgradeCard>
 
     <!-- 洗练助手（提取组件） -->
-    <RefineHelperCard v-if="activeSection === 'tools'" />
+    <RefineHelperCard v-if="activeSection === 'tools'"></RefineHelperCard>
 
     <!-- 消耗活动进度（提取组件） -->
-    <ConsumptionProgressCard v-if="activeSection === 'tools'" />
-    <!-- 俱乐部排位（暂时隐藏） -->
-    <div
-      class="status-card legion-match"
-      v-if="ENABLE_LEGION_MATCH && activeSection === 'club'"
-    >
-      <div class="card-header">
-        <img
-          src="/icons/1733492491706152.png"
-          alt="俱乐部图标"
-          class="status-icon"
-        />
-        <div class="status-info">
-          <h3>俱乐部排位</h3>
-          <p>赛事状态</p>
-        </div>
-        <div class="status-badge" :class="{ active: legionMatch.isRegistered }">
-          <div class="status-dot" />
-          <span>{{ legionMatch.isRegistered ? "已报名" : "未报名" }}</span>
-        </div>
-      </div>
+    <ConsumptionProgressCard v-if="activeSection === 'tools'"></ConsumptionProgressCard>
+    <!-- 俱乐部信息与今日俱乐部战统计 -->
+    <ClubInfo v-if="activeSection === 'club'"></ClubInfo>
+    <ClubDailyBattleStats v-if="activeSection === 'club'"></ClubDailyBattleStats>
 
-      <div class="card-content">
-        <p class="description">
-          每逢周三周四周五有比赛<br />
-          立即报名参与精彩对决！
-        </p>
+    <!-- 月度任务进度（提取组件） -->
+    <MonthlyTasksCard v-if="activeSection === 'activity'"></MonthlyTasksCard>
+
+    <!-- 咸鱼大冲关（提取组件） -->
+    <StudyChallengeCard v-if="activeSection === 'activity'"></StudyChallengeCard>
+
+    <!-- 换皮闯关 -->
+    <SkinChallengeCard v-if="activeSection === 'activity'"></SkinChallengeCard>
+
+    <!-- 盐场分组（包含盐场、周战绩、月战绩） -->
+    <div v-if="activeSection === 'saltFieldGroup'" class="salt-field-group">
+      <nav aria-label="盐场视图" class="sub-tabs">
         <button
-          class="action-button"
-          :disabled="legionMatch.isRegistered"
-          @click="registerLegionMatch"
+          v-for="item in saltFieldTabs"
+          :key="item.value"
+          type="button"
+          :aria-current="saltFieldSubTab === item.value ? 'page' : undefined"
+          :class="{ active: saltFieldSubTab === item.value }"
+          @click="saltFieldSubTab = item.value"
         >
-          {{ legionMatch.isRegistered ? "已报名" : "立即报名" }}
+          {{ item.label }}
         </button>
-      </div>
-    </div>
+      </nav>
 
-    <!-- 俱乐部签到（已迁移到俱乐部信息-概览，故隐藏原卡片） -->
-    <div
-      class="status-card legion-signin"
-      v-if="ENABLE_LEGION_SIGNIN_CARD && activeSection === 'club'"
-    >
-      <div class="card-header">
-        <img
-          src="/icons/1733492491706148.png"
-          alt="签到图标"
-          class="status-icon"
-        />
-        <div class="status-info">
-          <h3>俱乐部签到</h3>
-          <p>每日签到状态</p>
-        </div>
-        <div class="status-badge" :class="{ active: legionSignin.isSignedIn }">
-          <div class="status-dot" />
-          <span>{{ legionSignin.isSignedIn ? "已签到" : "待签到" }}</span>
-        </div>
-      </div>
-      <div class="card-content">
-        <p v-if="legionSignin.clubName" class="club-name">
-          当前俱乐部<br />
-          <strong>{{ legionSignin.clubName }}</strong>
-        </p>
-        <p v-else class="description">尚未加入任何俱乐部</p>
-        <div class="action-row">
+      <div v-if="saltFieldSubTab === 'warrank'" class="style-switch-bar">
+        <div aria-label="盐场样式" class="segmented-control">
           <button
-            class="action-button"
-            :disabled="legionSignin.isSignedIn"
-            @click="signInLegion"
+            v-for="item in styleOptions"
+            :key="item.value"
+            type="button"
+            :aria-pressed="warrankStyle === item.value"
+            :class="{ active: warrankStyle === item.value }"
+            @click="warrankStyle = item.value"
           >
-            {{ legionSignin.isSignedIn ? "已签到" : "立即签到" }}
+            {{ item.label }}
           </button>
         </div>
       </div>
-    </div>
-
-    <!-- 俱乐部信息与今日俱乐部战统计 -->
-    <ClubInfo v-if="activeSection === 'club'" />
-    <ClubDailyBattleStats v-if="activeSection === 'club'" />
-
-    <!-- 月度任务进度（提取组件） -->
-    <MonthlyTasksCard v-show="activeSection === 'activity'" />
-
-    <!-- 咸鱼大冲关（提取组件） -->
-    <StudyChallengeCard v-show="activeSection === 'activity'" />
-
-    <!-- 换皮闯关 -->
-    <SkinChallengeCard v-show="activeSection === 'activity'" />
-
-    <!-- 盐场分组（包含盐场、周战绩、月战绩） -->
-    <div class="salt-field-group" v-if="activeSection === 'saltFieldGroup'">
-      <div
-        class="sub-nav"
-        style="
-          padding: 8px;
-          background: var(--n-color);
-          display: flex;
-          justify-content: center;
-        "
-      >
-        <n-tabs
-          type="segment"
-          animated
-          v-model:value="saltFieldSubTab"
-          size="small"
-        >
-          <n-tab-pane name="warrank" tab="盐场" />
-          <n-tab-pane name="weekBattle" tab="本周盐场战绩" />
-          <n-tab-pane name="monthBattle" tab="本月盐场战绩" />
-          <n-tab-pane name="legionWarMap" tab="盐场地图" />
-          <n-tab-pane name="legionWarStatistics" tab="盐场战况" />
-        </n-tabs>
-      </div>
-
-      <div v-if="saltFieldSubTab === 'warrank'" class="style-switch-bar">
-        <n-radio-group v-model:value="warrankStyle" size="small">
-          <n-radio-button value="style1">样式一</n-radio-button>
-          <n-radio-button value="style2">样式二</n-radio-button>
-        </n-radio-group>
-      </div>
 
       <div
-        class="warrank-full-container"
         v-if="saltFieldSubTab === 'weekBattle'"
+        class="warrank-full-container"
       >
-        <ClubBattleRecords />
+        <ClubBattleRecords></ClubBattleRecords>
       </div>
 
       <div
@@ -205,62 +129,63 @@
         class="warrank-full-container"
         :class="{ 'style2-container': warrankStyle === 'style2' }"
       >
-        <ClubWarRankV2 v-if="warrankStyle === 'style2'" />
-        <ClubWarRank v-else />
+        <ClubWarRankV2 v-if="warrankStyle === 'style2'"></ClubWarRankV2>
+        <ClubWarRank v-else></ClubWarRank>
       </div>
 
       <div
-        class="warrank-full-container"
         v-if="saltFieldSubTab === 'monthBattle'"
+        class="warrank-full-container"
       >
-        <ClubMonthBattleRecords />
+        <ClubMonthBattleRecords></ClubMonthBattleRecords>
       </div>
 
       <div
-        class="warrank-full-container"
         v-if="saltFieldSubTab === 'legionWarMap'"
+        class="warrank-full-container"
       >
-        <LegionWarMap />
+        <LegionWarMap></LegionWarMap>
       </div>
       <div
-        class="warrank-full-container"
         v-if="saltFieldSubTab === 'legionWarStatistics'"
+        class="warrank-full-container"
       >
-        <LegionWarStatistics />
+        <LegionWarStatistics></LegionWarStatistics>
       </div>
     </div>
 
     <!-- 蟠桃园分组 -->
-    <div class="peach-group" v-if="activeSection === 'peachGroup'">
-      <div
-        class="sub-nav"
-        style="
-          padding: 8px;
-          background: var(--n-color);
-          display: flex;
-          justify-content: center;
-        "
-      >
-        <n-tabs
-          type="segment"
-          animated
-          v-model:value="peachSubTab"
-          size="small"
+    <div v-if="activeSection === 'peachGroup'" class="peach-group">
+      <nav aria-label="蟠桃园视图" class="sub-tabs">
+        <button
+          v-for="item in peachTabs"
+          :key="item.value"
+          type="button"
+          :aria-current="peachSubTab === item.value ? 'page' : undefined"
+          :class="{ active: peachSubTab === item.value }"
+          @click="peachSubTab = item.value"
         >
-          <n-tab-pane name="peach" tab="蟠桃园信息" />
-          <n-tab-pane name="peachBattle" tab="蟠桃园战绩" />
-        </n-tabs>
-      </div>
+          {{ item.label }}
+        </button>
+      </nav>
 
       <div v-if="peachSubTab === 'peach'" class="style-switch-bar">
-        <n-radio-group v-model:value="peachStyle" size="small">
-          <n-radio-button value="style1">样式一</n-radio-button>
-          <n-radio-button value="style2">样式二</n-radio-button>
-        </n-radio-group>
+        <div aria-label="蟠桃园样式" class="segmented-control">
+          <button
+            v-for="item in styleOptions"
+            :key="item.value"
+            type="button"
+            :aria-pressed="peachStyle === item.value"
+            :class="{ active: peachStyle === item.value }"
+            @click="peachStyle = item.value"
+          >
+            {{ item.label }}
+          </button>
+        </div>
       </div>
 
-      <div class="warrank-full-container" v-if="peachSubTab === 'peachBattle'">
-        <PeachBattleRecords />
+      <div v-if="peachSubTab === 'peachBattle'" class="warrank-full-container">
+        <PeachBattleRecords></PeachBattleRecords>
       </div>
 
       <div
@@ -268,109 +193,165 @@
         class="warrank-full-container"
         :class="{ 'style2-container': peachStyle === 'style2' }"
       >
-        <PeachInfoV2 v-if="peachStyle === 'style2'" />
-        <PeachInfo v-else />
+        <PeachInfoV2 v-if="peachStyle === 'style2'"></PeachInfoV2>
+        <PeachInfo v-else></PeachInfo>
       </div>
     </div>
 
     <!-- 排行榜分组 -->
-    <div class="rank-group" v-if="activeSection === 'rankGroup'">
-      <div
-        class="sub-nav"
-        style="
-          padding: 8px;
-          background: var(--n-color);
-          display: flex;
-          justify-content: center;
-        "
-      >
-        <n-tabs type="segment" animated v-model:value="rankSubTab" size="small">
-          <n-tab-pane name="serverrank" tab="区服榜" />
-          <n-tab-pane name="toprank" tab="巅峰榜" />
-          <n-tab-pane name="topclubrank" tab="俱乐部榜" />
-          <n-tab-pane name="goldclubrank" tab="黄金积分榜" />
-          <n-tab-pane name="greatRouteRank" tab="伟大航路积分榜" />
-        </n-tabs>
+    <div v-if="activeSection === 'rankGroup'" class="rank-group">
+      <nav aria-label="排行榜视图" class="sub-tabs">
+        <button
+          v-for="item in rankTabs"
+          :key="item.value"
+          type="button"
+          :aria-current="rankSubTab === item.value ? 'page' : undefined"
+          :class="{ active: rankSubTab === item.value }"
+          @click="rankSubTab = item.value"
+        >
+          {{ item.label }}
+        </button>
+      </nav>
+
+      <div v-if="rankSubTab === 'serverrank'" class="warrank-full-container">
+        <ServerRankList></ServerRankList>
       </div>
 
-      <div class="warrank-full-container" v-if="rankSubTab === 'serverrank'">
-        <ServerRankList />
+      <div v-if="rankSubTab === 'toprank'" class="warrank-full-container">
+        <TopRankList></TopRankList>
       </div>
 
-      <div class="warrank-full-container" v-if="rankSubTab === 'toprank'">
-        <TopRankList />
+      <div v-if="rankSubTab === 'topclubrank'" class="warrank-full-container">
+        <TopClubList></TopClubList>
       </div>
 
-      <div class="warrank-full-container" v-if="rankSubTab === 'topclubrank'">
-        <TopClubList />
-      </div>
-
-      <div class="warrank-full-container" v-if="rankSubTab === 'goldclubrank'">
-        <GoldClubList />
+      <div v-if="rankSubTab === 'goldclubrank'" class="warrank-full-container">
+        <GoldClubList></GoldClubList>
       </div>
 
       <div
-        class="warrank-full-container"
         v-if="rankSubTab === 'greatRouteRank'"
+        class="warrank-full-container"
       >
-        <GreatRouteRankList />
+        <GreatRouteRankList></GreatRouteRankList>
       </div>
     </div>
     <!-- 切磋（提取组件） -->
-    <FightPvP v-if="activeSection === 'fightPvp'" />
+    <FightPvP v-if="activeSection === 'fightPvp'"></FightPvP>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from "vue";
+import { computed, defineAsyncComponent, ref, watch } from "vue";
 import { useTokenStore } from "@/stores/tokenStore";
-import { useMessage } from "naive-ui";
-import {
-  preloadQuestions,
-  getQuestionCount,
-} from "@/utils/studyQuestionsFromJSON";
-import BottleHelperCard from "../Cards/Helper/BottleHelperCard.vue";
-import BoxHelperCard from "../Cards/Helper/BoxHelperCard.vue";
-import FishHelperCard from "../Cards/Helper/FishHelperCard.vue";
-import RecruitHelperCard from "../Cards/Helper/RecruitHelperCard.vue";
-import StarUpgradeCard from "../Cards/Upgrade/StarUpgradeCard.vue";
-import HangUpStatusCard from "../Cards/Activity/HangUpStatusCard.vue";
-import MonthlyTasksCard from "../Cards/Activity/MonthlyTasksCard.vue";
-import StudyChallengeCard from "../Cards/Activity/StudyChallengeCard.vue";
-import SkinChallengeCard from "../Cards/Activity/SkinChallengeCard.vue";
-import ClubWarRank from "../Club/ClubWarRank.vue";
-import ClubWarRankV2 from "../Club/ClubWarRankV2.vue";
-import ClubMonthBattleRecords from "../Club/ClubMonthBattleRecords.vue";
-import ClubBattleRecords from "../Club/ClubBattleRecords.vue";
-import PeachBattleRecords from "../Club/PeachBattleRecords.vue";
-import TopRankList from "../Cards/Rank/TopRankListPageCard.vue";
-import TopClubList from "../Cards/Rank/TopClubListPageCard.vue";
-import GreatRouteRankList from "../Club/GreatRouteRankListPageCard.vue";
-import GoldClubList from "../Cards/Rank/GoldRankListPageCard.vue";
-import FightPvP from "../Cards/Activity/FightPvP.vue";
-import FightHelperCard from "../Cards/Helper/FightHelperCard.vue";
-import DreamHelperCard from "../Cards/Helper/DreamHelperCard.vue";
-import HeroUpgradeCard from "../Cards/Upgrade/HeroUpgradeCard.vue";
-import ConsumptionProgressCard from "../Cards/Activity/ConsumptionProgressCard.vue";
-import RefineHelperCard from "../Cards/Helper/RefineHelperCard.vue";
-import TowerStatus from "../Tower/TowerStatus.vue";
-import WeirdTowerStatus from "../Tower/WeirdTowerStatus.vue";
-import PeachInfo from "../Club/PeachInfo.vue";
-import PeachInfoV2 from "../Club/PeachInfoV2.vue";
-import ServerRankList from "../Cards/Rank/ServerRankListPageCard.vue";
-import LegionWarMap from "../Club/LegionWarMap.vue";
-import LegionWarStatistics from "../Club/LegionWarStatistics.vue";
-import UnlimitedLineup from "../Cards/Activity/UnlimitedLineup.vue";
+import IdentityCard from "../Common/IdentityCard.vue";
+
+const TeamFormation = defineAsyncComponent(
+  () => import("../Team/TeamFormation.vue"),
+);
+const DailyTaskStatus = defineAsyncComponent(
+  () => import("../Daily/DailyTaskStatus.vue"),
+);
+const TowerStatus = defineAsyncComponent(
+  () => import("../Tower/TowerStatus.vue"),
+);
+const WeirdTowerStatus = defineAsyncComponent(
+  () => import("../Tower/WeirdTowerStatus.vue"),
+);
+const BottleHelperCard = defineAsyncComponent(
+  () => import("../Cards/Helper/BottleHelperCard.vue"),
+);
+const HangUpStatusCard = defineAsyncComponent(
+  () => import("../Cards/Activity/HangUpStatusCard.vue"),
+);
+const UnlimitedLineup = defineAsyncComponent(
+  () => import("../Cards/Activity/UnlimitedLineup.vue"),
+);
+const BoxHelperCard = defineAsyncComponent(
+  () => import("../Cards/Helper/BoxHelperCard.vue"),
+);
+const FishHelperCard = defineAsyncComponent(
+  () => import("../Cards/Helper/FishHelperCard.vue"),
+);
+const RecruitHelperCard = defineAsyncComponent(
+  () => import("../Cards/Helper/RecruitHelperCard.vue"),
+);
+const StarUpgradeCard = defineAsyncComponent(
+  () => import("../Cards/Upgrade/StarUpgradeCard.vue"),
+);
+const FightHelperCard = defineAsyncComponent(
+  () => import("../Cards/Helper/FightHelperCard.vue"),
+);
+const DreamHelperCard = defineAsyncComponent(
+  () => import("../Cards/Helper/DreamHelperCard.vue"),
+);
+const HeroUpgradeCard = defineAsyncComponent(
+  () => import("../Cards/Upgrade/HeroUpgradeCard.vue"),
+);
+const RefineHelperCard = defineAsyncComponent(
+  () => import("../Cards/Helper/RefineHelperCard.vue"),
+);
+const ConsumptionProgressCard = defineAsyncComponent(
+  () => import("../Cards/Activity/ConsumptionProgressCard.vue"),
+);
+const ClubInfo = defineAsyncComponent(() => import("../Club/ClubInfo.vue"));
+const ClubDailyBattleStats = defineAsyncComponent(
+  () => import("../Club/ClubDailyBattleStats.vue"),
+);
+const MonthlyTasksCard = defineAsyncComponent(
+  () => import("../Cards/Activity/MonthlyTasksCard.vue"),
+);
+const StudyChallengeCard = defineAsyncComponent(
+  () => import("../Cards/Activity/StudyChallengeCard.vue"),
+);
+const SkinChallengeCard = defineAsyncComponent(
+  () => import("../Cards/Activity/SkinChallengeCard.vue"),
+);
+const ClubWarRank = defineAsyncComponent(
+  () => import("../Club/ClubWarRank.vue"),
+);
+const ClubWarRankV2 = defineAsyncComponent(
+  () => import("../Club/ClubWarRankV2.vue"),
+);
+const ClubMonthBattleRecords = defineAsyncComponent(
+  () => import("../Club/ClubMonthBattleRecords.vue"),
+);
+const ClubBattleRecords = defineAsyncComponent(
+  () => import("../Club/ClubBattleRecords.vue"),
+);
+const LegionWarMap = defineAsyncComponent(
+  () => import("../Club/LegionWarMap.vue"),
+);
+const LegionWarStatistics = defineAsyncComponent(
+  () => import("../Club/LegionWarStatistics.vue"),
+);
+const PeachInfo = defineAsyncComponent(() => import("../Club/PeachInfo.vue"));
+const PeachInfoV2 = defineAsyncComponent(
+  () => import("../Club/PeachInfoV2.vue"),
+);
+const PeachBattleRecords = defineAsyncComponent(
+  () => import("../Club/PeachBattleRecords.vue"),
+);
+const ServerRankList = defineAsyncComponent(
+  () => import("../Cards/Rank/ServerRankListPageCard.vue"),
+);
+const TopRankList = defineAsyncComponent(
+  () => import("../Cards/Rank/TopRankListPageCard.vue"),
+);
+const TopClubList = defineAsyncComponent(
+  () => import("../Cards/Rank/TopClubListPageCard.vue"),
+);
+const GoldClubList = defineAsyncComponent(
+  () => import("../Cards/Rank/GoldRankListPageCard.vue"),
+);
+const GreatRouteRankList = defineAsyncComponent(
+  () => import("../Club/GreatRouteRankListPageCard.vue"),
+);
+const FightPvP = defineAsyncComponent(
+  () => import("../Cards/Activity/FightPvP.vue"),
+);
 
 const tokenStore = useTokenStore();
-const message = useMessage();
-
-const legionMatch = ref({
-  isRegistered: false,
-});
-
-// 响应式数据
-const showIdentity = ref(false);
 const activeSection = ref("daily");
 const saltFieldSubTab = ref("warrank");
 const peachSubTab = ref("peach");
@@ -387,37 +368,6 @@ watch(peachStyle, (style) => {
   localStorage.setItem("peach_info_style", style);
 });
 
-// 活动开放时间：仅周一到周三可参与
-const isActivityOpen = computed(() => {
-  const day = new Date().getDay(); // 0=周日,1=周一,...,6=周六
-  return day >= 1 && day <= 3;
-});
-
-const bottleHelper = ref({
-  isRunning: false,
-  remainingTime: 0,
-  stopTime: 0,
-});
-
-const hangUp = ref({
-  isActive: false,
-  remainingTime: 0,
-  elapsedTime: 0,
-  lastTime: 0,
-  hangUpTime: 0,
-  isExtending: false, // 加钟状态
-  isClaiming: false, // 领取奖励状态
-});
-
-const legionSignin = ref({
-  isSignedIn: false,
-  clubName: "",
-});
-
-// 使用 tokenStore 中的答题状态（仍用于 badge 状态等场景，如果仅在子组件中使用也可移除）
-const study = computed(() => tokenStore.gameData.studyStatus);
-
-// 计算属性
 const roleInfo = computed(() => {
   return tokenStore.gameData?.roleInfo || null;
 });
@@ -431,317 +381,39 @@ const isShowTowerStatus = computed(() => {
   return true;
 });
 
-// WebSocket连接状态
-const isConnected = computed(() => {
-  if (!tokenStore.selectedToken) return false;
-  const status = tokenStore.getWebSocketStatus(tokenStore.selectedToken.id);
-  return status === "connected";
-});
-
-// 格式化时间 - 确保显示到秒
-const formatTime = (seconds) => {
-  // 确保传入值为数字，并向下取整到秒
-  const totalSeconds = Math.floor(Number(seconds) || 0);
-
-  if (totalSeconds <= 0) return "00:00:00";
-
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const secs = totalSeconds % 60;
-
-  return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-};
-
-// 更新数据
-const updateGameStatus = () => {
-  if (!roleInfo.value) return;
-
-  const role = roleInfo.value.role;
-
-  // 更新盐罐机器人状态
-  if (role.bottleHelpers) {
-    const now = Date.now() / 1000;
-    bottleHelper.value.stopTime = role.bottleHelpers.helperStopTime;
-    bottleHelper.value.isRunning = role.bottleHelpers.helperStopTime > now;
-    // 确保剩余时间为整数秒
-    bottleHelper.value.remainingTime = Math.max(
-      0,
-      Math.floor(role.bottleHelpers.helperStopTime - now),
-    );
-    // 控制台精简，避免频繁刷屏
-  }
-
-  // 更新挂机状态
-  if (role.hangUp) {
-    const now = Date.now() / 1000;
-    hangUp.value.lastTime = role.hangUp.lastTime;
-    hangUp.value.hangUpTime = role.hangUp.hangUpTime;
-
-    const elapsed = now - hangUp.value.lastTime;
-    if (elapsed <= hangUp.value.hangUpTime) {
-      // 确保剩余时间为整数秒
-      hangUp.value.remainingTime = Math.floor(
-        hangUp.value.hangUpTime - elapsed,
-      );
-      hangUp.value.isActive = true;
-    } else {
-      hangUp.value.remainingTime = 0;
-      hangUp.value.isActive = false;
-    }
-    // 确保已挂机时间为整数秒
-    hangUp.value.elapsedTime = Math.floor(
-      hangUp.value.hangUpTime - hangUp.value.remainingTime,
-    );
-    // 控制台精简
-  }
-
-  // 更新俱乐部排位状态
-  if (role.statistics) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayTimestamp = today.getTime() / 1000;
-
-    legionMatch.value.isRegistered =
-      Number(role.statistics["last:legion:match:sign:up:time"]) >
-      todayTimestamp;
-  }
-
-  // 更新俱乐部签到状态
-  if (role.statisticsTime) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayTimestamp = today.getTime() / 1000;
-
-    legionSignin.value.isSignedIn =
-      role.statisticsTime["legion:sign:in"] > todayTimestamp;
-  }
-};
-
-// 定时器更新
-let timer = null;
-const startTimer = () => {
-  if (timer) clearInterval(timer);
-  timer = setInterval(() => {
-    // 更新盐罐机器人剩余时间
-    if (bottleHelper.value.isRunning && bottleHelper.value.remainingTime > 0) {
-      bottleHelper.value.remainingTime = Math.max(
-        0,
-        bottleHelper.value.remainingTime - 1,
-      );
-      if (bottleHelper.value.remainingTime <= 0) {
-        bottleHelper.value.isRunning = false;
-      }
-    }
-
-    // 更新挂机剩余时间
-    if (hangUp.value.isActive && hangUp.value.remainingTime > 0) {
-      hangUp.value.remainingTime = Math.max(0, hangUp.value.remainingTime - 1);
-      hangUp.value.elapsedTime = hangUp.value.elapsedTime + 1;
-      if (hangUp.value.remainingTime <= 0) {
-        hangUp.value.isActive = false;
-      }
-    }
-  }, 1000);
-};
-
-// 盐罐机器人操作
-const handleBottleHelper = () => {
-  if (!tokenStore.selectedToken) {
-    message.warning("请先选择Token");
-    return;
-  }
-
-  const tokenId = tokenStore.selectedToken.id;
-
-  // 停止后重启
-  tokenStore.sendMessage(tokenId, "bottlehelper_stop");
-  setTimeout(() => {
-    tokenStore.sendMessage(tokenId, "bottlehelper_start");
-    tokenStore.sendMessage(tokenId, "role_getroleinfo");
-  }, 500);
-
-  message.info(
-    bottleHelper.value.isRunning ? "重启盐罐机器人" : "启动盐罐机器人",
-  );
-};
-
-// 挂机操作 - 参考HangUpStatus逻辑优化
-const extendHangUp = async () => {
-  if (!tokenStore.selectedToken) {
-    message.warning("请先选择Token");
-    return;
-  }
-
-  const tokenId = tokenStore.selectedToken.id;
-
-  try {
-    // 降噪
-    hangUp.value.isExtending = true;
-    message.info("正在加钟...");
-
-    // 按照参考代码的逻辑，发送4次分享回调请求
-    const promises = [];
-    for (let i = 0; i < 4; i++) {
-      const promise = new Promise((resolve) => {
-        setTimeout(() => {
-          // 降噪
-          const result = tokenStore.sendMessage(
-            tokenId,
-            "system_mysharecallback",
-            {
-              isSkipShareCard: true,
-              type: 2,
-            },
-          );
-          resolve(result);
-        }, i * 300); // 增加间隔时间确保稳定性
-      });
-      promises.push(promise);
-    }
-
-    // 等待所有请求完成
-    await Promise.all(promises);
-
-    // 降噪
-
-    // 延迟获取最新角色信息
-    setTimeout(() => {
-      // 降噪
-      tokenStore.sendMessage(tokenId, "role_getroleinfo");
-    }, 1500);
-
-    // 延迟显示完成消息和重置状态
-    setTimeout(() => {
-      message.success("加钟操作已完成，请查看挂机剩余时间");
-      hangUp.value.isExtending = false;
-    }, 2500);
-  } catch (error) {
-    console.error("🕐 加钟操作失败:", error);
-    message.error("加钟操作失败: " + (error.message || "未知错误"));
-    hangUp.value.isExtending = false;
-  }
-};
-
-const claimHangUpReward = async () => {
-  if (!tokenStore.selectedToken) {
-    message.warning("请先选择Token");
-    return;
-  }
-
-  const tokenId = tokenStore.selectedToken.id;
-
-  try {
-    // 降噪
-    hangUp.value.isClaiming = true;
-    message.info("正在领取挂机奖励...");
-
-    // 参考HangUpStatus的S函数逻辑
-    // 1. 发送初始分享回调
-    tokenStore.sendMessage(tokenId, "system_mysharecallback");
-
-    // 2. 领取挂机奖励
-    setTimeout(() => {
-      tokenStore.sendMessage(tokenId, "system_claimhangupreward");
-    }, 200);
-
-    // 3. 发送跳过分享卡片的回调
-    setTimeout(() => {
-      tokenStore.sendMessage(tokenId, "system_mysharecallback", {
-        isSkipShareCard: true,
-        type: 2,
-      });
-    }, 400);
-
-    // 4. 获取最新角色信息
-    setTimeout(() => {
-      tokenStore.sendMessage(tokenId, "role_getroleinfo");
-    }, 600);
-
-    // 5. 显示完成消息并重置状态
-    setTimeout(() => {
-      message.success("挂机奖励领取完成");
-      hangUp.value.isClaiming = false;
-    }, 1200);
-
-    // 降噪
-  } catch (error) {
-    console.error("🎁 领取挂机奖励失败:", error);
-    message.error("领取挂机奖励失败: " + (error.message || "未知错误"));
-    hangUp.value.isClaiming = false;
-  }
-};
-
-// 功能开关：暂时隐藏俱乐部排位与旧签到卡片
-const ENABLE_LEGION_MATCH = false;
-const ENABLE_LEGION_SIGNIN_CARD = false;
-const ENABLE_TOOLS_TAB = true; // 工具分区开关
 const sectionItems = [
   { value: "daily", label: "日常" },
   { value: "club", label: "俱乐部" },
   { value: "activity", label: "活动" },
-  ...(ENABLE_TOOLS_TAB ? [{ value: "tools", label: "工具" }] : []),
+  { value: "tools", label: "工具" },
   { value: "saltFieldGroup", label: "盐场" },
   { value: "peachGroup", label: "蟠桃园" },
   { value: "rankGroup", label: "排行榜" },
   { value: "fightPvp", label: "切磋" },
 ];
 
-// 盐场战绩入口已移动至俱乐部信息模块
-
-// 学习答题逻辑已移动到 StudyChallengeCard 组件
-
-// 监听角色信息变化
-watch(
-  roleInfo,
-  (newValue) => {
-    if (newValue) {
-      updateGameStatus();
-    }
-  },
-  { deep: true, immediate: true },
-);
-
-// 监听 WebSocket 连接状态（俱乐部信息）
-const hasFetchedLegionOnce = ref(false);
-watch(
-  () =>
-    tokenStore.selectedToken
-      ? tokenStore.getWebSocketStatus(tokenStore.selectedToken.id)
-      : "disconnected",
-  (status) => {
-    if (status === "connected") {
-      if (!hasFetchedLegionOnce.value && tokenStore.selectedToken) {
-        hasFetchedLegionOnce.value = true;
-        const tokenId = tokenStore.selectedToken.id;
-        tokenStore.sendMessage(tokenId, "legion_getinfo");
-      }
-    }
-  },
-);
-
-// 战绩加载逻辑现由俱乐部信息模块负责
-
-// 生命周期
-onMounted(() => {
-  updateGameStatus();
-  startTimer();
-  // 获取俱乐部信息
-  if (
-    tokenStore.selectedToken &&
-    tokenStore.getWebSocketStatus(tokenStore.selectedToken.id) === "connected"
-  ) {
-    const tokenId = tokenStore.selectedToken.id;
-    tokenStore.sendMessage(tokenId, "legion_getinfo");
-    hasFetchedLegionOnce.value = true;
-  }
-});
-
-// 组件卸载时清理定时器
-onUnmounted(() => {
-  if (timer) {
-    clearInterval(timer);
-  }
-});
+const saltFieldTabs = [
+  { value: "warrank", label: "盐场" },
+  { value: "weekBattle", label: "本周战绩" },
+  { value: "monthBattle", label: "本月战绩" },
+  { value: "legionWarMap", label: "盐场地图" },
+  { value: "legionWarStatistics", label: "盐场战况" },
+];
+const peachTabs = [
+  { value: "peach", label: "蟠桃园信息" },
+  { value: "peachBattle", label: "蟠桃园战绩" },
+];
+const rankTabs = [
+  { value: "serverrank", label: "区服榜" },
+  { value: "toprank", label: "巅峰榜" },
+  { value: "topclubrank", label: "俱乐部榜" },
+  { value: "goldclubrank", label: "黄金积分榜" },
+  { value: "greatRouteRank", label: "伟大航路积分榜" },
+];
+const styleOptions = [
+  { value: "style1", label: "样式一" },
+  { value: "style2", label: "样式二" },
+];
 </script>
 
 <style scoped lang="scss">
@@ -795,24 +467,6 @@ onUnmounted(() => {
     grid-template-columns: repeat(2, 1fr);
     max-width: 100% !important;
   }
-}
-
-.section-header {
-  grid-column: 1 / -1;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px var(--spacing-sm);
-}
-
-.identity-toggle {
-  padding: 6px 12px;
-  border: 1px solid var(--border-light);
-  border-radius: 999px;
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  cursor: pointer;
 }
 
 .section-tabs {
@@ -876,6 +530,54 @@ onUnmounted(() => {
   background: var(--bg-primary);
 }
 
+.sub-tabs {
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+  padding: 8px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--border-light);
+  scrollbar-width: none;
+}
+
+.sub-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.sub-tabs button,
+.segmented-control button {
+  min-width: max-content;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+
+.sub-tabs button:hover,
+.segmented-control button:hover {
+  color: var(--foreground);
+  background: var(--accent);
+}
+
+.sub-tabs button.active {
+  color: var(--foreground);
+  border-bottom-color: var(--foreground);
+}
+
+.segmented-control {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--border-light);
+  background: var(--muted);
+}
+
+.segmented-control button.active {
+  border-color: var(--border-light);
+  background: var(--background);
+  color: var(--foreground);
+}
+
 .warrank-full-container.style2-container {
   position: relative;
   z-index: 1;
@@ -895,155 +597,5 @@ onUnmounted(() => {
   width: 100%;
   display: flex;
   flex-direction: column;
-}
-
-.monthly-tasks .description.muted {
-  color: var(--text-tertiary);
-  margin-top: var(--spacing-sm);
-}
-
-.monthly-row {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: var(--spacing-xs);
-  font-size: var(--font-size-sm);
-}
-
-.status-dot {
-  &.completed {
-    background: var(--success-color);
-    box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
-  }
-}
-
-.energy-icon {
-  width: 16px;
-  height: 16px;
-  object-fit: contain;
-}
-
-.card-content {
-  .time-display {
-    font-size: 1.5rem;
-    /* text-2xl */
-    font-weight: 700;
-    /* font-bold */
-    color: var(--text-primary);
-    text-align: center;
-    margin-bottom: var(--spacing-md);
-    font-family:
-      "SF Mono", "Monaco", "Inconsolata", "Roboto Mono", "Consolas", monospace;
-    letter-spacing: 0.1em;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
-    background: var(--bg-tertiary);
-    padding: 0.75rem 1rem;
-    border-radius: 0.5rem;
-    border: 1px solid var(--border-light);
-    box-shadow:
-      0 1px 3px rgba(0, 0, 0, 0.1),
-      0 1px 2px rgba(0, 0, 0, 0.06);
-    transition: all 0.2s ease-in-out;
-
-    &:hover {
-      transform: translateY(-1px);
-      box-shadow:
-        0 4px 6px rgba(0, 0, 0, 0.1),
-        0 2px 4px rgba(0, 0, 0, 0.06);
-    }
-  }
-
-  .description {
-    color: var(--text-secondary);
-    font-size: var(--font-size-sm);
-    line-height: 1.5;
-    margin-bottom: var(--spacing-lg);
-  }
-
-  .club-name {
-    color: var(--text-secondary);
-    font-size: var(--font-size-sm);
-    margin-bottom: var(--spacing-lg);
-
-    strong {
-      color: var(--text-primary);
-      font-weight: var(--font-weight-medium);
-    }
-  }
-
-  .tower-info {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: var(--spacing-lg);
-
-    .label {
-      color: var(--text-secondary);
-      font-size: var(--font-size-sm);
-    }
-
-    .tower-level {
-      font-size: var(--font-size-lg);
-      font-weight: var(--font-weight-bold);
-      color: var(--text-primary);
-    }
-  }
-}
-
-.action-row {
-  display: flex;
-  gap: var(--spacing-sm);
-
-  .action-button {
-    flex: 1;
-  }
-}
-
-.loading-text {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-xs);
-}
-
-.loading-icon {
-  width: 16px;
-  height: 16px;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-// 响应式设计
-@media (max-width: 768px) {
-  .game-status-container {
-    grid-template-columns: 1fr;
-    padding: 0;
-  }
-
-  .status-card {
-    padding: var(--spacing-md);
-  }
-
-  .card-header {
-    flex-wrap: wrap;
-    gap: var(--spacing-sm);
-
-    .status-info {
-      flex: 1;
-      min-width: 120px;
-    }
-
-    .status-badge {
-      margin-left: auto;
-    }
-  }
 }
 </style>

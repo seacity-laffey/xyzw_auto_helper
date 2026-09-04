@@ -22,7 +22,11 @@
         >
           <component :is="item.icon" :size="17"></component>
           <span>{{ item.label }}</span>
-          <LockKeyhole v-if="item.disabled" class="nav-lock" :size="13"></LockKeyhole>
+          <LockKeyhole
+            v-if="item.disabled"
+            class="nav-lock"
+            :size="13"
+          ></LockKeyhole>
         </router-link>
       </nav>
 
@@ -35,21 +39,35 @@
           <span>账号管理</span>
         </router-link>
         <div class="system-status">
-          <span class="status-dot" :class="{ active: tokenStore.hasTokens }"></span>
+          <span
+            class="status-dot"
+            :class="{ active: tokenStore.hasTokens }"
+          ></span>
           <span>{{ accountStatus }}</span>
         </div>
       </div>
     </aside>
 
     <Sheet v-model:open="mobileMenuOpen">
-      <SheetContent class="mobile-drawer flex w-[min(320px,88vw)] flex-col bg-surface-container-low">
+      <SheetContent
+        class="mobile-drawer flex w-[min(320px,88vw)] flex-col bg-surface-container-low"
+      >
         <SheetTitle class="sr-only">主导航</SheetTitle>
         <div class="mobile-drawer-head">
-          <router-link class="brand" :to="homePath" @click="mobileMenuOpen = false">
+          <router-link
+            class="brand"
+            :to="homePath"
+            @click="mobileMenuOpen = false"
+          >
             <span class="brand-mark"><Zap :size="17"></Zap></span>
             <span class="brand-copy"><strong>XYZW 助手</strong><small>本地控制台</small></span>
           </router-link>
-          <Button aria-label="关闭菜单" size="icon" variant="ghost" @click="mobileMenuOpen = false">
+          <Button
+            aria-label="关闭菜单"
+            size="icon"
+            variant="ghost"
+            @click="mobileMenuOpen = false"
+          >
             <X></X>
           </Button>
         </div>
@@ -66,11 +84,21 @@
           >
             <component :is="item.icon" :size="17"></component>
             <span>{{ item.label }}</span>
-            <LockKeyhole v-if="item.disabled" class="nav-lock" :size="13"></LockKeyhole>
+            <LockKeyhole
+              v-if="item.disabled"
+              class="nav-lock"
+              :size="13"
+            ></LockKeyhole>
           </router-link>
         </nav>
-        <WorkspaceAccountList @navigate="mobileMenuOpen = false"></WorkspaceAccountList>
-        <router-link class="account-management-link mobile-account-management" to="/tokens" @click="mobileMenuOpen = false">
+        <WorkspaceAccountList
+          @navigate="mobileMenuOpen = false"
+        ></WorkspaceAccountList>
+        <router-link
+          class="account-management-link mobile-account-management"
+          to="/tokens"
+          @click="mobileMenuOpen = false"
+        >
           <Settings2 :size="16"></Settings2>
           <span>账号管理</span>
         </router-link>
@@ -78,7 +106,10 @@
     </Sheet>
 
     <div class="workspace">
-      <header class="topbar" :class="{ 'immersive-topbar': route.meta.immersive }">
+      <header
+        class="topbar"
+        :class="{ 'immersive-topbar': route.meta.immersive }"
+      >
         <div class="topbar-title">
           <Button
             aria-label="打开菜单"
@@ -97,7 +128,10 @@
 
         <div class="topbar-actions">
           <ThemeToggle></ThemeToggle>
-          <div v-if="route.name === 'RoleManagement' && selectedToken" class="focused-role">
+          <div
+            v-if="route.name === 'RoleManagement' && selectedToken"
+            class="focused-role"
+          >
             <img alt="" :src="selectedToken.avatar || '/icons/xiaoyugan.png'">
             <span>
               <strong>{{ selectedToken.name || "未命名角色" }}</strong>
@@ -107,7 +141,10 @@
         </div>
       </header>
 
-      <main class="content-area" :class="{ 'immersive-content': route.meta.immersive }">
+      <main
+        class="content-area"
+        :class="{ 'immersive-content': route.meta.immersive }"
+      >
         <router-view></router-view>
       </main>
     </div>
@@ -139,22 +176,20 @@ const mobileMenuOpen = ref(false);
 
 const navigation = computed(() => [
   {
-    path: "/admin/batch-daily-tasks",
+    path: "/batch-tasks",
     label: "批量任务",
     icon: LayoutGrid,
-    disabled: !tokenStore.hasTokens,
+    disabled: false,
   },
   {
-    path: "/admin/pushing-levels",
+    path: "/pushing-levels",
     label: "主线推关",
     icon: TrendingUp,
-    disabled: !tokenStore.hasTokens,
+    disabled: false,
   },
 ]);
 
-const homePath = computed(() =>
-  tokenStore.hasTokens ? "/admin/batch-daily-tasks" : "/tokens",
-);
+const homePath = "/batch-tasks";
 
 const accountStatus = computed(() =>
   tokenStore.hasTokens
@@ -256,7 +291,9 @@ const handleNavigation = (item, event) => {
   font-size: 13px;
   font-weight: 500;
   border-radius: var(--radius);
-  transition: color 150ms ease, background 150ms ease;
+  transition:
+    color 150ms ease,
+    background 150ms ease;
 }
 
 .nav-link:hover {

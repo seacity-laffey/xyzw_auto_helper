@@ -16,15 +16,15 @@ import type {
 import useIndexedDB from "@/hooks/useIndexedDB";
 import { generateRandomSeed } from "@/utils/randomSeed";
 import {
-  transformToken,
-  setAuthUserRateLimiterCallback,
   scheduleAuthUserRequest,
+  setAuthUserRateLimiterCallback,
+  transformToken,
 } from "@/utils/token";
-import { emitPlus, $emit } from "./events/index";
+import { $emit, emitPlus } from "./events/index";
 import router from "@/router";
 
-const { getArrayBuffer, storeArrayBuffer, deleteArrayBuffer, clearAll } =
-  useIndexedDB();
+const { getArrayBuffer, storeArrayBuffer, deleteArrayBuffer, clearAll }
+  = useIndexedDB();
 
 declare interface TokenData {
   id: string;
@@ -47,7 +47,8 @@ declare interface TokenData {
 }
 
 declare interface WebSocketConnection {
-  status: "connecting" | "connected" | "disconnecting" | "disconnected" | "error";
+  status:
+    "connecting" | "connected" | "disconnecting" | "disconnected" | "error";
   client: XyzwWebSocketClient | null;
   lastError: { timestamp: string; error: string; url?: string } | null;
   tokenId: string;
@@ -90,7 +91,7 @@ type XyzwWebSocketClientOptions = ConstructorParameters<
   typeof XyzwWebSocketClient
 >[0];
 
-type ConnectionStats = {
+interface ConnectionStats {
   totalConnections: number;
   connectedCount: number;
   connectingCount: number;
@@ -100,7 +101,7 @@ type ConnectionStats = {
   duplicateTokens: string[];
   activeLocks: number;
   crossTabStates: number;
-};
+}
 
 const getErrorMessage = (error: unknown) =>
   error instanceof Error ? error.message : String(error);
@@ -136,11 +137,16 @@ export const batchSelectedTokenIds = useLocalStorage<string[]>(
   "batchSelectedTokenIds",
   [],
 );
-export const selectedRoleInfo =
-  useLocalStorage<RoleResponseBody | null>("selectedRoleInfo", null);
+export const selectedRoleInfo = useLocalStorage<RoleResponseBody | null>(
+  "selectedRoleInfo",
+  null,
+);
 
 // 跨标签页连接协调
-const activeConnections = useLocalStorage<ActiveConnectionCtx>("activeConnections", {});
+const activeConnections = useLocalStorage<ActiveConnectionCtx>(
+  "activeConnections",
+  {},
+);
 
 // Token分组管理
 export const tokenGroups = useLocalStorage<TokenGroup[]>("tokenGroups", []);
@@ -158,8 +164,7 @@ export const useTokenStore = defineStore("tokens", () => {
     roleInfo: null,
     legionInfo: null,
     commonActivityInfo: null, // 消耗活动进度
-    bossTowerInfo: null, //宝库
-    evoTowerInfo: null, //怪异塔
+    evoTowerInfo: null, // 怪异塔
     presetTeam: null,
     battleVersion: null as number | null, // 战斗版本号
     studyStatus: {
@@ -178,7 +183,8 @@ export const useTokenStore = defineStore("tokens", () => {
   });
 
   const readStatisticsValue = (stats: StatisticsSource, key: string) => {
-    if (!stats) return undefined;
+    if (!stats)
+      return undefined;
     try {
       if (stats instanceof Map) {
         return stats.get(key);
@@ -193,7 +199,8 @@ export const useTokenStore = defineStore("tokens", () => {
   };
 
   const extractLastLoginTimestamp = (payload: RoleResponseBody | null) => {
-    if (!payload) return null;
+    if (!payload)
+      return null;
 
     const candidateSources = [
       payload?.role?.statistics,
@@ -209,9 +216,10 @@ export const useTokenStore = defineStore("tokens", () => {
     ];
 
     for (const stats of candidateSources) {
-      if (!stats) continue;
+      if (!stats)
+        continue;
       for (const key of candidateKeys) {
-      const value = readStatisticsValue(stats as StatisticsSource, key);
+        const value = readStatisticsValue(stats as StatisticsSource, key);
         if (value !== undefined && value !== null) {
           const numeric = Number(value);
           if (!Number.isNaN(numeric) && numeric > 0) {
@@ -228,7 +236,8 @@ export const useTokenStore = defineStore("tokens", () => {
     rolePayload: RoleResponseBody | null,
     client: XyzwWebSocketClient | null,
   ) => {
-    if (!client) return;
+    if (!client)
+      return;
     const connection = wsConnections.value[tokenId];
     if (!connection || connection.status !== "connected") {
       return;
@@ -240,8 +249,8 @@ export const useTokenStore = defineStore("tokens", () => {
     }
 
     if (
-      connection.randomSeedSynced &&
-      connection.lastRandomSeedSource === lastLoginTime
+      connection.randomSeedSynced
+      && connection.lastRandomSeedSource === lastLoginTime
     ) {
       return;
     }
@@ -267,11 +276,11 @@ export const useTokenStore = defineStore("tokens", () => {
 
   // Token管理
   const addToken = (tokenData: TokenData) => {
-    let id =
-      tokenData.id ||
-      `token_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const id
+      = tokenData.id
+        || `token_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const newToken = {
-      id: id,
+      id,
       name: tokenData.name,
       token: tokenData.token, // 保存原始Base64 token
       wsUrl: tokenData.wsUrl || null, // 可选的自定义WebSocket URL
@@ -296,7 +305,8 @@ export const useTokenStore = defineStore("tokens", () => {
     const index = gameTokens.value.findIndex((token) => token.id === tokenId);
     if (index !== -1) {
       const existingToken = gameTokens.value[index];
-      if (!existingToken) return false;
+      if (!existingToken)
+        return false;
       gameTokens.value[index] = {
         ...existingToken,
         ...updates,
@@ -359,17 +369,17 @@ export const useTokenStore = defineStore("tokens", () => {
     });
 
     focusToken(tokenId);
-    //避免点击断开链接
+    // 避免点击断开链接
     if (isConnected) {
       return token;
     }
     // 智能连接判断
-    const shouldCreateConnection =
-      forceReconnect || // 强制重连
-      !isAlreadySelected || // 首次选择此token
-      !existingConnection || // 没有现有连接
-      existingConnection.status === "disconnected" || // 连接已断开
-      existingConnection.status === "error"; // 连接出错
+    const shouldCreateConnection
+      = forceReconnect // 强制重连
+        || !isAlreadySelected // 首次选择此token
+        || !existingConnection // 没有现有连接
+        || existingConnection.status === "disconnected" // 连接已断开
+        || existingConnection.status === "error"; // 连接出错
 
     if (shouldCreateConnection) {
       if (isAlreadySelected && !forceReconnect) {
@@ -413,7 +423,8 @@ export const useTokenStore = defineStore("tokens", () => {
     tokenRefreshAttempts.value[tokenId] = now;
 
     const gameToken = gameTokens.value.find((t) => t.id === tokenId);
-    if (!gameToken) return false;
+    if (!gameToken)
+      return false;
 
     wsLogger.info(`尝试自动刷新Token [${tokenId}]`);
     let refreshSuccess = false;
@@ -437,8 +448,8 @@ export const useTokenStore = defineStore("tokens", () => {
           refreshSuccess = true;
         }
       } else if (
-        gameToken.importMethod === "bin" ||
-        gameToken.importMethod === "wxQrcode"
+        gameToken.importMethod === "bin"
+        || gameToken.importMethod === "wxQrcode"
       ) {
         // Bin形式token刷新
         let userToken: ArrayBuffer | null = await getArrayBuffer(tokenId);
@@ -474,10 +485,8 @@ export const useTokenStore = defineStore("tokens", () => {
       wsLogger.info(`Token刷新成功 [${tokenId}]`);
 
       const currentPath = router.currentRoute.value.path;
-      const shouldReconnect =
-        forceReconnect ||
-        currentPath === "/tokens" ||
-        currentPath === "/admin/game-features";
+      const shouldReconnect
+        = forceReconnect || currentPath === "/tokens" || currentPath === "/role";
 
       if (shouldReconnect) {
         wsLogger.info(`触发自动重连 [${tokenId}]`);
@@ -533,12 +542,12 @@ export const useTokenStore = defineStore("tokens", () => {
       }
 
       const cmd = message.cmd?.toLowerCase();
-      const body =
-        message.getData?.<RoleResponseBody>() ??
-        (message.rawData as RoleResponseBody | undefined) ??
-        (message.decodedBody as RoleResponseBody | undefined) ??
-        (message.body as RoleResponseBody | undefined) ??
-        {};
+      const body
+        = message.getData?.<RoleResponseBody>()
+          ?? (message.rawData as RoleResponseBody | undefined)
+          ?? (message.decodedBody as RoleResponseBody | undefined)
+          ?? (message.body as RoleResponseBody | undefined)
+          ?? {};
 
       if (cmd === "role_getroleinforesp") {
         syncRandomSeedFromStatistics(tokenId, body, client);
@@ -553,7 +562,8 @@ export const useTokenStore = defineStore("tokens", () => {
         }
       }
 
-      if (!cmd) return;
+      if (!cmd)
+        return;
       emitPlus(cmd, {
         tokenId,
         body,
@@ -570,11 +580,15 @@ export const useTokenStore = defineStore("tokens", () => {
 
   // 验证token有效性
   const validateToken = (token: unknown) => {
-    if (!token) return false;
-    if (typeof token !== "string") return false;
-    if (token.trim().length === 0) return false;
+    if (!token)
+      return false;
+    if (typeof token !== "string")
+      return false;
+    if (token.trim().length === 0)
+      return false;
     // 简单检查：token应该至少有一定长度
-    if (token.trim().length < 10) return false;
+    if (token.trim().length < 10)
+      return false;
     return true;
   };
 
@@ -629,7 +643,7 @@ export const useTokenStore = defineStore("tokens", () => {
     } catch (error) {
       return {
         success: false,
-        error: "解析失败：" + getErrorMessage(error),
+        error: `解析失败：${getErrorMessage(error)}`,
       };
     }
   };
@@ -661,8 +675,8 @@ export const useTokenStore = defineStore("tokens", () => {
 
       // 添加更多验证信息到成功消息
       const tokenInfo = parseResult.data.actualToken;
-      const displayToken =
-        tokenInfo.length > 20
+      const displayToken
+        = tokenInfo.length > 20
           ? `${tokenInfo.substring(0, 10)}...${tokenInfo.substring(tokenInfo.length - 6)}`
           : tokenInfo;
 
@@ -684,7 +698,7 @@ export const useTokenStore = defineStore("tokens", () => {
 
   // 连接管理辅助函数
   const generateSessionId = () =>
-    "session_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9);
+    `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   const currentSessionId = generateSessionId();
 
   // 获取连接锁
@@ -732,7 +746,7 @@ export const useTokenStore = defineStore("tokens", () => {
     action: string,
     sessionId: string = currentSessionId,
   ) => {
-    let state = useLocalStorage(`ws_connection_${tokenId}`, {
+    const state = useLocalStorage(`ws_connection_${tokenId}`, {
       action, // 'connecting', 'connected', 'disconnecting', 'disconnected'
       sessionId,
       timestamp: Date.now(),
@@ -755,9 +769,9 @@ export const useTokenStore = defineStore("tokens", () => {
         const isDifferentSession = state.sessionId !== currentSessionId;
 
         if (
-          isRecent &&
-          isDifferentSession &&
-          (state.action === "connecting" || state.action === "connected")
+          isRecent
+          && isDifferentSession
+          && (state.action === "connecting" || state.action === "connected")
         ) {
           wsLogger.debug(`检测到其他标签页的活跃连接: ${tokenId}`);
           return state;
@@ -891,7 +905,7 @@ export const useTokenStore = defineStore("tokens", () => {
         wsLogger.wsError(tokenId, error);
         if (wsConnections.value[tokenId]) {
           wsConnections.value[tokenId].status = "error";
-        wsConnections.value[tokenId].lastError = {
+          wsConnections.value[tokenId].lastError = {
             timestamp: new Date().toISOString(),
             error: String(error),
             url: wsUrl,
@@ -1083,7 +1097,10 @@ export const useTokenStore = defineStore("tokens", () => {
     } catch (error) {
       // 特殊日志：fight_starttower 错误
       if (cmd === "fight_starttower") {
-        wsLogger.error(`🗼 [咸将塔] 爬塔请求失败 [${tokenId}]:`, getErrorMessage(error));
+        wsLogger.error(
+          `🗼 [咸将塔] 爬塔请求失败 [${tokenId}]:`,
+          getErrorMessage(error),
+        );
       }
       return Promise.reject(error);
     }
@@ -1119,7 +1136,10 @@ export const useTokenStore = defineStore("tokens", () => {
 
       return roleInfo;
     } catch (error) {
-      gameLogger.error(`获取角色信息失败 [${tokenId}]:`, getErrorMessage(error));
+      gameLogger.error(
+        `获取角色信息失败 [${tokenId}]:`,
+        getErrorMessage(error),
+      );
 
       // 重试机制：最多重试2次，每次间隔1秒
       if (retryCount < 2) {
@@ -1159,7 +1179,7 @@ export const useTokenStore = defineStore("tokens", () => {
     return sendMessageWithPromise(tokenId, "presetteam_getinfo", params);
   };
 
-  //发送消息到世界
+  // 发送消息到世界
   const sendMessageToWorld = (tokenId: string, message: string) => {
     return sendMessageWithPromise(tokenId, "system_sendchatmessage", {
       channel: 1,
@@ -1169,7 +1189,7 @@ export const useTokenStore = defineStore("tokens", () => {
       msgType: 1,
     });
   };
-  //发送消息到俱乐部
+  // 发送消息到俱乐部
   const sendMessageToLegion = (tokenId: string, message: string) => {
     return sendMessageWithPromise(tokenId, "system_sendchatmessage", {
       channel: 2,
@@ -1185,7 +1205,10 @@ export const useTokenStore = defineStore("tokens", () => {
     tokenId: string,
     cmd: string,
     params: GameCommandParams = {},
-    options: GameCommandParams & { usePromise?: boolean; timeout?: number } = {},
+    options: GameCommandParams & {
+      usePromise?: boolean;
+      timeout?: number;
+    } = {},
   ) => {
     if (options.usePromise) {
       return sendMessageWithPromise(tokenId, cmd, params, options.timeout);
@@ -1211,8 +1234,8 @@ export const useTokenStore = defineStore("tokens", () => {
       }
 
       // 可能的塔层数字段（根据实际数据结构调整）
-      const level =
-        tower.level || tower.currentLevel || tower.floor || tower.stage;
+      const level
+        = tower.level || tower.currentLevel || tower.floor || tower.stage;
 
       // 当前塔层数
       return level;
@@ -1265,7 +1288,8 @@ export const useTokenStore = defineStore("tokens", () => {
       return {
         success: false,
         message:
-          "导入失败：" + (error instanceof Error ? error.message : String(error)),
+          `导入失败：${
+            error instanceof Error ? error.message : String(error)}`,
       };
     }
   };
@@ -1293,10 +1317,10 @@ export const useTokenStore = defineStore("tokens", () => {
       // URL和bin文件导入的token设为长期有效，不会过期
       // 升级为长期有效的token也不会过期
       if (
-        token.importMethod === "url" ||
-        token.importMethod === "bin" ||
-        token.importMethod === "wxQrcode" ||
-        token.upgradedToPermanent
+        token.importMethod === "url"
+        || token.importMethod === "bin"
+        || token.importMethod === "wxQrcode"
+        || token.upgradedToPermanent
       ) {
         return false;
       }
@@ -1319,11 +1343,11 @@ export const useTokenStore = defineStore("tokens", () => {
   const upgradeTokenToPermanent = (tokenId: string) => {
     const token = gameTokens.value.find((t) => t.id === tokenId);
     if (
-      token &&
-      !token.upgradedToPermanent &&
-      token.importMethod !== "url" &&
-      token.importMethod !== "bin" &&
-      token.importMethod !== "wxQrcode"
+      token
+      && !token.upgradedToPermanent
+      && token.importMethod !== "url"
+      && token.importMethod !== "bin"
+      && token.importMethod !== "wxQrcode"
     ) {
       updateToken(tokenId, {
         upgradedToPermanent: true,
@@ -1338,8 +1362,8 @@ export const useTokenStore = defineStore("tokens", () => {
   const validateConnectionUniqueness = (tokenId: string) => {
     const connections = Object.values(wsConnections.value).filter(
       (conn) =>
-        conn.tokenId === tokenId &&
-        (conn.status === "connecting" || conn.status === "connected"),
+        conn.tokenId === tokenId
+        && (conn.status === "connecting" || conn.status === "connected"),
     );
 
     if (connections.length > 1) {
@@ -1349,13 +1373,14 @@ export const useTokenStore = defineStore("tokens", () => {
       // 保留最新的连接，关闭旧连接
       const sortedConnections = connections.sort(
         (a, b) =>
-          new Date(b.connectedAt || 0).getTime() -
-          new Date(a.connectedAt || 0).getTime(),
+          new Date(b.connectedAt || 0).getTime()
+            - new Date(a.connectedAt || 0).getTime(),
       );
 
       for (let i = 1; i < sortedConnections.length; i++) {
         const oldConnection = sortedConnections[i];
-        if (!oldConnection?.tokenId) continue;
+        if (!oldConnection?.tokenId)
+          continue;
         wsLogger.debug(`关闭重复连接: ${tokenId}`);
         closeWebSocketConnectionAsync(oldConnection.tokenId);
       }
@@ -1375,13 +1400,13 @@ export const useTokenStore = defineStore("tokens", () => {
 
         // 检查连接超时（超过30秒未活动）
         Object.entries(wsConnections.value).forEach(([tokenId, connection]) => {
-          const lastActivity =
-            connection.lastMessage?.timestamp || connection.connectedAt;
+          const lastActivity
+            = connection.lastMessage?.timestamp || connection.connectedAt;
           if (lastActivity) {
             const timeSinceActivity = now - new Date(lastActivity).getTime();
             if (
-              timeSinceActivity > 30000 &&
-              connection.status === "connected"
+              timeSinceActivity > 30000
+              && connection.status === "connected"
             ) {
               wsLogger.warn(`检测到连接可能已断开: ${tokenId}`);
               // 发送心跳检测
@@ -1446,7 +1471,8 @@ export const useTokenStore = defineStore("tokens", () => {
         error: "errorCount",
       };
       Object.values(wsConnections.value).forEach((connection) => {
-        if (!connection.status || !connection.tokenId) return;
+        if (!connection.status || !connection.tokenId)
+          return;
         stats[statusCountKey[connection.status]]++;
 
         // 检测重复token
@@ -1504,9 +1530,9 @@ export const useTokenStore = defineStore("tokens", () => {
             const localConnection = wsConnections.value[tokenId];
 
             if (
-              newState.action === "connected" &&
-              newState.sessionId !== currentSessionId &&
-              localConnection?.status === "connected"
+              newState.action === "connected"
+              && newState.sessionId !== currentSessionId
+              && localConnection?.status === "connected"
             ) {
               wsLogger.info(
                 `检测到其他标签页已连接同一token，关闭本地连接: ${tokenId}`,
@@ -1577,7 +1603,7 @@ export const useTokenStore = defineStore("tokens", () => {
    */
   const createTokenGroup = (name: string, color: string = "#1677ff") => {
     const group: TokenGroup = {
-      id: "group_" + Date.now() + Math.random().toString(36).slice(2),
+      id: `group_${Date.now()}${Math.random().toString(36).slice(2)}`,
       name,
       color,
       tokenIds: [],
@@ -1718,7 +1744,7 @@ export const useTokenStore = defineStore("tokens", () => {
     upgradeTokenToPermanent,
     initTokenStore,
 
-    //游戏内发送消息方法
+    // 游戏内发送消息方法
     sendMessageToLegion,
     sendMessageToWorld,
 
@@ -1775,7 +1801,7 @@ export const useTokenStore = defineStore("tokens", () => {
         const token = gameTokens.value.find((t) => t.id === tokenId);
         if (token) {
           // 故意创建第二个连接进行测试
-          createWebSocketConnection(tokenId + "_test", token.token);
+          createWebSocketConnection(`${tokenId}_test`, token.token);
         }
       },
     },

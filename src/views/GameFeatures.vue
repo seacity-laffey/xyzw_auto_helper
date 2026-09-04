@@ -4,9 +4,9 @@
       <div class="container role-context">
         <div class="role-identity">
           <img
+            alt="当前角色头像"
             class="role-avatar"
             :src="tokenStore.selectedToken?.avatar || '/icons/xiaoyugan.png'"
-            alt="当前角色头像"
           >
           <div>
             <h2>{{ tokenStore.selectedToken?.name || "未选择角色" }}</h2>
@@ -20,12 +20,15 @@
         </div>
         <div class="connection-actions">
           <span class="connection-summary">
-            <span class="connection-summary-dot" :class="connectionStatus"></span>
+            <span
+              class="connection-summary-dot"
+              :class="connectionStatus"
+            ></span>
             {{ connectionStatusText }}
           </span>
           <Button
-            variant="outline"
             size="sm"
+            variant="outline"
             :disabled="isConnectionPending"
             @click="toggleConnection"
           >
@@ -66,7 +69,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, watch } from "vue";
+import { computed, onMounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useMessage } from "naive-ui";
 import { Gamepad2, LoaderCircle, Wifi, WifiOff } from "@lucide/vue";
@@ -119,111 +122,6 @@ const connectionActionText = computed(() => {
     return "下线中";
   return isConnected.value ? "下线" : "上线";
 });
-
-const pickArenaTargetId = (targets) => {
-  const candidate =
-    targets?.rankList?.[0] ||
-    targets?.roleList?.[0] ||
-    targets?.targets?.[0] ||
-    targets?.targetList?.[0] ||
-    targets?.list?.[0];
-
-  if (candidate?.roleId)
-    return candidate.roleId;
-  if (candidate?.id)
-    return candidate.id;
-  return targets?.roleId || targets?.id;
-};
-
-// 方法
-const _handleFeatureAction = async (featureType) => {
-  if (!tokenStore.selectedToken) {
-    message.warning("请先选择Token");
-    router.push("/tokens");
-    return;
-  }
-
-  const status = tokenStore.getWebSocketStatus(tokenStore.selectedToken.id);
-  if (status !== "connected") {
-    message.warning("WebSocket未连接，请先建立连接");
-    return;
-  }
-
-  const tokenId = tokenStore.selectedToken.id;
-
-  const actions = {
-    "team-challenge": async () => {
-      message.info("开始执行队伍挑战...");
-      let targets;
-      try {
-        targets = await tokenStore.sendMessageWithPromise(
-          tokenId,
-          "arena_getareatarget",
-          {},
-          8000,
-        );
-      } catch (err) {
-        message.error(`获取竞技场目标失败：${err.message}`);
-        return;
-      }
-      const targetId = pickArenaTargetId(targets);
-      if (!targetId) {
-        message.warning("未找到可挑战的竞技场目标");
-        return;
-      }
-      try {
-        await tokenStore.sendMessageWithPromise(
-          tokenId,
-          "fight_startareaarena",
-          { targetId },
-          15000,
-        );
-        message.success("竞技场战斗已发起");
-      } catch (err) {
-        message.error(`竞技场战斗失败：${err.message}`);
-      }
-    },
-    "daily-tasks": () => {
-      message.info("启动每日任务服务...");
-      tokenStore.sendMessage(tokenId, "task_claimdailyreward");
-    },
-    "salt-robot": () => {
-      message.info("领取盐罐机器人奖励...");
-      tokenStore.sendMessage(tokenId, "bottlehelper_claim");
-    },
-    "idle-time": () => {
-      message.info("领取挂机时间奖励...");
-      tokenStore.sendMessage(tokenId, "system_claimhangupreward");
-    },
-    "power-switch": () => {
-      message.info("执行威震大开关...");
-      tokenStore.sendMessage(tokenId, "role_getroleinfo");
-    },
-    "club-ranking": () => {
-      message.info("报名俱乐部排位...");
-      tokenStore.sendMessage(tokenId, "legionmatch_rolesignup");
-    },
-    "club-checkin": () => {
-      message.info("执行俱乐部签到...");
-      tokenStore.sendMessage(tokenId, "legion_signin");
-    },
-    "tower-challenge": () => {
-      message.info("开始爬塔挑战...");
-      // 关键业务：只提示 UI，不打印冗余日志
-      // 实际请求体: {"ack":0,"body":{},"cmd":"fight_starttower","seq":XX,"time":TIMESTAMP}
-      tokenStore.sendMessage(tokenId, "fight_starttower");
-    },
-  };
-
-  const action = actions[featureType];
-  if (action) {
-    await action();
-  } else {
-    message.warning("功能暂未实现");
-  }
-};
-
-// 已移除 sendWebSocketMessage，使用 tokenStore.sendMessage 代替
 
 const connectWebSocket = () => {
   if (!tokenStore.selectedToken) {
@@ -322,9 +220,9 @@ watch(
       if (err.includes("token") && err.includes("expired")) {
         const importMethod = tokenStore.selectedToken?.importMethod;
         if (
-          importMethod === "url" ||
-          importMethod === "bin" ||
-          importMethod === "wxQrcode"
+          importMethod === "url"
+          || importMethod === "bin"
+          || importMethod === "wxQrcode"
         ) {
           message.warning("Token已过期，正在尝试自动刷新...");
           return;
@@ -358,10 +256,6 @@ const initializeGameData = async () => {
     // 静默处理初始化异常
   }
 };
-
-onUnmounted(() => {
-  // WebSocket 连接由 tokenStore 管理，不需要手动清理
-});
 </script>
 
 <style scoped lang="scss">
@@ -418,19 +312,27 @@ onUnmounted(() => {
   border-radius: 50%;
 }
 
-.connection-summary-dot.connected { background: var(--success); }
+.connection-summary-dot.connected {
+  background: var(--success);
+}
 
 .connection-summary-dot.connecting,
-.connection-summary-dot.disconnecting { background: var(--warning); }
+.connection-summary-dot.disconnecting {
+  background: var(--warning);
+}
 
-.connection-summary-dot.error { background: var(--error); }
+.connection-summary-dot.error {
+  background: var(--error);
+}
 
 .connection-spinner {
   animation: connection-spin 0.8s linear infinite;
 }
 
 @keyframes connection-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .role-identity h2 {
@@ -442,7 +344,9 @@ onUnmounted(() => {
 
 .token-id {
   color: var(--on-surface-variant);
-  font: 500 10px/1.2 "JetBrains Mono", monospace;
+  font:
+    500 10px/1.2 "JetBrains Mono",
+    monospace;
   letter-spacing: 0;
 }
 
@@ -795,9 +699,17 @@ onUnmounted(() => {
     padding: 0 var(--spacing-md);
   }
 
-  .game-features-page { min-height: calc(100dvh - 56px); }
-  .role-context { align-items: flex-start; flex-direction: column; }
-  .connection-actions { width: 100%; justify-content: space-between; }
+  .game-features-page {
+    min-height: calc(100dvh - 56px);
+  }
+  .role-context {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .connection-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
 
   .features-grid {
     grid-template-columns: 1fr;

@@ -8,19 +8,34 @@
     <div v-if="gameTokens.length" class="directory-tools">
       <div class="search-field">
         <Search :size="14"></Search>
-        <Input aria-label="搜索账号" class="search-input" placeholder="搜索名称或区服" v-model="searchQuery"></Input>
+        <Input
+          aria-label="搜索账号"
+          class="search-input"
+          placeholder="搜索名称或区服"
+          v-model="searchQuery"
+        ></Input>
       </div>
 
       <div class="filter-row">
         <select aria-label="筛选账号分组" v-model="activeGroupId">
           <option value="">全部分组</option>
-          <option v-for="group in tokenGroups" :key="group.id" :value="group.id">
+          <option
+            v-for="group in tokenGroups"
+            :key="group.id"
+            :value="group.id"
+          >
             {{ group.name }}
           </option>
         </select>
         <label class="select-all">
           <Checkbox
-            :model-value="allVisibleSelected ? true : someVisibleSelected ? 'indeterminate' : false"
+            :model-value="
+              allVisibleSelected
+                ? true
+                : someVisibleSelected
+                  ? 'indeterminate'
+                  : false
+            "
             @update:model-value="toggleVisibleTokens"
           ></Checkbox>
           <span>全选</span>
@@ -33,7 +48,10 @@
           :disabled="selectedTokens.length === 0 || connectionAction !== null"
           @click="connectSelected"
         >
-          <LoaderCircle v-if="connectionAction === 'connect'" class="animate-spin"></LoaderCircle>
+          <LoaderCircle
+            v-if="connectionAction === 'connect'"
+            class="animate-spin"
+          ></LoaderCircle>
           <Power v-else></Power>
           上线
         </Button>
@@ -43,7 +61,10 @@
           :disabled="selectedTokens.length === 0 || connectionAction !== null"
           @click="disconnectSelected"
         >
-          <LoaderCircle v-if="connectionAction === 'disconnect'" class="animate-spin"></LoaderCircle>
+          <LoaderCircle
+            v-if="connectionAction === 'disconnect'"
+            class="animate-spin"
+          ></LoaderCircle>
           <PowerOff v-else></PowerOff>
           下线
         </Button>
@@ -63,7 +84,9 @@
         <Checkbox
           :aria-label="`批量选择${token.name || '未命名账号'}`"
           :model-value="batchSelectedTokenIds.includes(token.id)"
-          @update:model-value="value => toggleBatchToken(token.id, value === true)"
+          @update:model-value="
+            (value) => toggleBatchToken(token.id, value === true)
+          "
         ></Checkbox>
         <button class="account-open" type="button" @click="openRole(token.id)">
           <img alt="" :src="token.avatar || '/icons/xiaoyugan.png'">
@@ -120,31 +143,47 @@ const connectionAction = ref<"connect" | "disconnect" | null>(null);
 
 const filteredTokens = computed(() => {
   const query = searchQuery.value.trim().toLocaleLowerCase();
-  const activeGroup = tokenGroups.value.find((group) => group.id === activeGroupId.value);
-  const groupTokenIds = activeGroup ? new Set(activeGroup.tokenIds || []) : null;
+  const activeGroup = tokenGroups.value.find(
+    (group) => group.id === activeGroupId.value,
+  );
+  const groupTokenIds = activeGroup
+    ? new Set(activeGroup.tokenIds || [])
+    : null;
 
   return gameTokens.value.filter((token) => {
     if (groupTokenIds && !groupTokenIds.has(token.id))
       return false;
     if (!query)
       return true;
-    return [token.name, token.server]
-      .some((value) => String(value || "").toLocaleLowerCase().includes(query));
+    return [token.name, token.server].some((value) =>
+      String(value || "")
+        .toLocaleLowerCase()
+        .includes(query),
+    );
   });
 });
 
-const visibleTokenIds = computed(() => filteredTokens.value.map((token) => token.id));
-const allVisibleSelected = computed(() =>
-  visibleTokenIds.value.length > 0
-  && visibleTokenIds.value.every((tokenId) => batchSelectedTokenIds.value.includes(tokenId)),
+const visibleTokenIds = computed(() =>
+  filteredTokens.value.map((token) => token.id),
 );
-const someVisibleSelected = computed(() =>
-  !allVisibleSelected.value
-  && visibleTokenIds.value.some((tokenId) => batchSelectedTokenIds.value.includes(tokenId)),
+const allVisibleSelected = computed(
+  () =>
+    visibleTokenIds.value.length > 0
+    && visibleTokenIds.value.every((tokenId) =>
+      batchSelectedTokenIds.value.includes(tokenId),
+    ),
+);
+const someVisibleSelected = computed(
+  () =>
+    !allVisibleSelected.value
+    && visibleTokenIds.value.some((tokenId) =>
+      batchSelectedTokenIds.value.includes(tokenId),
+    ),
 );
 const validSelectedCount = computed(() => {
   const validIds = new Set(gameTokens.value.map((token) => token.id));
-  return batchSelectedTokenIds.value.filter((tokenId) => validIds.has(tokenId)).length;
+  return batchSelectedTokenIds.value.filter((tokenId) => validIds.has(tokenId))
+    .length;
 });
 const selectedTokens = computed(() => {
   const selectedIds = new Set(batchSelectedTokenIds.value);
@@ -156,8 +195,7 @@ const toggleVisibleTokens = (checked: boolean | "indeterminate") => {
   visibleTokenIds.value.forEach((tokenId) => {
     if (checked === true)
       selectedIds.add(tokenId);
-    else
-      selectedIds.delete(tokenId);
+    else selectedIds.delete(tokenId);
   });
   batchSelectedTokenIds.value = [...selectedIds];
 };
@@ -166,14 +204,13 @@ const toggleBatchToken = (tokenId: string, checked: boolean) => {
   const selectedIds = new Set(batchSelectedTokenIds.value);
   if (checked)
     selectedIds.add(tokenId);
-  else
-    selectedIds.delete(tokenId);
+  else selectedIds.delete(tokenId);
   batchSelectedTokenIds.value = [...selectedIds];
 };
 
 const openRole = async (tokenId: string) => {
   tokenStore.focusToken(tokenId);
-  await router.push("/admin/game-features");
+  await router.push({ name: "RoleManagement" });
   emit("navigate");
 };
 
@@ -193,7 +230,11 @@ const connectSelected = async () => {
       if (client)
         startedCount++;
     }
-    message.success(startedCount > 0 ? `已启动 ${startedCount} 个账号连接` : "所选账号已在线或正在连接");
+    message.success(
+      startedCount > 0
+        ? `已启动 ${startedCount} 个账号连接`
+        : "所选账号已在线或正在连接",
+    );
   } finally {
     connectionAction.value = null;
   }
@@ -209,7 +250,9 @@ const disconnectSelected = () => {
     tokenStore.closeWebSocketConnection(token.id);
     stoppedCount++;
   });
-  message.success(stoppedCount > 0 ? `正在下线 ${stoppedCount} 个账号` : "所选账号均未上线");
+  message.success(
+    stoppedCount > 0 ? `正在下线 ${stoppedCount} 个账号` : "所选账号均未上线",
+  );
   connectionAction.value = null;
 };
 

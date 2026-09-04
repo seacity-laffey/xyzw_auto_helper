@@ -205,13 +205,19 @@
             <RefreshOutline></RefreshOutline>
             刷新窗口
           </button>
-          <button class="danger-action" type="button" @click="runBinToolAction('clearBtn')">
+          <button
+            class="danger-action"
+            type="button"
+            @click="runBinToolAction('clearBtn')"
+          >
             <TrashOutline></TrashOutline>
             清空 BIN
           </button>
         </div>
 
-        <p v-if="binManagerStatus" class="bin-manager-status">{{ binManagerStatus }}</p>
+        <p v-if="binManagerStatus" class="bin-manager-status">
+          {{ binManagerStatus }}
+        </p>
 
         <div class="bin-entry-list">
           <div v-for="entry in binEntries" :key="entry.id" class="bin-entry">
@@ -221,7 +227,9 @@
             </div>
             <span v-if="entry.id === binManagerTargetId">当前窗口</span>
           </div>
-          <div v-if="!binEntries.length" class="observer-empty">暂无本机 BIN</div>
+          <div v-if="!binEntries.length" class="observer-empty">
+            暂无本机 BIN
+          </div>
         </div>
       </div>
     </aside>
@@ -254,10 +262,16 @@
               v-if="syncEnabled && gameIds.length > 1"
               class="window-action"
               type="button"
-              :aria-label="syncMasterId === tokenId ? '当前主控窗口' : `设为主控：${getGameName(tokenId)}`"
+              :aria-label="
+                syncMasterId === tokenId
+                  ? '当前主控窗口'
+                  : `设为主控：${getGameName(tokenId)}`
+              "
               :class="{ 'window-action-active': syncMasterId === tokenId }"
               :disabled="syncMasterId === tokenId"
-              :title="syncMasterId === tokenId ? '当前主控窗口' : '设为主控窗口'"
+              :title="
+                syncMasterId === tokenId ? '当前主控窗口' : '设为主控窗口'
+              "
               @click="setSyncMaster(tokenId)"
             >
               <SyncOutline></SyncOutline>
@@ -399,7 +413,8 @@ const toggleBinManager = () => {
     return;
   observerOpen.value = false;
   if (!gameIds.value.includes(binManagerTargetId.value)) {
-    binManagerTargetId.value = syncMasterId.value || focusedId.value || gameIds.value[0] || null;
+    binManagerTargetId.value
+      = syncMasterId.value || focusedId.value || gameIds.value[0] || null;
   }
   binManagerStatus.value = "";
   loadBinEntries();
@@ -419,7 +434,8 @@ const runBinToolAction = (buttonId) => {
     return;
   }
   button.click();
-  binManagerStatus.value = buttonId === "loadBtn" ? "已打开文件选择" : "已提交清空操作";
+  binManagerStatus.value
+    = buttonId === "loadBtn" ? "已打开文件选择" : "已提交清空操作";
   window.setTimeout(loadBinEntries, 500);
 };
 
@@ -552,7 +568,10 @@ const handleGameMessage = (event) => {
   const message = event.data;
   if (
     !message
-    || ![PROTOCOL_OBSERVER_MESSAGE_SOURCE, GAME_INPUT_SYNC_MESSAGE_SOURCE].includes(message.source)
+    || ![
+      PROTOCOL_OBSERVER_MESSAGE_SOURCE,
+      GAME_INPUT_SYNC_MESSAGE_SOURCE,
+    ].includes(message.source)
   ) {
     return;
   }
@@ -575,7 +594,10 @@ const handleGameMessage = (event) => {
       return;
     gameFrames.forEach((targetFrame, tokenId) => {
       if (tokenId !== syncMasterId.value) {
-        targetFrame.contentWindow?.postMessage(dispatchMessage, window.location.origin);
+        targetFrame.contentWindow?.postMessage(
+          dispatchMessage,
+          window.location.origin,
+        );
       }
     });
     return;
@@ -675,12 +697,12 @@ const closeGame = (tokenId) => {
 
 function goBack() {
   const returnPaths = {
-    batch: "/admin/batch-daily-tasks",
-    role: "/admin/game-features",
+    batch: "/batch-tasks",
+    role: "/role",
     tokens: "/tokens",
-    dashboard: "/admin/game-features",
+    dashboard: "/role",
   };
-  router.push(returnPaths[sourcePage.value] || "/admin/game-features");
+  router.push(returnPaths[sourcePage.value] || "/role");
 }
 
 watch(gameIds, (ids) => {

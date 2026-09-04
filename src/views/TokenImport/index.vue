@@ -1,22 +1,32 @@
 <template>
-  <div class="min-h-[calc(100vh-56px)] bg-background py-6 pb-10 max-md:py-3 max-md:pb-6">
+  <div
+    class="min-h-[calc(100vh-56px)] bg-background py-6 pb-10 max-md:py-3 max-md:pb-6"
+  >
     <div class="mx-auto w-full max-w-[1480px] px-6 max-md:px-3">
       <!-- Token导入区域 -->
       <Dialog v-model:open="showImportForm">
         <DialogContent class="max-h-[88vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>添加游戏 Token</DialogTitle>
-            <DialogDescription class="sr-only">选择一种 Token 导入方式</DialogDescription>
+            <DialogDescription class="sr-only">
+              选择一种 Token 导入方式
+            </DialogDescription>
           </DialogHeader>
           <div class="mb-8 flex justify-center max-md:mb-5">
             <!-- 导入方式选择 -->
-            <div class="flex overflow-hidden rounded-md border border-outline-variant bg-surface-container-lowest max-md:hidden">
+            <div
+              class="flex overflow-hidden rounded-md border border-outline-variant bg-surface-container-lowest max-md:hidden"
+            >
               <button
                 v-for="option in importMethodOptions"
                 :key="option.value"
                 class="border-r border-outline-variant px-3 py-2 text-body-sm font-medium transition-colors last:border-r-0"
                 type="button"
-                :class="importMethod === option.value ? 'bg-primary text-on-primary' : 'text-on-surface-variant hover:bg-surface-container-high'"
+                :class="
+                  importMethod === option.value
+                    ? 'bg-primary text-on-primary'
+                    : 'text-on-surface-variant hover:bg-surface-container-high'
+                "
                 @click="importMethod = option.value"
               >
                 {{ option.label }}
@@ -27,7 +37,11 @@
               class="hidden w-full rounded-md border border-outline-variant bg-surface-container-lowest px-3 py-2 text-body-sm text-on-surface outline-none focus:border-primary max-md:block"
               v-model="importMethod"
             >
-              <option v-for="option in importMethodOptions" :key="option.value" :value="option.value">
+              <option
+                v-for="option in importMethodOptions"
+                :key="option.value"
+                :value="option.value"
+              >
                 {{ option.label }}
               </option>
             </select>
@@ -63,12 +77,21 @@
         class="rounded-md border border-border bg-background p-6 max-md:p-3"
         data-testid="token-management-panel"
       >
-        <div class="mb-8 flex flex-wrap items-center justify-between gap-4 max-md:mb-5" data-testid="token-list-header">
-          <div class="flex items-center gap-6 max-md:w-full max-md:items-start max-md:justify-between max-md:gap-3">
-            <h2 class="m-0 text-headline-md font-bold text-on-surface max-md:text-lg">
+        <div
+          class="mb-8 flex flex-wrap items-center justify-between gap-4 max-md:mb-5"
+          data-testid="token-list-header"
+        >
+          <div
+            class="flex items-center gap-6 max-md:w-full max-md:items-start max-md:justify-between max-md:gap-3"
+          >
+            <h2
+              class="m-0 text-headline-md font-bold text-on-surface max-md:text-lg"
+            >
               我的Token列表 ({{ tokenStore.gameTokens.length }}个)
             </h2>
-            <div class="flex overflow-hidden rounded-md border border-outline-variant bg-surface-container-lowest">
+            <div
+              class="flex overflow-hidden rounded-md border border-outline-variant bg-surface-container-lowest"
+            >
               <button
                 class="border-r border-outline-variant px-4 py-1.5 text-body-sm font-medium transition-colors"
                 type="button"
@@ -95,12 +118,22 @@
               </button>
             </div>
           </div>
-          <div aria-label="Token 排序" class="ml-auto flex items-center max-xl:order-3 max-xl:w-full max-xl:overflow-x-auto" data-testid="token-sort-controls">
-            <div class="flex min-w-max overflow-hidden rounded-md border border-outline-variant bg-surface-container-lowest">
+          <div
+            aria-label="Token 排序"
+            class="ml-auto flex items-center max-xl:order-3 max-xl:w-full max-xl:overflow-x-auto"
+            data-testid="token-sort-controls"
+          >
+            <div
+              class="flex min-w-max overflow-hidden rounded-md border border-outline-variant bg-surface-container-lowest"
+            >
               <button
                 class="flex items-center gap-1 border-r border-outline-variant px-3 py-1.5 text-body-sm font-medium transition-colors"
                 type="button"
-                :class="sortConfig.field === 'name' ? 'bg-primary text-on-primary' : 'text-on-surface-variant hover:bg-surface-container-high'"
+                :class="
+                  sortConfig.field === 'name'
+                    ? 'bg-primary text-on-primary'
+                    : 'text-on-surface-variant hover:bg-surface-container-high'
+                "
                 @click="toggleSort('name')"
               >
                 名称 {{ getSortIcon("name") }}
@@ -108,7 +141,11 @@
               <button
                 class="border-r border-outline-variant px-3 py-1.5 text-body-sm font-medium transition-colors"
                 type="button"
-                :class="sortConfig.field === 'server' ? 'bg-primary text-on-primary' : 'text-on-surface-variant hover:bg-surface-container-high'"
+                :class="
+                  sortConfig.field === 'server'
+                    ? 'bg-primary text-on-primary'
+                    : 'text-on-surface-variant hover:bg-surface-container-high'
+                "
                 @click="toggleSort('server')"
               >
                 服务器 {{ getSortIcon("server") }}
@@ -116,7 +153,11 @@
               <button
                 class="border-r border-outline-variant px-3 py-1.5 text-body-sm font-medium transition-colors"
                 type="button"
-                :class="sortConfig.field === 'createdAt' ? 'bg-primary text-on-primary' : 'text-on-surface-variant hover:bg-surface-container-high'"
+                :class="
+                  sortConfig.field === 'createdAt'
+                    ? 'bg-primary text-on-primary'
+                    : 'text-on-surface-variant hover:bg-surface-container-high'
+                "
                 @click="toggleSort('createdAt')"
               >
                 创建时间 {{ getSortIcon("createdAt") }}
@@ -124,14 +165,21 @@
               <button
                 class="px-3 py-1.5 text-body-sm font-medium transition-colors"
                 type="button"
-                :class="sortConfig.field === 'lastUsed' ? 'bg-primary text-on-primary' : 'text-on-surface-variant hover:bg-surface-container-high'"
+                :class="
+                  sortConfig.field === 'lastUsed'
+                    ? 'bg-primary text-on-primary'
+                    : 'text-on-surface-variant hover:bg-surface-container-high'
+                "
                 @click="toggleSort('lastUsed')"
               >
                 最后使用 {{ getSortIcon("lastUsed") }}
               </button>
             </div>
           </div>
-          <div class="flex flex-wrap items-center gap-2 max-md:grid max-md:w-full max-md:grid-cols-2" data-testid="token-header-actions">
+          <div
+            class="flex flex-wrap items-center gap-2 max-md:grid max-md:w-full max-md:grid-cols-2"
+            data-testid="token-header-actions"
+          >
             <button
               v-if="!showImportForm"
               class="flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-label-sm font-semibold text-on-primary transition-[filter] hover:brightness-110"
@@ -168,7 +216,10 @@
           </div>
         </div>
 
-        <div v-if="viewMode === 'card'" class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div
+          v-if="viewMode === 'card'"
+          class="grid grid-cols-1 gap-6 lg:grid-cols-2"
+        >
           <article
             v-for="(token, index) in sortedTokens"
             :key="token.id"
@@ -179,7 +230,9 @@
             @dragstart="handleDragStart(index, $event)"
             @drop="handleDrop(index, $event)"
           >
-            <header class="flex items-center justify-between gap-4 border-b border-outline-variant px-5 py-4">
+            <header
+              class="flex items-center justify-between gap-4 border-b border-outline-variant px-5 py-4"
+            >
               <div class="flex min-w-0 items-center gap-3">
                 <img
                   class="h-10 w-10 shrink-0 rounded-full border border-outline-variant object-cover"
@@ -188,15 +241,29 @@
                 >
                 <div class="min-w-0">
                   <div class="flex min-w-0 items-center gap-2">
-                    <strong class="truncate text-base font-bold text-on-surface">{{ token.name }}</strong>
-                    <span v-if="token.server" class="shrink-0 rounded border border-outline-variant px-2 py-0.5 font-mono text-[11px] text-primary">
+                    <strong
+                      class="truncate text-base font-bold text-on-surface"
+                    >{{ token.name }}</strong>
+                    <span
+                      v-if="token.server"
+                      class="shrink-0 rounded border border-outline-variant px-2 py-0.5 font-mono text-[11px] text-primary"
+                    >
                       {{ token.server }}
                     </span>
                   </div>
-                  <div class="mt-1 flex items-center gap-2 text-xs text-on-surface-variant">
+                  <div
+                    class="mt-1 flex items-center gap-2 text-xs text-on-surface-variant"
+                  >
                     <span
                       class="h-2 w-2 rounded-full"
-                      :class="getConnectionStatus(token.id) === 'connected' ? 'bg-primary' : getConnectionStatus(token.id) === 'connecting' || getConnectionStatus(token.id) === 'disconnecting' ? 'bg-tertiary' : 'bg-error'"
+                      :class="
+                        getConnectionStatus(token.id) === 'connected'
+                          ? 'bg-primary'
+                          : getConnectionStatus(token.id) === 'connecting'
+                            || getConnectionStatus(token.id) === 'disconnecting'
+                            ? 'bg-tertiary'
+                            : 'bg-error'
+                      "
                     ></span>
                     {{ getConnectionStatusText(token.id) }}
                   </div>
@@ -204,13 +271,23 @@
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger as-child>
-                  <button aria-label="更多操作" class="grid h-8 w-8 shrink-0 place-items-center rounded-md text-on-surface-variant hover:bg-surface-container-high hover:text-primary" type="button" @click.stop>
+                  <button
+                    aria-label="更多操作"
+                    class="grid h-8 w-8 shrink-0 place-items-center rounded-md text-on-surface-variant hover:bg-surface-container-high hover:text-primary"
+                    type="button"
+                    @click.stop
+                  >
                     <EllipsisHorizontal class="h-5 w-5"></EllipsisHorizontal>
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <template v-for="action in getTokenActions(token)" :key="action.key || 'separator'">
-                    <DropdownMenuSeparator v-if="action.type === 'divider'"></DropdownMenuSeparator>
+                  <template
+                    v-for="action in getTokenActions(token)"
+                    :key="action.key || 'separator'"
+                  >
+                    <DropdownMenuSeparator
+                      v-if="action.type === 'divider'"
+                    ></DropdownMenuSeparator>
                     <DropdownMenuItem
                       v-else
                       :class="{ 'text-destructive': action.key === 'delete' }"
@@ -225,9 +302,15 @@
             </header>
 
             <div class="space-y-4 p-5">
-              <div class="flex min-w-0 items-center gap-2 rounded-md bg-surface-container px-3 py-2">
-                <span class="shrink-0 text-xs font-medium text-on-surface-variant">Token:</span>
-                <code class="truncate font-mono text-xs text-on-surface">{{ maskToken(token.token) }}</code>
+              <div
+                class="flex min-w-0 items-center gap-2 rounded-md bg-surface-container px-3 py-2"
+              >
+                <span
+                  class="shrink-0 text-xs font-medium text-on-surface-variant"
+                >Token:</span>
+                <code class="truncate font-mono text-xs text-on-surface">{{
+                  maskToken(token.token)
+                }}</code>
               </div>
 
               <!-- 备注信息 -->
@@ -255,26 +338,40 @@
                 @click.stop="startEditRemark(token)"
               >
                 <span class="shrink-0 font-medium text-on-surface">备注：</span>
-                <span class="min-w-0 flex-1 truncate">{{ token.remark || "点击添加备注" }}</span>
+                <span class="min-w-0 flex-1 truncate">{{
+                  token.remark || "点击添加备注"
+                }}</span>
                 <Create class="h-4 w-4 shrink-0"></Create>
               </button>
 
               <div class="grid grid-cols-2 gap-4">
                 <div class="flex flex-col gap-1">
                   <span class="text-xs text-on-surface-variant">创建：</span>
-                  <span class="text-xs text-on-surface">{{ formatTime(token.createdAt) }}</span>
+                  <span class="text-xs text-on-surface">{{
+                    formatTime(token.createdAt)
+                  }}</span>
                 </div>
                 <div class="flex flex-col gap-1">
                   <span class="text-xs text-on-surface-variant">使用：</span>
-                  <span class="text-xs text-on-surface">{{ formatTime(token.lastUsed) }}</span>
+                  <span class="text-xs text-on-surface">{{
+                    formatTime(token.lastUsed)
+                  }}</span>
                 </div>
               </div>
 
               <!-- 存储类型信息 -->
-              <div class="flex flex-wrap items-center justify-between gap-3 border-t border-outline-variant pt-4">
-                <div class="flex items-center gap-2 text-body-sm text-on-surface-variant">
+              <div
+                class="flex flex-wrap items-center justify-between gap-3 border-t border-outline-variant pt-4"
+              >
+                <div
+                  class="flex items-center gap-2 text-body-sm text-on-surface-variant"
+                >
                   <span>存储类型：</span>
-                  <span :class="isPermanentToken(token) ? 'text-primary' : 'text-tertiary'">
+                  <span
+                    :class="
+                      isPermanentToken(token) ? 'text-primary' : 'text-tertiary'
+                    "
+                  >
                     {{ isPermanentToken(token) ? "长期有效" : "临时存储" }}
                   </span>
                 </div>
@@ -304,14 +401,19 @@
             @dragstart="handleDragStart(index, $event)"
             @drop="handleDrop(index, $event)"
           >
-            <div class="flex min-w-0 flex-1 items-center gap-12 max-xl:w-full max-md:grid max-md:grid-cols-[88px_minmax(0,1fr)] max-md:gap-x-3 max-md:gap-y-4">
-              <div class="flex min-w-[100px] items-center gap-2 text-body-sm font-medium text-on-surface max-md:min-w-0 max-md:text-xs">
+            <div
+              class="flex min-w-0 flex-1 items-center gap-12 max-xl:w-full max-md:grid max-md:grid-cols-[88px_minmax(0,1fr)] max-md:gap-x-3 max-md:gap-y-4"
+            >
+              <div
+                class="flex min-w-[100px] items-center gap-2 text-body-sm font-medium text-on-surface max-md:min-w-0 max-md:text-xs"
+              >
                 <span
                   class="h-2 w-2 shrink-0 rounded-full"
                   :class="
                     getConnectionStatus(token.id) === 'connected'
                       ? 'bg-primary'
-                      : getConnectionStatus(token.id) === 'connecting' || getConnectionStatus(token.id) === 'disconnecting'
+                      : getConnectionStatus(token.id) === 'connecting'
+                        || getConnectionStatus(token.id) === 'disconnecting'
                         ? 'bg-tertiary'
                         : 'bg-error'
                   "
@@ -326,7 +428,9 @@
                   :src="token.avatar || '/icons/xiaoyugan.png'"
                 >
                 <div class="flex min-w-0 items-center gap-2">
-                  <strong class="max-w-28 truncate text-[15px] font-bold text-on-surface">{{ token.name }}</strong>
+                  <strong
+                    class="max-w-28 truncate text-[15px] font-bold text-on-surface"
+                  >{{ token.name }}</strong>
                   <span
                     v-if="token.server"
                     class="shrink-0 rounded border px-2 py-0.5 font-mono text-[11px] leading-[1.4]"
@@ -341,7 +445,10 @@
                 </div>
               </div>
 
-              <div class="min-w-[140px] max-w-xs flex-1 max-md:col-span-2 max-md:w-full max-md:max-w-none" @click.stop>
+              <div
+                class="min-w-[140px] max-w-xs flex-1 max-md:col-span-2 max-md:w-full max-md:max-w-none"
+                @click.stop
+              >
                 <input
                   v-if="editingRemark === token.id"
                   autofocus
@@ -360,13 +467,18 @@
                   @click="startEditRemark(token)"
                 >
                   <DocumentIcon class="h-4 w-4 shrink-0"></DocumentIcon>
-                  <span class="truncate">{{ token.remark || "点击添加备注" }}</span>
+                  <span class="truncate">{{
+                    token.remark || "点击添加备注"
+                  }}</span>
                   <Create class="h-3 w-3 shrink-0"></Create>
                 </button>
               </div>
             </div>
 
-            <div class="flex shrink-0 items-center gap-3 max-xl:w-full max-xl:justify-end max-md:justify-start max-md:gap-2" @click.stop>
+            <div
+              class="flex shrink-0 items-center gap-3 max-xl:w-full max-xl:justify-end max-md:justify-start max-md:gap-2"
+              @click.stop
+            >
               <button
                 v-if="!isPermanentToken(token)"
                 class="min-w-14 px-2 text-center text-body-sm font-semibold text-tertiary hover:underline max-md:px-0 max-md:text-left"
@@ -375,7 +487,10 @@
               >
                 临时 · 升级
               </button>
-              <span v-else class="min-w-14 px-2 text-center text-body-sm font-semibold text-primary max-md:px-0 max-md:text-left">长期</span>
+              <span
+                v-else
+                class="min-w-14 px-2 text-center text-body-sm font-semibold text-primary max-md:px-0 max-md:text-left"
+              >长期</span>
 
               <DropdownMenu>
                 <DropdownMenuTrigger as-child>
@@ -388,8 +503,13 @@
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <template v-for="action in getTokenActions(token)" :key="action.key || 'separator'">
-                    <DropdownMenuSeparator v-if="action.type === 'divider'"></DropdownMenuSeparator>
+                  <template
+                    v-for="action in getTokenActions(token)"
+                    :key="action.key || 'separator'"
+                  >
+                    <DropdownMenuSeparator
+                      v-if="action.type === 'divider'"
+                    ></DropdownMenuSeparator>
                     <DropdownMenuItem
                       v-else
                       :class="{ 'text-destructive': action.key === 'delete' }"
@@ -411,11 +531,18 @@
         v-if="!tokenStore.hasTokens && !showImportForm"
         class="flex min-h-[clamp(360px,62vh,620px)] flex-col items-center justify-center rounded-md border border-dashed border-border bg-background px-6 py-12 text-center max-md:min-h-[calc(100vh-110px)] max-md:px-5 max-md:py-9"
       >
-        <div aria-hidden="true" class="mb-5 grid h-14 w-14 place-items-center rounded-md border border-border bg-muted text-foreground">
+        <div
+          aria-hidden="true"
+          class="mb-5 grid h-14 w-14 place-items-center rounded-md border border-border bg-muted text-foreground"
+        >
           <KeyIcon class="h-6 w-6"></KeyIcon>
         </div>
         <h2 class="m-0 text-2xl font-bold text-on-surface">暂无 Token</h2>
-        <p class="mb-6 mt-2.5 max-w-[420px] text-body-sm text-on-surface-variant">添加 Token 后即可管理单个角色或执行批量任务</p>
+        <p
+          class="mb-6 mt-2.5 max-w-[420px] text-body-sm text-on-surface-variant"
+        >
+          添加 Token 后即可管理单个角色或执行批量任务
+        </p>
         <button
           class="flex items-center justify-center gap-2 rounded-md bg-primary px-5 py-2.5 text-label-sm font-semibold text-on-primary hover:brightness-110"
           type="button"
@@ -432,7 +559,9 @@
       <DialogContent class="max-w-lg">
         <DialogHeader>
           <DialogTitle>编辑 Token</DialogTitle>
-          <DialogDescription class="sr-only">编辑当前 Token 的账号和连接信息</DialogDescription>
+          <DialogDescription class="sr-only">
+            编辑当前 Token 的账号和连接信息
+          </DialogDescription>
         </DialogHeader>
         <form class="grid gap-4" @submit.prevent="saveEdit">
           <div class="grid gap-2">
@@ -441,7 +570,13 @@
           </div>
           <div class="grid gap-2">
             <Label for="token-value">Token 字符串</Label>
-            <Textarea id="token-value" required placeholder="粘贴 Token 字符串..." rows="3" v-model="editForm.token"></Textarea>
+            <Textarea
+              id="token-value"
+              required
+              placeholder="粘贴 Token 字符串..."
+              rows="3"
+              v-model="editForm.token"
+            ></Textarea>
           </div>
           <div class="grid gap-2 sm:grid-cols-2">
             <div class="grid gap-2">
@@ -455,10 +590,21 @@
           </div>
           <div class="grid gap-2">
             <Label for="token-remark">备注</Label>
-            <Textarea id="token-remark" placeholder="添加备注信息..." rows="2" v-model="editForm.remark"></Textarea>
+            <Textarea
+              id="token-remark"
+              placeholder="添加备注信息..."
+              rows="2"
+              v-model="editForm.remark"
+            ></Textarea>
           </div>
           <DialogFooter class="mt-2">
-            <Button type="button" variant="outline" @click="showEditModal = false">取消</Button>
+            <Button
+              type="button"
+              variant="outline"
+              @click="showEditModal = false"
+            >
+              取消
+            </Button>
             <Button type="submit">保存</Button>
           </DialogFooter>
         </form>
@@ -992,7 +1138,7 @@ const handleUrlParams = async () => {
           tokenStore.focusToken(tokenResult.token.id);
           message.success("正在进入账号详情...");
           setTimeout(() => {
-            router.push("/admin/game-features");
+            router.push({ name: "RoleManagement" });
           }, 1500);
         } else {
           // 清除URL参数，避免重复处理

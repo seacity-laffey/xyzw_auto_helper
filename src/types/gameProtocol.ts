@@ -2,10 +2,7 @@ import type { Ref } from "vue";
 
 export type GameCommandParams = Record<string, unknown>;
 
-export type BinaryBody =
-  | Uint8Array
-  | number[]
-  | Record<string, number>;
+export type BinaryBody = Uint8Array | number[] | Record<string, number>;
 
 export interface GamePacket {
   cmd?: string;
@@ -60,10 +57,7 @@ export interface RoleResponseBody {
 }
 
 export type StatisticsSource =
-  | Map<string, unknown>
-  | Record<string, unknown>
-  | null
-  | undefined;
+  Map<string, unknown> | Record<string, unknown> | null | undefined;
 
 export interface StudyQuestion {
   id: number;
@@ -113,7 +107,8 @@ export interface StudyStatus {
   isAnswering?: boolean;
   questionCount?: number;
   answeredCount?: number;
-  status?: "" | "starting" | "answering" | "claiming_rewards" | "completed" | string;
+  status?:
+    "" | "starting" | "answering" | "claiming_rewards" | "completed" | string;
   timestamp?: number | null;
   thisWeek?: boolean;
   isCompleted?: boolean;
@@ -134,7 +129,6 @@ export interface GameData {
   roleInfo: RoleResponseBody | null;
   legionInfo: GameResponseBody | null;
   commonActivityInfo: GameResponseBody | null;
-  bossTowerInfo: GameResponseBody | null;
   evoTowerInfo: GameResponseBody | null;
   presetTeam: Record<string, unknown> | null;
   battleVersion: number | null;

@@ -1,12 +1,20 @@
 <template>
-  <div class="batch-daily-tasks h-screen min-h-screen overflow-hidden bg-background p-0 text-foreground max-md:h-auto max-md:min-h-[calc(100vh-56px)] max-md:overflow-visible">
+  <div
+    class="batch-daily-tasks h-screen min-h-screen overflow-hidden bg-background p-0 text-foreground max-md:h-auto max-md:min-h-[calc(100vh-56px)] max-md:overflow-visible"
+  >
     <header
       class="flex min-h-20 items-center justify-between gap-6 border-b border-border bg-background px-6 py-3 max-xl:flex-wrap max-md:gap-4 max-md:px-3"
       data-testid="batch-control-header"
     >
-      <div class="flex min-w-0 items-center gap-8 max-md:w-full max-md:justify-between max-md:gap-3">
+      <div
+        class="flex min-w-0 items-center gap-8 max-md:w-full max-md:justify-between max-md:gap-3"
+      >
         <div class="shrink-0 max-md:hidden">
-          <h2 class="m-0 whitespace-nowrap text-2xl font-extrabold text-on-surface max-md:text-xl">批量日常任务</h2>
+          <h2
+            class="m-0 whitespace-nowrap text-2xl font-extrabold text-on-surface max-md:text-xl"
+          >
+            批量日常任务
+          </h2>
           <div class="mt-1 flex items-center gap-2">
             <span class="h-2 w-2 rounded-full bg-primary"></span>
             <span class="text-[10px] font-bold uppercase text-primary">
@@ -14,7 +22,9 @@
             </span>
           </div>
         </div>
-        <div class="h-10 w-px bg-[color-mix(in_srgb,var(--outline-variant)_30%,transparent)] max-md:hidden"></div>
+        <div
+          class="h-10 w-px bg-[color-mix(in_srgb,var(--outline-variant)_30%,transparent)] max-md:hidden"
+        ></div>
         <button
           class="flex h-10 items-center gap-2 rounded-md border border-border bg-background px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
           type="button"
@@ -25,7 +35,9 @@
           <span>账号工具</span>
           <small class="text-muted-foreground">{{ selectedTokens.length }}/{{ tokens.length }}</small>
         </button>
-        <div class="flex items-center gap-1 rounded-md border border-border bg-background p-1">
+        <div
+          class="flex items-center gap-1 rounded-md border border-border bg-background p-1"
+        >
           <button
             class="flex items-center gap-2 whitespace-nowrap rounded-sm bg-primary px-4 py-2 text-sm font-semibold text-on-primary transition-colors hover:bg-[color-mix(in_srgb,var(--primary)_88%,transparent)] disabled:cursor-not-allowed disabled:opacity-50 max-md:px-3"
             type="button"
@@ -48,27 +60,74 @@
       </div>
 
       <div class="flex items-center gap-3 max-md:w-full max-md:justify-end">
-        <div class="flex items-center gap-1.5 rounded-md border border-border bg-background px-2 py-1" data-testid="batch-tool-cluster">
-          <button aria-label="新增定时任务" class="batch-tool-button" title="新增定时任务" type="button" @click="schedulerManagerRef?.openNew()">
+        <div
+          class="flex items-center gap-1.5 rounded-md border border-border bg-background px-2 py-1"
+          data-testid="batch-tool-cluster"
+        >
+          <button
+            aria-label="新增定时任务"
+            class="batch-tool-button"
+            title="新增定时任务"
+            type="button"
+            @click="schedulerManagerRef?.openNew()"
+          >
             <Add class="h-5 w-5"></Add>
           </button>
-          <button aria-label="查看定时任务" class="batch-tool-button" title="查看定时任务" type="button" @click="schedulerManagerRef?.openList()">
+          <button
+            aria-label="查看定时任务"
+            class="batch-tool-button"
+            title="查看定时任务"
+            type="button"
+            @click="schedulerManagerRef?.openList()"
+          >
             <CalendarOutline class="h-5 w-5"></CalendarOutline>
           </button>
-          <button aria-label="任务模板" class="batch-tool-button" title="任务模板" type="button" @click="showTemplateManagerModal = true">
+          <button
+            aria-label="任务模板"
+            class="batch-tool-button"
+            title="任务模板"
+            type="button"
+            @click="showTemplateManagerModal = true"
+          >
             <DocumentTextOutline class="h-5 w-5"></DocumentTextOutline>
           </button>
-          <span class="mx-1 h-5 w-px bg-[color-mix(in_srgb,var(--outline-variant)_20%,transparent)]"></span>
-          <button aria-label="导出配置" class="batch-tool-button" title="导出配置" type="button" @click="exportConfig">
+          <span
+            class="mx-1 h-5 w-px bg-[color-mix(in_srgb,var(--outline-variant)_20%,transparent)]"
+          ></span>
+          <button
+            aria-label="导出配置"
+            class="batch-tool-button"
+            title="导出配置"
+            type="button"
+            @click="exportConfig"
+          >
             <CloudUploadOutline class="h-5 w-5"></CloudUploadOutline>
           </button>
-          <n-upload accept=".json" class="batch-tool-upload" :custom-request="importConfig" :show-file-list="false">
-            <button aria-label="导入配置" class="batch-tool-button" title="导入配置" type="button">
+          <n-upload
+            accept=".json"
+            class="batch-tool-upload"
+            :custom-request="importConfig"
+            :show-file-list="false"
+          >
+            <button
+              aria-label="导入配置"
+              class="batch-tool-button"
+              title="导入配置"
+              type="button"
+            >
               <CloudDownloadOutline class="h-5 w-5"></CloudDownloadOutline>
             </button>
           </n-upload>
-          <span class="mx-1 h-5 w-px bg-[color-mix(in_srgb,var(--outline-variant)_20%,transparent)]"></span>
-          <button aria-label="批量设置" class="batch-tool-button" title="批量设置" type="button" @click="openBatchSettings">
+          <span
+            class="mx-1 h-5 w-px bg-[color-mix(in_srgb,var(--outline-variant)_20%,transparent)]"
+          ></span>
+          <button
+            aria-label="批量设置"
+            class="batch-tool-button"
+            title="批量设置"
+            type="button"
+            @click="openBatchSettings"
+          >
             <Settings class="h-5 w-5"></Settings>
           </button>
         </div>
@@ -90,11 +149,15 @@
     <div
       class="grid h-[calc(100%-80px)] min-h-0 gap-y-6 overflow-hidden p-6 transition-[grid-template-columns,column-gap] duration-300 ease-out max-lg:h-auto max-lg:overflow-visible max-md:gap-y-4 max-md:p-3"
       data-testid="batch-workspace"
-      :class="showLogPanel
-        ? 'grid-cols-[minmax(0,1fr)_384px] gap-x-6 max-xl:grid-cols-[minmax(0,1fr)_340px] max-lg:grid-cols-1 max-md:gap-x-0'
-        : 'grid-cols-[minmax(0,1fr)_0px] gap-x-0 max-lg:grid-cols-1'"
+      :class="
+        showLogPanel
+          ? 'grid-cols-[minmax(0,1fr)_384px] gap-x-6 max-xl:grid-cols-[minmax(0,1fr)_340px] max-lg:grid-cols-1 max-md:gap-x-0'
+          : 'grid-cols-[minmax(0,1fr)_0px] gap-x-0 max-lg:grid-cols-1'
+      "
     >
-      <div class="flex min-w-0 flex-col gap-6 overflow-hidden max-lg:overflow-visible max-md:gap-4">
+      <div
+        class="flex min-w-0 flex-col gap-6 overflow-hidden max-lg:overflow-visible max-md:gap-4"
+      >
         <BatchAccountPanel
           v-if="showAccountTools"
           v-model:selected-tokens="selectedTokens"
@@ -520,10 +583,7 @@
           </div>
         </div>
         <div class="modal-actions" style="margin-top: 20px; text-align: right">
-          <n-button
-            style="margin-right: 12px"
-            @click="showHelperModal = false"
-          >
+          <n-button style="margin-right: 12px" @click="showHelperModal = false">
             取消
           </n-button>
           <n-button type="primary" @click="executeHelper">开始执行</n-button>
@@ -582,10 +642,7 @@
           >
             取消
           </n-button>
-          <n-button
-            type="primary"
-            @click="saveDreamBuyConfig"
-          >
+          <n-button type="primary" @click="saveDreamBuyConfig">
             保存配置
           </n-button>
         </div>
@@ -603,10 +660,7 @@
         <n-grid :cols="2" :x-gap="24">
           <!-- 左列：批量操作设置 -->
           <n-grid-item>
-            <n-divider
-              style="margin: 1px 0 8px 0"
-              title-placement="left"
-            >
+            <n-divider style="margin: 1px 0 8px 0" title-placement="left">
               批量操作设置
             </n-divider>
             <div class="settings-grid">
@@ -723,18 +777,12 @@
                 "
               >
                 <label class="setting-label">梦境商品购买配置</label>
-                <n-button
-                  size="small"
-                  @click="openDreamBuyModal"
-                >
+                <n-button size="small" @click="openDreamBuyModal">
                   点击配置
                 </n-button>
               </div>
             </div>
-            <n-divider
-              style="margin: 12px 0 8px 0"
-              title-placement="left"
-            >
+            <n-divider style="margin: 12px 0 8px 0" title-placement="left">
               功法赠送设置
             </n-divider>
             <div class="settings-grid">
@@ -776,10 +824,7 @@
           </n-grid-item>
           <!-- 右列：延迟与连接设置 -->
           <n-grid-item>
-            <n-divider
-              style="margin: 1px 0 8px 0"
-              title-placement="left"
-            >
+            <n-divider style="margin: 1px 0 8px 0" title-placement="left">
               延迟设置(ms)
             </n-divider>
             <div class="settings-grid">
@@ -892,10 +937,7 @@
                 ></n-input-number>
               </div>
             </div>
-            <n-divider
-              style="margin: 12px 0 8px 0"
-              title-placement="left"
-            >
+            <n-divider style="margin: 12px 0 8px 0" title-placement="left">
               连接设置
             </n-divider>
             <div class="settings-grid">
@@ -954,10 +996,7 @@
                 ></n-input-number>
               </div>
             </div>
-            <n-divider
-              style="margin: 12px 0 8px 0"
-              title-placement="left"
-            >
+            <n-divider style="margin: 12px 0 8px 0" title-placement="left">
               系统设置
             </n-divider>
             <div class="settings-grid">
@@ -1006,7 +1045,9 @@
                 "
               >
                 <label class="setting-label">定时刷新页面</label>
-                <n-switch v-model:value="batchSettings.enableRefresh"></n-switch>
+                <n-switch
+                  v-model:value="batchSettings.enableRefresh"
+                ></n-switch>
               </div>
               <div
                 v-if="batchSettings.enableRefresh"
@@ -1037,10 +1078,7 @@
           >
             取消
           </n-button>
-          <n-button
-            type="primary"
-            @click="saveBatchSettings"
-          >
+          <n-button type="primary" @click="saveBatchSettings">
             保存设置
           </n-button>
         </div>
@@ -1183,10 +1221,7 @@
               <span style="font-size: 13px; font-weight: bold">包含账号 ({{ newGroupSelectedTokens.length }})</span>
               <n-space size="small">
                 <n-button size="tiny" @click="selectAllNewGroup">全选</n-button>
-                <n-button
-                  size="tiny"
-                  @click="deselectAllNewGroup"
-                >
+                <n-button size="tiny" @click="deselectAllNewGroup">
                   全不选
                 </n-button>
               </n-space>
@@ -1674,7 +1709,9 @@ watch(
   tokens,
   (currentTokens) => {
     const validTokenIds = new Set(currentTokens.map((token) => token.id));
-    selectedTokens.value = selectedTokens.value.filter((tokenId) => validTokenIds.has(tokenId));
+    selectedTokens.value = selectedTokens.value.filter((tokenId) =>
+      validTokenIds.has(tokenId),
+    );
   },
   { immediate: true },
 );
@@ -1712,9 +1749,8 @@ const openSelectedGames = async () => {
 
     if (skippedNames.length > 0) {
       const names = skippedNames.slice(0, 3).join("、");
-      const remaining = skippedNames.length > 3
-        ? ` 等 ${skippedNames.length} 个账号`
-        : "";
+      const remaining
+        = skippedNames.length > 3 ? ` 等 ${skippedNames.length} 个账号` : "";
       message.warning(`已跳过缺少 BIN 数据的账号：${names}${remaining}`);
     }
 
@@ -1968,7 +2004,7 @@ const batchSettings = reactive({
   commandDelay: 500, // 命令间延迟
   taskDelay: 500, // 任务间延迟
   actionDelay: 300, // 一般操作延迟（开箱、钓鱼、招募等）
-  battleDelay: 500, // 战斗延迟（宝库、竞技场等）
+  battleDelay: 500, // 战斗延迟（竞技场等）
   refreshDelay: 1000, // 刷新类任务延迟
   longDelay: 3000, // 长延迟（功法赠送等）
   // 其他配置
@@ -2131,8 +2167,7 @@ const saveScheduledTask = ({ task, isNew }) => {
   const index = scheduledTasks.value.findIndex((item) => item.id === task.id);
   if (index >= 0)
     scheduledTasks.value[index] = task;
-  else
-    scheduledTasks.value.push(task);
+  else scheduledTasks.value.push(task);
   saveScheduledTasks();
   addTaskSaveLog(task, isNew, addLog);
   message.success("定时任务已保存");
@@ -3224,10 +3259,12 @@ const currentProgress = ref(0);
 const logs = ref([]);
 const showLogPanel = ref(true);
 const completedTokenCount = computed(
-  () => Object.values(tokenStatus.value).filter((status) => status === "completed").length,
+  () =>
+    Object.values(tokenStatus.value).filter((status) => status === "completed").length,
 );
 const failedTokenCount = computed(
-  () => Object.values(tokenStatus.value).filter((status) => status === "failed").length,
+  () =>
+    Object.values(tokenStatus.value).filter((status) => status === "failed").length,
 );
 
 const currentRunningTokenName = computed(() => {
@@ -3858,7 +3895,9 @@ const stopBatch = () => {
   place-items: center;
   color: var(--on-surface-variant);
   border-radius: var(--radius);
-  transition: color 160ms ease, background 160ms ease;
+  transition:
+    color 160ms ease,
+    background 160ms ease;
 }
 
 .batch-tool-upload {
@@ -3886,7 +3925,6 @@ const stopBatch = () => {
     width: 34px;
     flex-basis: 34px;
   }
-
 }
 
 .main-layout {
