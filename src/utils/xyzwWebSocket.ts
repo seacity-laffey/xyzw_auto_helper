@@ -7,6 +7,7 @@
 import { $CacheManager } from "@/stores/cache";
 import { g_utils } from "./bonProtocol";
 import { gameLogger, wsLogger } from "./logger";
+import { resolveOriginalResponseCommands } from "./webSocketResponse.js";
 import type {
   GameCommandParams,
   GamePacket,
@@ -1274,12 +1275,10 @@ export class XyzwWebSocketClient {
 
     // 获取原始命令名（支持一对一和一对多映射）
     // 使用小写进行映射匹配，兼容服务端大小写差异
-    let originalCmds = responseToCommandMap[respCmdKey];
-    if (!originalCmds) {
-      originalCmds = [respCmdKey]; // 如果没有映射，使用响应命令本身（小写）
-    } else if (typeof originalCmds === "string") {
-      originalCmds = [originalCmds]; // 转换为数组
-    }
+    const originalCmds = resolveOriginalResponseCommands(
+      respCmdKey,
+      responseToCommandMap,
+    );
 
     // 查找对应的 Promise - 遍历所有等待中的 Promise（向后兼容）
     for (const [requestId, promiseData] of Object.entries(this.promises)) {
