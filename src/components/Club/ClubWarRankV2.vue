@@ -77,6 +77,10 @@ import {
   sortClubRanksByDominantAlliance,
 } from "@/utils/clubWarRankData";
 import {
+  buildClubPlayerInfo,
+  extractClubHeroInfo,
+} from "@/utils/clubPlayerInfo";
+import {
   getLastSaturday,
   formatTimestamp1,
 } from "@/utils/clubBattleUtils";
@@ -305,22 +309,8 @@ const selectHeroInfo = (heroInfo) => {
   heroModealTemp.value = heroInfo;
 };
 
-// 获取装备信息红数和孔�?
-const getEquipment = (equipment) => {
-  let redCount = 0;
-  let holeCount = 0;
-  //遍历4件装�?
-  Object.values(equipment).forEach((equ) => {
-    //遍历每件装备的属�?
-    Object.values(equ.quenches).forEach((item) => {
-      holeCount++;
-      if (item.colorId == 6) {
-        redCount++;
-      }
-    });
-  });
-  return { redCount, holeCount };
-};
+const getHeroInfo = (heroes) =>
+  extractClubHeroInfo(heroes, HERO_DICT);
 
 const formatDateTime = (date) => {
   const pad = (value) => String(value).padStart(2, "0");
@@ -404,84 +394,6 @@ const saltTableColumns = createClubWarRankColumns({
   manualRankings,
 });
 
-// 提取英雄信息
-const getHeroInfo = (heroObj) => {
-  //统计总红�?
-  let redCount = 0;
-  let holeCount = 0;
-  let heroList = [];
-
-  try {
-    // 检查英雄数据结构，确保可以遍历
-    let heroesToProcess = [];
-
-    if (Array.isArray(heroObj)) {
-      // 如果是数组，直接使用
-      heroesToProcess = heroObj;
-    } else if (typeof heroObj === "object" && heroObj !== null) {
-      // 如果是对象，转换为数�?
-      heroesToProcess = Object.values(heroObj);
-    } else {
-      console.error("英雄数据格式错误:", typeof heroObj);
-      return { redCount, holeCount, heroList };
-    }
-
-    console.log("待处理的英雄数量:", heroesToProcess.length);
-
-    heroesToProcess.forEach((hero, index) => {
-      console.log(`处理第${index + 1} 个英雄`, hero);
-
-      // 跳过无效英雄数据
-      if (!hero) return;
-
-      let heroInfo = HERO_DICT[hero.heroId] || {};
-      let equipmentInfo = hero.equipment
-        ? getEquipment(hero.equipment)
-        : { redCount: 0, holeCount: 0 };
-
-      // 检查英雄基本信�?
-      const heroId = hero.heroId || `unknown_${index}`;
-      const heroName = hero.heroName || heroInfo.name || `未知武将_${index}`;
-
-      let tempObj = {
-        heroId: heroId, //英雄ID
-        artifactId: hero.artifactId || "", //英雄装备ID，用于匹配鱼灵信�?
-        power: hero.power || 0, //英雄战力
-        star: hero.star || 0, //英雄星级
-        equipment: hero.equipment, //英雄具体孔数和红�?
-        heroName: heroName, //英雄姓名
-        heroAvate: hero.heroAvate || heroInfo.avatar || "",
-        level: hero.level || 0, //英雄等级
-        hole: equipmentInfo.holeCount, //英雄开孔数�?
-        red: equipmentInfo.redCount, //英雄红数
-        HolyBeast: hero.hB?.active === true, //激活四�?
-        HBlevel: hero.hB?.order || 0, //四圣等级
-        // 添加英雄详情信息
-        skillList: hero.skillList || [],
-        attributeList: hero.attributeList || [],
-        battleTeamSlot: hero.battleTeamSlot, //阵容站位
-      };
-
-      // 只添加有效的英雄
-      if (heroId && heroName) {
-        redCount += tempObj.red;
-        holeCount += tempObj.hole;
-        heroList.push(tempObj);
-        console.log(
-          `添加英雄: ${tempObj.heroName}, 战力: ${tempObj.power}, 红数: ${tempObj.red}, 开孔数: ${tempObj.hole}`,
-        );
-      }
-    });
-
-    console.log("处理完成的英雄列表", heroList);
-  } catch (error) {
-    console.error("处理英雄信息时发生错误", error);
-    heroList = [];
-  }
-  heroList.sort((a, b) => a.battleTeamSlot - b.battleTeamSlot);
-  return { redCount, holeCount, heroList };
-};
-
 const getLineupTagStyle = (lineupType) => {
   const rule = LINEUP_RULES.find((item) => item.name === lineupType);
   const colorProps = rule?.colorProps || {
@@ -543,115 +455,17 @@ const fetchTargetInfo = async (roleId) => {
       5000,
     );
 
-    // 调试信息
-    console.log("rank_getroleinfo API返回结果:", result);
-
-    if (!result.roleInfo) {
+    const playerData = buildClubPlayerInfo(roleId, result, {
+      fillPearls: HeroFillInfo,
+      formatPower,
+      heroDict: HERO_DICT,
+    });
+    if (!playerData) {
       message.warning("未查询到对手信息");
-      console.log("未查询到roleInfo");
       return;
     }
-
-    // 构建玩家信息对象
-    console.log("构建玩家信息 - result.roleInfo:", result.roleInfo);
-    console.log(
-      "构建玩家信息 - result.roleInfo.heroes:",
-      result.roleInfo.heroes,
-    );
-    console.log("构建玩家信息 - result.legionInfo:", result.legionInfo);
-
-    // 检查英雄数据类型和结构
-    console.log("英雄数据类型:", typeof result.roleInfo.heroes);
-    if (result.roleInfo.heroes) {
-      console.log("英雄数据是否为数组", Array.isArray(result.roleInfo.heroes));
-      console.log(
-        "英雄数据是否为对象",
-        typeof result.roleInfo.heroes === "object",
-      );
-      console.log("英雄数据键名:", Object.keys(result.roleInfo.heroes));
-    }
-
-    // 处理鱼灵信息
-    const fishInfo = HeroFillInfo(result.roleInfo);
-    console.log("处理后的鱼灵信息:", fishInfo);
-
-    // 获取英雄信息
-    let heroAndholdAndRed = { redCount: 0, holeCount: 0, heroList: [] };
-    if (result.roleInfo.heroes) {
-      try {
-        heroAndholdAndRed = getHeroInfo(result.roleInfo.heroes);
-        console.log("处理后的英雄信息:", heroAndholdAndRed);
-      } catch (error) {
-        console.error("处理英雄信息失败:", error);
-        heroAndholdAndRed = { redCount: 0, holeCount: 0, heroList: [] };
-      }
-    }
-
-    // 将鱼灵信息添加到英雄列表�?
-    heroAndholdAndRed.heroList.forEach((hero) => {
-      hero.PearlInfo = fishInfo[hero.artifactId] || {};
-    });
-
-    // 调试英雄列表
-    console.log("最终英雄列表", heroAndholdAndRed.heroList);
-    console.log("英雄列表长度:", heroAndholdAndRed.heroList.length);
-
-    // 计算总红数和总开孔数
-    const totalRedCount = heroAndholdAndRed.redCount;
-    const totalHoleCount = heroAndholdAndRed.holeCount;
-
-    // 从角色信息中获取红淬数据
-    const roleRedQuench = result.roleInfo.red || 0;
-    const roleMaxRed = result.roleInfo.maxRed || 0;
-
-    // 从俱乐部信息中获取红淬数据（如果有）
-    const legionRedQuench =
-      result.legionInfo?.statistics?.["battle:red:quench"] || roleRedQuench;
-    const legionMaxRed =
-      result.legionInfo?.statistics?.["red:quench"] || roleMaxRed;
-    const legionMaxPower =
-      result.legionInfo?.statistics?.["max:power"] ||
-      result.roleInfo.maxPower ||
-      0;
-
-    const playerData = {
-      id: roleId,
-      name: result.roleInfo.name,
-      headImg: result.roleInfo.headImg,
-      power: result.roleInfo.power,
-      level: result.roleInfo.level,
-      serverName: result.roleInfo.serverName,
-      legionName: result.legionInfo?.name || "无",
-      // 显示角色的红淬数
-      redQuench: roleRedQuench,
-      // 四圣数统�?
-      holyBeast: heroAndholdAndRed.heroList.filter((hero) => hero.HolyBeast)
-        .length,
-      // 俱乐部历史最高战�?
-      maxPower: formatPower(legionMaxPower),
-      // 当前红鼓和最大红�?
-      currentRedDrum: roleRedQuench,
-      maxRedDrum: roleMaxRed,
-      // 总红数和总开孔数
-      totalRedCount: totalRedCount,
-      totalHoleCount: totalHoleCount,
-      // 俱乐部红淬数�?
-      legionRedQuench: legionRedQuench,
-      legionMaxRed: legionMaxRed,
-      // 英雄列表
-      heroList: heroAndholdAndRed.heroList,
-      legacy: result.roleInfo.legacy?.color || 0, // 功法等级
-    };
-
-    console.log("构建完成的玩家数据", playerData);
-
-    // 更新状态并显示模态框
     playerInfo.value = playerData;
-    console.log("设置playerInfo后的值", playerInfo.value);
-
     showPlayerInfoModal.value = true;
-    console.log("设置showPlayerInfoModal后的值", showPlayerInfoModal.value);
-
     message.success("查询成功");
   } catch (error) {
     message.error(`查询失败: ${error.message}`);
@@ -790,8 +604,6 @@ const handleDuel = async () => {
         },
         10000,
       );
-
-      console.log(`第${i + 1} 场切磋结果`, result);
 
       if (result && result.battleData) {
         // 处理掉将情况
