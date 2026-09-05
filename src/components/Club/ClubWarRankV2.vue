@@ -73,6 +73,10 @@ import ClubWarRankingTable from "@/components/Club/ClubWarRankingTable.vue";
 import ClubWarRankToolbar from "@/components/Club/ClubWarRankToolbar.vue";
 import { createClubWarRankColumns } from "@/composables/createClubWarRankColumns";
 import {
+  loadClubWarRankDetails,
+  sortClubRanksByDominantAlliance,
+} from "@/utils/clubWarRankData";
+import {
   getLastSaturday,
   formatTimestamp1,
 } from "@/utils/clubBattleUtils";
@@ -1087,6 +1091,33 @@ const clearSaltTableState = () => {
   editingSortOrder.value = [];
 };
 
+const createRankDetailLoaders = (tokenId) => ({
+  fetchClubDetail: (legionId) =>
+    tokenStore.sendMessageWithPromise(
+      tokenId,
+      "legion_getinfobyid",
+      { legionId },
+      5000,
+    ),
+  fetchRoleInfo: (roleId) =>
+    tokenStore.sendMessageWithPromise(
+      tokenId,
+      "rank_getroleinfo",
+      {
+        bottleType: 0,
+        includeBottleTeam: false,
+        isSearch: false,
+        roleId,
+      },
+      5000,
+    ),
+  getHeroInfo,
+  getLineupType,
+  onClubError: (club, error) => {
+    console.error(`查询俱乐部${club.id}详情失败:`, error);
+  },
+});
+
 // 查询战绩
 const fetchBattleRecords1 = async (requestTokenId = selectedTokenId.value) => {
   if (!inputDate1.value) {
@@ -1153,173 +1184,14 @@ const fetchBattleRecords1 = async (requestTokenId = selectedTokenId.value) => {
         return;
       }
       ScoreShow.value = 1;
-      const detailPromises = result.opponentList.map(async (club) => {
-        try {
-          const detail = await tokenStore.sendMessageWithPromise(
-            tokenId,
-            "legion_getinfobyid",
-            { legionId: club.id },
-            5000,
-          );
-          if (!detail) {
-            return {
-              ...club,
-              redQuench: 0,
-              power: 0,
-              announcement: "未知",
-              redno: 0,
-              redno1: "0红",
-              redno2: "0红",
-              redno3: "0红",
-              hb1: 0,
-              hb2: 0,
-              hb3: 0,
-              topHeroes: [],
-              level: 30,
-            };
-          }
-          const topHeroes = [];
-
-          for (const [roleId, memberData] of Object.entries(
-            detail?.legionData?.members,
-          )) {
-            const tempRoleInfo = await tokenStore.sendMessageWithPromise(
-              tokenId,
-              "rank_getroleinfo",
-              {
-                bottleType: 0,
-                includeBottleTeam: false,
-                isSearch: false,
-                roleId: roleId,
-              },
-              5000,
-            );
-
-            let holyBeast = 0;
-            for (const heroData of Object.values(
-              tempRoleInfo?.roleInfo?.heroes,
-            )) {
-              if (heroData.hB?.active !== undefined) {
-                holyBeast++;
-              }
-            }
-
-            topHeroes.push({
-              id: roleId,
-              name: memberData.name || memberData.custom?.name || "未知",
-              headImg: memberData.headImg || memberData.custom?.headImg || "",
-              power: tempRoleInfo?.roleInfo?.power || 0,
-              redQuench: memberData.custom?.red_quench_cnt || 0,
-              holyBeast: holyBeast,
-              lineupType: getLineupType(
-                getHeroInfo(tempRoleInfo?.roleInfo?.heroes || {}).heroList ||
-                  [],
-              ),
-            });
-          }
-
-          // 按红淬数量降序排序，取前�?
-          topHeroes.sort((a, b) => b.redQuench - a.redQuench);
-          const top3Heroes = topHeroes.slice(0, 3);
-
-          // 提取红淬数量数组
-          const redQuenchCounts = top3Heroes.map(
-            (hero) => hero.redQuench + "红",
-          );
-          // 提取圣物数量数组
-          const HolyBeastNum = top3Heroes.map((hero) => hero.holyBeast);
-
-          return {
-            ...club,
-            redQuench: detail?.legionData?.quenchNum || 0,
-            power: detail?.legionData?.power || 0,
-            announcement: detail?.legionData?.announcement || 0,
-            redno: redQuenchCounts || 0,
-            redno1: redQuenchCounts[0] || "0红",
-            redno2: redQuenchCounts[1] || "0红",
-            redno3: redQuenchCounts[2] || "0红",
-            hb1: HolyBeastNum[0] || 0,
-            hb2: HolyBeastNum[1] || 0,
-            hb3: HolyBeastNum[2] || 0,
-            topHeroes: top3Heroes,
-            level: 30,
-          };
-        } catch (error) {
-          console.error(`查询俱乐部${club.id}详情失败:`, error);
-          return {
-            ...club,
-            redQuench: 0,
-            power: 0,
-            announcement: "未知",
-            redno: 0,
-            redno1: "0红",
-            redno2: "0红",
-            redno3: "0红",
-            hb1: 0,
-            hb2: 0,
-            hb3: 0,
-            topHeroes: [],
-            level: 30,
-          };
-        }
-      });
-      const processedClubs = await Promise.all(detailPromises);
-
-      // 1. 为每个俱乐部添加联盟信息
-      const clubsWithAlliance = processedClubs.map((club) => ({
-        ...club,
-        alliance: allianceincludes(club.announcement),
-      }));
-
-      // 2. 统计每个联盟的俱乐部数量
-      const allianceStats = {};
-      clubsWithAlliance.forEach((club) => {
-        const alliance = club.alliance;
-        allianceStats[alliance] = (allianceStats[alliance] || 0) + 1;
-      });
-
-      // 3. 找出联盟数量最多的联盟
-      let maxAlliance = "";
-      let maxCount = 0;
-      for (const [alliance, count] of Object.entries(allianceStats)) {
-        if (count > maxCount) {
-          maxCount = count;
-          maxAlliance = alliance;
-        }
-      }
-
-      // 4. 按照联盟分组，并优先显示数量最多的联盟
-      // 先将所有俱乐部按联盟分�?
-      const allianceGroups = {};
-      clubsWithAlliance.forEach((club) => {
-        const alliance = club.alliance;
-        if (!allianceGroups[alliance]) {
-          allianceGroups[alliance] = [];
-        }
-        allianceGroups[alliance].push(club);
-      });
-
-      // 5. 在每个联盟内部按照红粹数从高到低排序
-      for (const alliance in allianceGroups) {
-        allianceGroups[alliance].sort(
-          (a, b) => (b.redQuench || 0) - (a.redQuench || 0),
-        );
-      }
-
-      // 6. 构建最终排序后的列表：先显示最大联盟，然后按联盟名称排�?
-      const sortedLegionList = [];
-
-      // 先添加最大联盟的俱乐�?
-      if (maxAlliance && allianceGroups[maxAlliance]) {
-        sortedLegionList.push(...allianceGroups[maxAlliance]);
-        delete allianceGroups[maxAlliance];
-      }
-
-      // 然后添加其他联盟的俱乐部，按联盟名称排序
-      const otherAlliances = Object.keys(allianceGroups).sort();
-      for (const alliance of otherAlliances) {
-        sortedLegionList.push(...allianceGroups[alliance]);
-      }
+      const processedClubs = await loadClubWarRankDetails(
+        result.opponentList,
+        createRankDetailLoaders(tokenId),
+      );
+      const sortedLegionList = sortClubRanksByDominantAlliance(
+        processedClubs,
+        allianceincludes,
+      );
 
       if (selectedTokenId.value !== tokenId) return;
 
@@ -1354,174 +1226,18 @@ const fetchBattleRecords1 = async (requestTokenId = selectedTokenId.value) => {
         return;
       }
       ScoreShow.value = 0;
-      const detailPromises = result.legionRankList.map(async (club) => {
-        try {
-          const detail = await tokenStore.sendMessageWithPromise(
-            tokenId,
-            "legion_getinfobyid",
-            { legionId: club.id },
-            5000,
-          );
-          club.sRScore = -1;
-          if (!detail) {
-            return {
-              ...club,
-              redQuench: 0,
-              power: 0,
-              announcement: "未知",
-              redno: 0,
-              redno1: "0红",
-              redno2: "0红",
-              redno3: "0红",
-              hb1: 0,
-              hb2: 0,
-              hb3: 0,
-              topHeroes: [],
-              level: 30,
-            };
-          }
-          const topHeroes = [];
-
-          for (const [roleId, memberData] of Object.entries(
-            detail?.legionData?.members,
-          )) {
-            const tempRoleInfo = await tokenStore.sendMessageWithPromise(
-              tokenId,
-              "rank_getroleinfo",
-              {
-                bottleType: 0,
-                includeBottleTeam: false,
-                isSearch: false,
-                roleId: roleId,
-              },
-              5000,
-            );
-
-            let holyBeast = 0;
-            for (const heroData of Object.values(
-              tempRoleInfo?.roleInfo?.heroes,
-            )) {
-              if (heroData.hB?.active !== undefined) {
-                holyBeast++;
-              }
-            }
-
-            topHeroes.push({
-              id: roleId,
-              name: memberData.name || memberData.custom?.name || "未知",
-              headImg: memberData.headImg || memberData.custom?.headImg || "",
-              power: tempRoleInfo?.roleInfo?.power || 0,
-              redQuench: memberData.custom?.red_quench_cnt || 0,
-              holyBeast: holyBeast,
-              lineupType: getLineupType(
-                getHeroInfo(tempRoleInfo?.roleInfo?.heroes || {}).heroList ||
-                  [],
-              ),
-            });
-          }
-
-          // 按红淬数量降序排序，取前�?
-          topHeroes.sort((a, b) => b.redQuench - a.redQuench);
-          const top3Heroes = topHeroes.slice(0, 3);
-
-          // 提取红淬数量数组
-          const redQuenchCounts = top3Heroes.map(
-            (hero) => hero.redQuench + "红",
-          );
-          // 提取圣物数量数组
-          const HolyBeastNum = top3Heroes.map((hero) => hero.holyBeast);
-
-          return {
-            ...club,
-            redQuench: detail?.legionData?.quenchNum || 0,
-            power: detail?.legionData?.power || 0,
-            announcement: detail?.legionData?.announcement || 0,
-            redno: redQuenchCounts || 0,
-            redno1: redQuenchCounts[0] || "0红",
-            redno2: redQuenchCounts[1] || "0红",
-            redno3: redQuenchCounts[2] || "0红",
-            hb1: HolyBeastNum[0] || 0,
-            hb2: HolyBeastNum[1] || 0,
-            hb3: HolyBeastNum[2] || 0,
-            topHeroes: top3Heroes,
-            level: 30,
-          };
-        } catch (error) {
-          console.error(`查询俱乐部${club.id}详情失败:`, error);
-          return {
-            ...club,
-            redQuench: 0,
-            power: 0,
-            announcement: "未知",
-            redno: 0,
-            redno1: "0红",
-            redno2: "0红",
-            redno3: "0红",
-            hb1: 0,
-            hb2: 0,
-            hb3: 0,
-            topHeroes: [],
-            level: 30,
-          };
-        }
-      });
-      const processedClubs = await Promise.all(detailPromises);
-
-      // 1. 为每个俱乐部添加联盟信息
-      const clubsWithAlliance = processedClubs.map((club) => ({
+      const historicClubs = result.legionRankList.map((club) => ({
         ...club,
-        alliance: allianceincludes(club.announcement),
+        sRScore: -1,
       }));
-
-      // 2. 统计每个联盟的俱乐部数量
-      const allianceStats = {};
-      clubsWithAlliance.forEach((club) => {
-        const alliance = club.alliance;
-        allianceStats[alliance] = (allianceStats[alliance] || 0) + 1;
-      });
-
-      // 3. 找出联盟数量最多的联盟
-      let maxAlliance = "";
-      let maxCount = 0;
-      for (const [alliance, count] of Object.entries(allianceStats)) {
-        if (count > maxCount) {
-          maxCount = count;
-          maxAlliance = alliance;
-        }
-      }
-
-      // 4. 按照联盟分组，并优先显示数量最多的联盟
-      // 先将所有俱乐部按联盟分�?
-      const allianceGroups = {};
-      clubsWithAlliance.forEach((club) => {
-        const alliance = club.alliance;
-        if (!allianceGroups[alliance]) {
-          allianceGroups[alliance] = [];
-        }
-        allianceGroups[alliance].push(club);
-      });
-
-      // 5. 在每个联盟内部按照红粹数从高到低排序
-      for (const alliance in allianceGroups) {
-        allianceGroups[alliance].sort(
-          (a, b) => (b.redQuench || 0) - (a.redQuench || 0),
-        );
-      }
-
-      // 6. 构建最终排序后的列表：先显示最大联盟，然后按联盟名称排�?
-      const sortedLegionList = [];
-
-      // 先添加最大联盟的俱乐�?
-      if (maxAlliance && allianceGroups[maxAlliance]) {
-        sortedLegionList.push(...allianceGroups[maxAlliance]);
-        delete allianceGroups[maxAlliance];
-      }
-
-      // 然后添加其他联盟的俱乐部，按联盟名称排序
-      const otherAlliances = Object.keys(allianceGroups).sort();
-      for (const alliance of otherAlliances) {
-        sortedLegionList.push(...allianceGroups[alliance]);
-      }
+      const processedClubs = await loadClubWarRankDetails(
+        historicClubs,
+        createRankDetailLoaders(tokenId),
+      );
+      const sortedLegionList = sortClubRanksByDominantAlliance(
+        processedClubs,
+        allianceincludes,
+      );
 
       if (selectedTokenId.value !== tokenId) return;
 
