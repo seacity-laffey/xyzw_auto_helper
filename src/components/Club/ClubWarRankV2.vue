@@ -80,6 +80,7 @@ import {
   buildClubPlayerInfo,
   extractClubHeroInfo,
 } from "@/utils/clubPlayerInfo";
+import { runClubDuels } from "@/utils/clubDuelRunner";
 import {
   getLastSaturday,
   formatTimestamp1,
@@ -257,7 +258,6 @@ const getMemberRank = (member) => {
 
 // 新增查询对手相关状�?
 const queryLoading = ref(false);
-const queryTargetId = ref("");
 // 玩家信息模态框状�?
 const showPlayerInfoModal = ref(false);
 const playerInfo = ref(null);
@@ -288,9 +288,6 @@ const fightResult = reactive({
   enemyDieRate: 0,
   resultCount: [], // 存储每场战斗的详细结�?
 });
-
-// 切磋历史记录
-const fightHistory = ref([]);
 
 // 掉将统计
 const dieStats = reactive({
@@ -437,7 +434,6 @@ const fetchTargetInfo = async (roleId) => {
   resetFightResult();
 
   queryLoading.value = true;
-  queryTargetId.value = roleId;
 
   try {
     const result = await tokenStore.sendMessageWithPromise(
@@ -501,39 +497,10 @@ const handleFightCountUpdate = (value) => {
 const resetFightResult = () => {
   fightResult.visible = false;
   fightProgress.visible = false;
-  fightHistory.value = [];
   dieStats.ourDieHeroGameCount = 0;
   dieStats.enemyDieHeroGameCount = 0;
   fightCount.value = 1;
   validateFightCount(1);
-};
-
-// 更新切磋进度
-const updateFightProgress = (completedCount, winCount, lossCount) => {
-  fightProgress.completedCount = completedCount;
-  fightProgress.winCount = winCount;
-  fightProgress.lossCount = lossCount;
-  fightProgress.remainingCount = fightProgress.totalCount - completedCount;
-  fightProgress.percentage = Math.round(
-    (completedCount / fightProgress.totalCount) * 100,
-  );
-};
-
-// 计算最终结�?
-const calculateFinalResult = (winCount, lossCount, resultCount) => {
-  fightResult.totalCount = fightProgress.totalCount;
-  fightResult.winCount = winCount;
-  fightResult.lossCount = lossCount;
-  fightResult.winRate = Math.round((winCount / fightProgress.totalCount) * 100);
-  fightResult.ourDieRate = Math.round(
-    (dieStats.ourDieHeroGameCount / fightProgress.totalCount) * 100,
-  );
-  fightResult.enemyDieRate = Math.round(
-    (dieStats.enemyDieHeroGameCount / fightProgress.totalCount) * 100,
-  );
-  fightResult.resultCount = resultCount; // 存储每场战斗的详细结�?
-  fightResult.visible = true;
-  fightProgress.visible = false;
 };
 
 // 切磋功能处理 - 支持连续切磋
@@ -579,105 +546,35 @@ const handleDuel = async () => {
   dieStats.ourDieHeroGameCount = 0;
   dieStats.enemyDieHeroGameCount = 0;
 
-  // 重置历史记录
-  fightHistory.value = [];
-
   try {
-    let winCount = 0;
-    let lossCount = 0;
-    let resultCount = []; // 存储每场战斗的详细结�?
+    const summary = await runClubDuels({
+      totalCount,
+      targetId: playerInfo.value.id,
+      requestFight: (targetId) =>
+        tokenStore.sendMessageWithPromise(
+          tokenId,
+          "fight_startpvp",
+          { targetId },
+          10000,
+        ),
+      formatPower,
+      onAttempt: ({ attemptNumber }) => {
+        message.info(`正在进行第${attemptNumber}/${totalCount} 场切磋`);
+      },
+      onInvalidResult: ({ attemptNumber, message: errorMessage }) => {
+        message.warning(`第${attemptNumber} 场切磋失败: ${errorMessage}`);
+      },
+      onProgress: (progress) => {
+        Object.assign(fightProgress, progress);
+      },
+    });
 
-    // 重置掉将统计
-    dieStats.ourDieHeroGameCount = 0;
-    dieStats.enemyDieHeroGameCount = 0;
-
-    // 执行连续切磋
-    for (let i = 0; i < totalCount; i++) {
-      message.info(`正在进行第${i + 1}/${totalCount} 场切磋`);
-
-      // 调用实际的切磋API
-      const result = await tokenStore.sendMessageWithPromise(
-        tokenId,
-        "fight_startpvp",
-        {
-          targetId: playerInfo.value.id,
-        },
-        10000,
-      );
-
-      if (result && result.battleData) {
-        // 处理掉将情况
-        let leftCount = 0;
-        let rightCount = 0;
-
-        // 检查我方掉将情�?
-        if (result.battleData.result?.sponsor?.teamInfo) {
-          result.battleData.result.sponsor.teamInfo.forEach((item) => {
-            if (item.hp == 0) {
-              leftCount++;
-            }
-          });
-        }
-
-        // 检查敌方掉将情�?
-        if (result.battleData.result?.accept?.teamInfo) {
-          result.battleData.result.accept.teamInfo.forEach((item) => {
-            if (item.hp == 0) {
-              rightCount++;
-            }
-          });
-        }
-
-        // 构建战斗结果对象
-        const battleResult = {
-          isWin: result.battleData.result?.isWin || false,
-          leftName: result.battleData.leftTeam?.name || "未知",
-          leftheadImg: result.battleData.leftTeam?.headImg || "",
-          leftpower: formatPower(result.battleData.leftTeam?.power || 0),
-          leftDieHero: leftCount,
-          rightName: result.battleData.rightTeam?.name || "未知",
-          rightheadImg: result.battleData.rightTeam?.headImg || "",
-          rightpower: formatPower(result.battleData.rightTeam?.power || 0),
-          rightDieHero: rightCount,
-        };
-
-        // 保存到结果数�?
-        resultCount.push(battleResult);
-
-        // 更新掉将统计
-        if (leftCount > 0) {
-          dieStats.ourDieHeroGameCount++;
-        }
-        if (rightCount > 0) {
-          dieStats.enemyDieHeroGameCount++;
-        }
-
-        // 更新胜负计数
-        if (battleResult.isWin) {
-          winCount++;
-        } else {
-          lossCount++;
-        }
-
-        // 更新切磋进度
-        updateFightProgress(i + 1, winCount, lossCount);
-
-        // 短暂延迟，避免请求过于频�?
-        if (i < totalCount - 1) {
-          await new Promise((resolve) => setTimeout(resolve, 500));
-        }
-      } else {
-        // 单场切磋失败，继续下一�?
-        message.warning(
-          `第${i + 1} 场切磋失败: ${result?.message || "未返回战斗数据"}`,
-        );
-        lossCount++;
-        updateFightProgress(i + 1, winCount, lossCount);
-      }
-    }
-
-    // 所有切磋完成，计算最终结�?
-    calculateFinalResult(winCount, lossCount, resultCount);
+    Object.assign(dieStats, {
+      ourDieHeroGameCount: summary.ourDieHeroGameCount,
+      enemyDieHeroGameCount: summary.enemyDieHeroGameCount,
+    });
+    Object.assign(fightResult, summary, { visible: true });
+    fightProgress.visible = false;
 
     message.success(`连续切磋完成，共${totalCount}场`);
   } catch (error) {
