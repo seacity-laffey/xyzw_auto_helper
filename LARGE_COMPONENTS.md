@@ -21,7 +21,7 @@ static media from the component refactor queue.
 | --- | --- | ---: | --- | --- |
 | P2 | `src/views/BatchDailyTasks.vue` | 1,998 lines / 57 KiB | Scheduler runtime, recipient lookup, and task execution orchestration | Isolate recipient lookup; then move the scheduler loop behind a tested runtime contract |
 | P1 | `src/components/Club/ClubWarRank.vue` | 3,886 lines / 104 KiB | Legacy salt-field ranking presentation and actions | Confirm active style-switch requirements, then share stable data transforms with V2 |
-| P1 | `src/components/Cards/Activity/UnlimitedLineup.vue` | 3,510 lines / 92 KiB | Player lookup, lineup analysis, editing, export, multiple dialogs | Extract lookup form, lineup board, and export renderer |
+| P1 | `src/components/Cards/Activity/UnlimitedLineup.vue` | 3,430 lines / 90 KiB | Player lookup, lineup analysis, editing, export, multiple dialogs | Extract lineup board, saved-lineup manager, and remaining editors |
 | P1 | `src/components/Club/PeachInfoV2.vue` | 3,487 lines / 91 KiB | Peach event state, opponent analysis, battle actions, history, exports | Extract overview, opponent panel, and battle history |
 | P1 | `src/components/Cards/Rank/GoldRankListPageCard.vue` | 3,352 lines / 87 KiB | Ranking fetch, filtering, detail queries, export | Establish a shared ranking-page contract before extracting common controls |
 | P1 | `src/components/Club/GreatRouteRankListPageCard.vue` | 3,302 lines / 85 KiB | Ranking fetch, club detail queries, export | Establish a shared ranking-page contract before extracting common controls |
@@ -41,6 +41,16 @@ Sizes are a snapshot taken on 2026-09-05 and should be refreshed after each
 completed extraction.
 
 ## Completed Extractions
+
+### Unlimited lineup technology dialog
+
+- Extracted the saved-lineup club technology viewer into
+  `UnlimitedLineupTechDialog.vue` with a small `open` and `techData` contract.
+- Replaced the Naive UI modal with the source-owned shadcn-vue Dialog and moved
+  display-only technology constants and styles into the child.
+- Desktop and 390 px browser checks verified all six technology groups, the
+  responsive two-to-one-column layout, viewport containment, and the close
+  event. Reduced `UnlimitedLineup.vue` from 3,510 to 3,430 lines.
 
 ### Club rank style ownership
 

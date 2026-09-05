@@ -4,7 +4,7 @@
       <img
         src="/icons/Ob7pyorzmHiJcbab2c25af264d0758b527bc1b61cc3b.png"
         alt="阵容图标"
-      />
+      >
     </template>
     <template #title>
       <h3>阵容助手</h3>
@@ -92,7 +92,7 @@
                     v-if="getHeroAvatar(hero.heroId)"
                     :src="getHeroAvatar(hero.heroId)"
                     :alt="getHeroName(hero.heroId)"
-                  />
+                  >
                   <div v-else class="hero-placeholder">
                     {{ getHeroName(hero.heroId)?.substring(0, 2) || "?" }}
                   </div>
@@ -281,7 +281,7 @@
                       v-if="getHeroAvatar(hero.heroId)"
                       :src="getHeroAvatar(hero.heroId)"
                       class="hero-avatar"
-                    />
+                    >
                     <div v-else class="hero-avatar-placeholder">
                       {{ getHeroName(hero.heroId)?.[0] || "?" }}
                     </div>
@@ -353,40 +353,10 @@
         </div>
       </n-modal>
 
-      <n-modal
-        v-model:show="techModalVisible"
-        preset="card"
-        title="俱乐部科技"
-        style="width: 700px; max-width: 90vw"
-        :bordered="false"
-      >
-        <div v-if="selectedTechData" class="tech-modal-content">
-          <div
-            v-for="type in [1, 2, 3, 4, 5, 6]"
-            :key="type"
-            class="tech-type-section"
-          >
-            <div class="tech-type-header">
-              {{ LEGION_TECH_TYPE_NAME[type] }}
-            </div>
-            <div class="tech-items">
-              <div
-                v-for="techId in LEGION_TECH_TYPE_MAP[type]"
-                :key="techId"
-                class="tech-item"
-              >
-                <span class="tech-name">{{ LEGION_TECH_NAME[techId] }}</span>
-                <span class="tech-level">
-                  {{ selectedTechData[techId] || 0 }}/{{
-                    LEGION_TECH_MAX_LEVEL[techId]
-                  }}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div v-else class="no-tech-data">暂无科技数据</div>
-      </n-modal>
+      <UnlimitedLineupTechDialog
+        v-model:open="techModalVisible"
+        :tech-data="selectedTechData"
+      ></UnlimitedLineupTechDialog>
 
       <n-modal
         v-model:show="refineModalVisible"
@@ -469,7 +439,7 @@
             placeholder="搜索武将名称..."
             clearable
             style="margin-bottom: 12px"
-          />
+          ></n-input>
           <div class="hero-filter-section">
             <div class="filter-label">品质：</div>
             <div class="filter-tags">
@@ -515,7 +485,7 @@
                 @click="selectExchangeHero(hero)"
               >
                 <div class="hero-select-avatar">
-                  <img v-if="hero.avatar" :src="hero.avatar" :alt="hero.name" />
+                  <img v-if="hero.avatar" :src="hero.avatar" :alt="hero.name">
                   <div v-else class="hero-placeholder">
                     {{ hero.name?.substring(0, 2) || "?" }}
                   </div>
@@ -568,6 +538,7 @@ import { ref, computed, onMounted, watch, h } from "vue";
 import { useMessage, useDialog, NInput } from "naive-ui";
 import { useTokenStore } from "@/stores/tokenStore";
 import MyCard from "../../Common/MyCard.vue";
+import UnlimitedLineupTechDialog from "./UnlimitedLineupTechDialog.vue";
 import {
   HERO_DICT,
   FishMap,
@@ -575,8 +546,6 @@ import {
   LEGION_TECH_MAX_LEVEL,
   LEGION_TECH_TYPE_MAP,
   LEGION_TECH_RESET_TYPE_MAP,
-  LEGION_TECH_TYPE_NAME,
-  LEGION_TECH_NAME,
   getTechType,
   weapon,
   color,
@@ -3445,55 +3414,6 @@ onMounted(() => {
   border-radius: 50%;
   display: inline-block;
   box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
-}
-
-.tech-modal-content {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
-}
-
-.tech-type-section {
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius);
-  overflow: hidden;
-}
-
-.tech-type-header {
-  background: var(--bg-secondary);
-  padding: var(--spacing-xs) var(--spacing-sm);
-  font-weight: bold;
-  color: var(--primary-color);
-}
-
-.tech-items {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1px;
-  background: var(--border-color);
-}
-
-.tech-item {
-  display: flex;
-  justify-content: space-between;
-  padding: var(--spacing-xs) var(--spacing-sm);
-  background: var(--bg-primary);
-  font-size: var(--font-size-sm);
-}
-
-.tech-name {
-  color: var(--text-secondary);
-}
-
-.tech-level {
-  color: var(--text-primary);
-  font-weight: 500;
-}
-
-.no-tech-data {
-  text-align: center;
-  color: var(--text-tertiary);
-  padding: var(--spacing-lg);
 }
 
 .lineup-actions {
