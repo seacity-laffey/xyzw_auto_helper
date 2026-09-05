@@ -20,7 +20,6 @@ static media from the component refactor queue.
 | Priority | Component | Size | Main responsibilities | Next boundary |
 | --- | --- | ---: | --- | --- |
 | P2 | `src/views/BatchDailyTasks.vue` | 1,998 lines / 57 KiB | Scheduler runtime, recipient lookup, and task execution orchestration | Isolate recipient lookup; then move the scheduler loop behind a tested runtime contract |
-| P0 | `src/components/Club/ClubWarRankV2.vue` | 2,732 lines / 71 KiB | Ranking queries, member analysis, edit state, exports | Separate export preparation and request lifecycle |
 | P1 | `src/components/Club/ClubWarRank.vue` | 3,886 lines / 104 KiB | Legacy salt-field ranking presentation and actions | Confirm active style-switch requirements, then share stable data transforms with V2 |
 | P1 | `src/components/Cards/Activity/UnlimitedLineup.vue` | 3,510 lines / 92 KiB | Player lookup, lineup analysis, editing, export, multiple dialogs | Extract lookup form, lineup board, and export renderer |
 | P1 | `src/components/Club/PeachInfoV2.vue` | 3,487 lines / 91 KiB | Peach event state, opponent analysis, battle actions, history, exports | Extract overview, opponent panel, and battle history |
@@ -35,6 +34,19 @@ Sizes are a snapshot taken on 2026-09-05 and should be refreshed after each
 completed extraction.
 
 ## Completed Extractions
+
+### Club rank style ownership
+
+- Moved active data-table, row, alliance, group, and current-club styles into
+  `ClubWarRankingTable.vue`, where the scoped selectors now reach the rendered
+  Naive DataTable DOM.
+- Replaced 1,650 lines of obsolete hand-built table CSS and duplicated responsive
+  overrides with a 92-line parent layout/export stylesheet. The retained styles
+  use the current neutral theme variables and compact rectangular indicators.
+- Reduced the compiled `ClubWarRankV2` CSS from about 54 KiB to 28 KiB and the
+  parent component from 2,732 lines / 71 KiB to 1,079 lines / 30 KiB, removing it
+  from this backlog. Desktop and 390 px browser checks verified real table
+  rendering and internal horizontal scrolling.
 
 ### Club rank view derivation
 

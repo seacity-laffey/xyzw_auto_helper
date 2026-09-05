@@ -1,0 +1,92 @@
+.club-warrank-container {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.club-warrank-card {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--background);
+}
+
+.table-content {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--background);
+}
+
+.salt-image-exporting {
+  width: 1380px !important;
+  min-width: 1380px !important;
+  max-width: none !important;
+  height: auto !important;
+  min-height: 0 !important;
+  flex: 0 0 auto !important;
+  overflow: visible !important;
+
+  &.table-content {
+    height: auto !important;
+    min-height: 0 !important;
+    flex: 0 0 auto !important;
+  }
+
+  :deep(.announcement-section),
+  :deep(.alliance-tabs-section),
+  :deep(.table-container),
+  :deep(.n-data-table),
+  :deep(.n-data-table-wrapper),
+  :deep(.n-data-table-base-table),
+  :deep(.n-data-table-base-table-body),
+  :deep(.n-data-table-base-table-body .n-scrollbar-container),
+  :deep(.n-data-table-base-table-body .n-scrollbar-content),
+  :deep(.n-data-table-table-wrapper),
+  :deep(.n-data-table-table) {
+    width: 1380px !important;
+    min-width: 1380px !important;
+    max-width: none !important;
+    overflow: visible !important;
+  }
+
+  :deep(.alliance-tabs-section) {
+    display: grid !important;
+    width: 1380px !important;
+    min-width: 1380px !important;
+    max-width: none !important;
+    grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+    justify-content: center !important;
+    overflow: visible !important;
+  }
+
+  :deep(.table-container) {
+    height: auto !important;
+    min-height: 0 !important;
+    flex: 0 0 auto !important;
+    overflow: visible !important;
+  }
+
+  :deep(.n-data-table-th:last-child),
+  :deep(.n-data-table-td:last-child),
+  :deep(.n-data-table-td:last-child .n-data-table-cell) {
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .table-content {
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+}
