@@ -20,7 +20,7 @@ static media from the component refactor queue.
 | Priority | Component | Size | Main responsibilities | Next boundary |
 | --- | --- | ---: | --- | --- |
 | P2 | `src/views/BatchDailyTasks.vue` | 1,998 lines / 57 KiB | Scheduler runtime, recipient lookup, and task execution orchestration | Isolate recipient lookup; then move the scheduler loop behind a tested runtime contract |
-| P0 | `src/components/Club/ClubWarRankV2.vue` | 3,429 lines / 93 KiB | Ranking queries, member analysis, edit state, exports | Separate request normalization and ranking state orchestration |
+| P0 | `src/components/Club/ClubWarRankV2.vue` | 3,431 lines / 94 KiB | Ranking queries, member analysis, edit state, exports | Separate request normalization and ranking state orchestration |
 | P1 | `src/components/Club/ClubWarRank.vue` | 3,886 lines / 104 KiB | Legacy salt-field ranking presentation and actions | Confirm active style-switch requirements, then share stable data transforms with V2 |
 | P1 | `src/components/Cards/Activity/UnlimitedLineup.vue` | 3,510 lines / 92 KiB | Player lookup, lineup analysis, editing, export, multiple dialogs | Extract lookup form, lineup board, and export renderer |
 | P1 | `src/components/Club/PeachInfoV2.vue` | 3,487 lines / 91 KiB | Peach event state, opponent analysis, battle actions, history, exports | Extract overview, opponent panel, and battle history |
@@ -47,7 +47,7 @@ completed extraction.
   rank and alliance changes now write back reliably; also fixed the alliance
   selector's invalid `.value` access on a plain options array.
 - Added focused tests for merged group rows, both edit write-back paths, and hero
-  click forwarding. Reduced `ClubWarRankV2.vue` from 3,791 to 3,429 lines.
+  click forwarding. Reduced `ClubWarRankV2.vue` from 3,791 to 3,431 lines.
 
 ### Club war ranking table states
 
