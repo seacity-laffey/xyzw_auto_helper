@@ -26,9 +26,16 @@ static media from the component refactor queue.
 | P1 | `src/components/Cards/Rank/GoldRankListPageCard.vue` | 3,352 lines / 87 KiB | Ranking fetch, filtering, detail queries, export | Establish a shared ranking-page contract before extracting common controls |
 | P1 | `src/components/Club/GreatRouteRankListPageCard.vue` | 3,302 lines / 85 KiB | Ranking fetch, club detail queries, export | Establish a shared ranking-page contract before extracting common controls |
 | P1 | `src/components/Cards/Rank/TopClubListPageCard.vue` | 3,150 lines / 81 KiB | Ranking fetch, club detail queries, export | Establish a shared ranking-page contract before extracting common controls |
+| P1 | `src/components/Cards/Rank/TopRankListPageCard.vue` | 2,346 lines / 61 KiB | Player ranking fetch, detail lookup, table rendering, export | Share ranking controls and player-detail normalization with active ranking pages |
+| P1 | `src/components/Cards/Rank/ServerRankListPageCard.vue` | 2,334 lines / 60 KiB | Server ranking fetch, table rendering, export | Share ranking controls and export preparation with active ranking pages |
 | P2 | `src/components/Club/PeachBattleRecords.vue` | 2,329 lines / 76 KiB | History aggregation, filtering, table rendering, export | Separate aggregation from table and export presentation |
 | P2 | `src/components/Club/ClubInfo.vue` | 2,058 lines / 53 KiB | Club query lifecycle, member operations, lineup lookup, export | Move member query/export state into a club-member composable |
 | P2 | `src/components/Club/PeachInfo.vue` | 2,209 lines / 61 KiB | Legacy peach-event presentation and requests | Confirm whether both peach views remain user-selectable before sharing logic |
+| P2 | `src/components/Cards/Activity/FightPvP.vue` | 1,863 lines / 61 KiB | Opponent lookup, repeated battles, result analysis, dialogs | Extract battle runner and result normalization |
+| P2 | `src/components/Club/ClubMonthBattleRecords.vue` | 1,628 lines / 53 KiB | Monthly history queries, aggregation, table rendering, export | Separate record aggregation and export preparation |
+| P2 | `src/components/Club/ClubBattleRecords.vue` | 1,504 lines / 45 KiB | Weekly history queries, aggregation, table rendering, export | Share stable battle-record transforms with the monthly view |
+| P2 | `src/views/PushingLevels.vue` | 1,899 lines / 47 KiB | Multi-account progression state, task execution, logs, controls | Extract account progress and execution panels |
+| P2 | `src/views/TokenImport/index.vue` | 1,171 lines / 40 KiB | Token listing, filtering, import workflows, account actions | Extract import dialogs and token-list presentation |
 
 Sizes are a snapshot taken on 2026-09-05 and should be refreshed after each
 completed extraction.
