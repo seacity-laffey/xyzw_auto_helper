@@ -109,3 +109,126 @@ export function sortClubRanksByDominantAlliance(clubs, resolveAlliance) {
   ].filter(Boolean);
   return orderedAlliances.flatMap((alliance) => groups.get(alliance));
 }
+
+export function filterAndSortClubRanks(
+  clubs,
+  {
+    activeAlliance,
+    currentSortType,
+    editingSortOrder,
+    getMemberAlliance,
+    getMemberRank,
+    isEditMode,
+  },
+) {
+  const filtered = activeAlliance === "all"
+    ? [...clubs]
+    : clubs.filter((member) => {
+        if (activeAlliance === "空白") {
+          return !member.announcement
+            || member.announcement === 0
+            || member.announcement === "0";
+        }
+        return getMemberAlliance(member) === activeAlliance;
+      });
+
+  return filtered.sort((left, right) => {
+    if (isEditMode) {
+      return editingSortOrder.indexOf(left.id) - editingSortOrder.indexOf(right.id);
+    }
+    if (currentSortType === "manual")
+      return getMemberRank(left) - getMemberRank(right);
+    if (currentSortType === "redQuench")
+      return (right.redQuench || 0) - (left.redQuench || 0);
+    if (currentSortType === "score")
+      return (right.sRScore || 0) - (left.sRScore || 0);
+    return 0;
+  });
+}
+
+export function groupClubRankRows(
+  clubs,
+  { allianceOrder, getMemberAlliance },
+) {
+  const groups = new Map();
+  clubs.forEach((member) => {
+    const alliance = getMemberAlliance(member) || "未知联盟";
+    const group = groups.get(alliance) || [];
+    group.push(member);
+    groups.set(alliance, group);
+  });
+
+  const orderedAlliances = [
+    ...allianceOrder.filter((alliance) => groups.has(alliance)),
+    ...Array.from(groups.keys()).filter(
+      (alliance) => !allianceOrder.includes(alliance),
+    ),
+  ];
+
+  return orderedAlliances.flatMap((alliance) => {
+    const members = groups.get(alliance);
+    const totalRedQuench = members.reduce(
+      (total, member) => total + (Number(member.redQuench) || 0),
+      0,
+    );
+
+    return [
+      {
+        id: `group-${alliance}`,
+        __isGroupHeader: true,
+        alliance,
+        count: members.length,
+        avgRedQuench: members.length
+          ? Math.round(totalRedQuench / members.length)
+          : 0,
+        rank: "",
+        name: "",
+        serverId: "",
+        power: "",
+        redQuench: "",
+        topHeroes: [],
+        level: "",
+        announcement: "",
+      },
+      ...members,
+    ];
+  });
+}
+
+export function createRedQuenchRankMap(clubs) {
+  return Object.fromEntries(
+    [...clubs]
+      .sort((left, right) =>
+        (right.redQuench || 0) - (left.redQuench || 0),
+      )
+      .map((club, index) => [club.id, index + 1]),
+  );
+}
+
+export function countClubRanksByAlliance(
+  clubs,
+  alliances,
+  getMemberAlliance,
+) {
+  return Object.fromEntries(
+    alliances.map((alliance) => [
+      alliance,
+      clubs.filter((member) => {
+        if (alliance === "空白") {
+          return !member.announcement
+            || member.announcement === 0
+            || member.announcement === "0";
+        }
+        return getMemberAlliance(member) === alliance;
+      }).length,
+    ]),
+  );
+}
+
+export function calculateClubAverageRedQuench(clubs, totalSlots = 20) {
+  const total = clubs.reduce(
+    (sum, member) => sum + Number(member.redQuench || 0),
+    0,
+  );
+  return totalSlots > 0 ? Math.round(total / totalSlots) : 0;
+}

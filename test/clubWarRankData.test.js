@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  calculateClubAverageRedQuench,
+  countClubRanksByAlliance,
   createEmptyClubRankEntry,
+  createRedQuenchRankMap,
+  filterAndSortClubRanks,
+  groupClubRankRows,
   loadClubWarRankDetails,
   sortClubRanksByDominantAlliance,
 } from "../src/utils/clubWarRankData.js";
@@ -72,4 +77,93 @@ test("club ranks put the largest alliance first and sort each group by red count
 
   assert.deepEqual(result.map(club => club.id), [3, 1, 2, 4]);
   assert.deepEqual(result.map(club => club.alliance), ["B", "B", "A", "C"]);
+});
+
+test("club rank view filtering preserves all sort modes", () => {
+  const clubs = [
+    { id: 1, alliance: "A", announcement: "A", redQuench: 5, sRScore: 2 },
+    { id: 2, alliance: "B", announcement: "B", redQuench: 8, sRScore: 9 },
+    { id: 3, alliance: "A", announcement: "A", redQuench: 2, sRScore: 5 },
+  ];
+  const options = {
+    activeAlliance: "A",
+    currentSortType: "redQuench",
+    editingSortOrder: [],
+    getMemberAlliance: (club) => club.alliance,
+    getMemberRank: (club) => ({ 1: 2, 2: 3, 3: 1 })[club.id],
+    isEditMode: false,
+  };
+
+  assert.deepEqual(
+    filterAndSortClubRanks(clubs, options).map((club) => club.id),
+    [1, 3],
+  );
+  assert.deepEqual(
+    filterAndSortClubRanks(clubs, {
+      ...options,
+      activeAlliance: "all",
+      currentSortType: "score",
+    }).map((club) => club.id),
+    [2, 3, 1],
+  );
+  assert.deepEqual(
+    filterAndSortClubRanks(clubs, {
+      ...options,
+      activeAlliance: "all",
+      editingSortOrder: [3, 1, 2],
+      isEditMode: true,
+    }).map((club) => club.id),
+    [3, 1, 2],
+  );
+});
+
+test("club rank view handles blank alliances and grouped summary rows", () => {
+  const clubs = [
+    { id: 1, alliance: "B", announcement: "B", redQuench: 6 },
+    { id: 2, alliance: "A", announcement: "A", redQuench: 5 },
+    { id: 3, alliance: "B", announcement: "B", redQuench: 2 },
+    { id: 4, alliance: "空白", announcement: 0, redQuench: 7 },
+  ];
+  const getMemberAlliance = (club) => club.alliance;
+  const blank = filterAndSortClubRanks(clubs, {
+    activeAlliance: "空白",
+    currentSortType: "redQuench",
+    editingSortOrder: [],
+    getMemberAlliance,
+    getMemberRank: () => 0,
+    isEditMode: false,
+  });
+  const rows = groupClubRankRows(clubs.slice(0, 3), {
+    allianceOrder: ["A", "B"],
+    getMemberAlliance,
+  });
+
+  assert.deepEqual(blank.map((club) => club.id), [4]);
+  assert.deepEqual(rows.map((row) => row.id), ["group-A", 2, "group-B", 1, 3]);
+  assert.equal(rows[0].avgRedQuench, 5);
+  assert.equal(rows[2].avgRedQuench, 4);
+});
+
+test("club rank summaries calculate ranks, alliance counts, and fixed-slot average", () => {
+  const clubs = [
+    { id: "low", alliance: "A", announcement: "A", redQuench: 4 },
+    { id: "high", alliance: "B", announcement: "B", redQuench: 9 },
+    { id: "blank", alliance: "空白", announcement: "0", redQuench: 7 },
+  ];
+
+  assert.deepEqual(createRedQuenchRankMap(clubs), {
+    high: 1,
+    blank: 2,
+    low: 3,
+  });
+  assert.deepEqual(
+    countClubRanksByAlliance(
+      clubs,
+      ["A", "B", "空白"],
+      (club) => club.alliance,
+    ),
+    { A: 1, B: 1, 空白: 1 },
+  );
+  assert.equal(calculateClubAverageRedQuench(clubs), 1);
+  assert.equal(calculateClubAverageRedQuench(clubs, 2), 10);
 });

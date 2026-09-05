@@ -73,6 +73,11 @@ import ClubWarRankingTable from "@/components/Club/ClubWarRankingTable.vue";
 import ClubWarRankToolbar from "@/components/Club/ClubWarRankToolbar.vue";
 import { createClubWarRankColumns } from "@/composables/createClubWarRankColumns";
 import {
+  calculateClubAverageRedQuench,
+  countClubRanksByAlliance,
+  createRedQuenchRankMap,
+  filterAndSortClubRanks,
+  groupClubRankRows,
   loadClubWarRankDetails,
   sortClubRanksByDominantAlliance,
 } from "@/utils/clubWarRankData";
@@ -110,7 +115,6 @@ const currentLegionInfo = computed(() => currentClubInfo.value?.info || null);
 
 const loading1 = ref(false);
 const battleRecords1 = ref(null);
-const expandedMembers = ref(new Set());
 const queryDate = ref("");
 const inputDate1 = ref(getLastSaturday());
 const saltFetchStartTime = ref(null);
@@ -589,125 +593,31 @@ const handleDuel = async () => {
 
 // 联盟筛选计算属�?
 const filteredLegionList = computed(() => {
-  if (!battleRecords1.value?.legionRankList) {
-    return [];
-  }
-
-  if (activeAlliance.value === "all") {
-    return [...battleRecords1.value.legionRankList].sort((a, b) => {
-      if (isEditMode.value) {
-        // 编辑模式下，按照快照顺序排序
-        return (
-          editingSortOrder.value.indexOf(a.id) -
-          editingSortOrder.value.indexOf(b.id)
-        );
-      }
-      if (currentSortType.value === "manual") {
-        return getMemberRank(a) - getMemberRank(b);
-      } else if (currentSortType.value === "redQuench") {
-        return (b.redQuench || 0) - (a.redQuench || 0);
-      } else if (currentSortType.value === "score") {
-        return (b.sRScore || 0) - (a.sRScore || 0);
-      }
-      return 0;
-    });
-  }
-
-  const filtered = battleRecords1.value.legionRankList.filter((member) => {
-    const memberAlliance = getMemberAlliance(member);
-    if (activeAlliance.value === "空白") {
-      return (
-        !member.announcement ||
-        member.announcement === 0 ||
-        member.announcement === "0"
-      );
-    }
-    return memberAlliance === activeAlliance.value;
-  });
-
-  return filtered.sort((a, b) => {
-    if (isEditMode.value) {
-      // 编辑模式下，按照快照顺序排序
-      return (
-        editingSortOrder.value.indexOf(a.id) -
-        editingSortOrder.value.indexOf(b.id)
-      );
-    }
-    if (currentSortType.value === "manual") {
-      return getMemberRank(a) - getMemberRank(b);
-    } else if (currentSortType.value === "redQuench") {
-      return (b.redQuench || 0) - (a.redQuench || 0);
-    } else if (currentSortType.value === "score") {
-      return (b.sRScore || 0) - (a.sRScore || 0);
-    }
-    return 0;
-  });
-});
-
-const groupedSaltTableData = computed(() => {
-  const list = filteredLegionList.value;
-  if (!list.length) {
-    return [];
-  }
-
-  const allianceOrder = allianceOptions.map((option) => option.value);
-  const groups = new Map();
-
-  list.forEach((member) => {
-    const alliance = getMemberAlliance(member) || "未知联盟";
-    if (!groups.has(alliance)) {
-      groups.set(alliance, []);
-    }
-    groups.get(alliance).push(member);
-  });
-
-  const orderedAlliances = [
-    ...allianceOrder.filter((alliance) => groups.has(alliance)),
-    ...Array.from(groups.keys()).filter(
-      (alliance) => !allianceOrder.includes(alliance),
-    ),
-  ];
-
-  const groupedRows = orderedAlliances.flatMap((alliance) => {
-    const members = groups.get(alliance);
-    const totalRedQuench = members.reduce((sum, member) => {
-      return sum + (Number(member.redQuench) || 0);
-    }, 0);
-    const avgRedQuench = members.length
-      ? Math.round(totalRedQuench / members.length)
-      : 0;
-
-    return [
-      {
-        id: `group-${alliance}`,
-        __isGroupHeader: true,
-        alliance,
-        count: members.length,
-        avgRedQuench,
-        rank: "",
-        name: "",
-        serverId: "",
-        power: "",
-        redQuench: "",
-        topHeroes: [],
-        level: "",
-        announcement: "",
-      },
-      ...members,
-    ];
-  });
-
-  return groupedRows;
-});
-
-const saltAverageRedQuench = computed(() => {
-  const list = battleRecords1.value?.legionRankList || [];
-  const total = list.reduce(
-    (sum, member) => sum + Number(member.redQuench || 0),
-    0,
+  return filterAndSortClubRanks(
+    battleRecords1.value?.legionRankList || [],
+    {
+      activeAlliance: activeAlliance.value,
+      currentSortType: currentSortType.value,
+      editingSortOrder: editingSortOrder.value,
+      getMemberAlliance,
+      getMemberRank,
+      isEditMode: isEditMode.value,
+    },
   );
-  return Math.round(total / 20);
 });
+
+const groupedSaltTableData = computed(() =>
+  groupClubRankRows(filteredLegionList.value, {
+    allianceOrder: allianceOptions.map((option) => option.value),
+    getMemberAlliance,
+  }),
+);
+
+const saltAverageRedQuench = computed(() =>
+  calculateClubAverageRedQuench(
+    battleRecords1.value?.legionRankList || [],
+  ),
+);
 
 const saltAnnouncementText = computed(() => {
   const dateText = formatTimestamp1(inputDate1.value).replace(/\//g, "-");
@@ -717,53 +627,20 @@ const saltAnnouncementText = computed(() => {
 const saltFetchTimeText = computed(() => getSaltFetchTimeText());
 
 // 计算所有俱乐部的红淬排�?
-const redQuenchRankings = computed(() => {
-  if (!battleRecords1.value?.legionRankList) return {};
-
-  // 按红淬数量降序排序所有俱乐部，获取真实排�?
-  const sortedByRedQuench = [...battleRecords1.value.legionRankList].sort(
-    (a, b) => (b.redQuench || 0) - (a.redQuench || 0),
-  );
-
-  // 创建俱乐部ID到红淬排名的映射�?-based�?
-  const rankMap = {};
-  sortedByRedQuench.forEach((club, index) => {
-    rankMap[club.id] = index + 1;
-  });
-
-  return rankMap;
-});
+const redQuenchRankings = computed(() =>
+  createRedQuenchRankMap(battleRecords1.value?.legionRankList || []),
+);
 
 // 设置当前选中联盟
 const setActiveAlliance = (alliance) => {
   activeAlliance.value = alliance;
 };
 
-// 获取联盟数量
-const getActiveAllianceCount = (alliance) => {
-  if (!battleRecords1.value?.legionRankList) {
-    return 0;
-  }
-
-  return battleRecords1.value.legionRankList.filter((member) => {
-    const memberAlliance = getMemberAlliance(member);
-    if (alliance === "空白") {
-      return (
-        !member.announcement ||
-        member.announcement === 0 ||
-        member.announcement === "0"
-      );
-    }
-    return memberAlliance === alliance;
-  }).length;
-};
-
 const allianceCounts = computed(() =>
-  Object.fromEntries(
-    allianceOptions.map((option) => [
-      option.value,
-      getActiveAllianceCount(option.value),
-    ]),
+  countClubRanksByAlliance(
+    battleRecords1.value?.legionRankList || [],
+    allianceOptions.map((option) => option.value),
+    getMemberAlliance,
   ),
 );
 
@@ -1194,7 +1071,6 @@ watch(selectedTokenId, (newTokenId, oldTokenId) => {
 
   currentClubInfo.value = null;
   battleRecords1.value = null;
-  expandedMembers.value = new Set();
   fetchCurrentClubInfo(newTokenId);
   fetchBattleRecords1(newTokenId);
 });

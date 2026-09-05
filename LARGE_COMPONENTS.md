@@ -20,7 +20,7 @@ static media from the component refactor queue.
 | Priority | Component | Size | Main responsibilities | Next boundary |
 | --- | --- | ---: | --- | --- |
 | P2 | `src/views/BatchDailyTasks.vue` | 1,998 lines / 57 KiB | Scheduler runtime, recipient lookup, and task execution orchestration | Isolate recipient lookup; then move the scheduler loop behind a tested runtime contract |
-| P0 | `src/components/Club/ClubWarRankV2.vue` | 2,856 lines / 74 KiB | Ranking queries, member analysis, edit state, exports | Separate ranking state orchestration and export preparation |
+| P0 | `src/components/Club/ClubWarRankV2.vue` | 2,732 lines / 71 KiB | Ranking queries, member analysis, edit state, exports | Separate export preparation and request lifecycle |
 | P1 | `src/components/Club/ClubWarRank.vue` | 3,886 lines / 104 KiB | Legacy salt-field ranking presentation and actions | Confirm active style-switch requirements, then share stable data transforms with V2 |
 | P1 | `src/components/Cards/Activity/UnlimitedLineup.vue` | 3,510 lines / 92 KiB | Player lookup, lineup analysis, editing, export, multiple dialogs | Extract lookup form, lineup board, and export renderer |
 | P1 | `src/components/Club/PeachInfoV2.vue` | 3,487 lines / 91 KiB | Peach event state, opponent analysis, battle actions, history, exports | Extract overview, opponent panel, and battle history |
@@ -35,6 +35,17 @@ Sizes are a snapshot taken on 2026-09-05 and should be refreshed after each
 completed extraction.
 
 ## Completed Extractions
+
+### Club rank view derivation
+
+- Consolidated alliance filtering, manual/red-quench/score sorting, edit-order
+  snapshots, grouped summary rows, rank maps, alliance counts, and average
+  red-quench calculation in `src/utils/clubWarRankData.js`.
+- Preserved the special blank-announcement filter and the salt-field average's
+  fixed 20-slot denominator, while removing unused expanded-member state.
+- Added focused coverage for every sort mode, edit ordering, blank alliances,
+  group ordering and averages, rank assignment, counts, and fixed-slot totals.
+  Reduced `ClubWarRankV2.vue` from 2,856 to 2,732 lines.
 
 ### Club duel execution
 
