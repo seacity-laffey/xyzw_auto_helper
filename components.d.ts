@@ -106,6 +106,7 @@ declare module 'vue' {
     TopRankListPageCard: typeof import('./src/components/Cards/Rank/TopRankListPageCard.vue')['default']
     TowerStatus: typeof import('./src/components/Tower/TowerStatus.vue')['default']
     UnlimitedLineup: typeof import('./src/components/Cards/Activity/UnlimitedLineup.vue')['default']
+    UnlimitedLineupTechDialog: typeof import('./src/components/Cards/Activity/UnlimitedLineupTechDialog.vue')['default']
     WeirdTowerStatus: typeof import('./src/components/Tower/WeirdTowerStatus.vue')['default']
     WorkspaceAccountList: typeof import('./src/components/Common/WorkspaceAccountList.vue')['default']
   }
