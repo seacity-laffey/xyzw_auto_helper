@@ -22,23 +22,24 @@ export function extractClubHeroInfo(heroSource, heroDict = {}) {
   let holeCount = 0;
 
   const heroList = heroes.filter(Boolean).map((hero, index) => {
-    const dictionaryHero = heroDict[hero.heroId] || {};
+    const heroId = hero.heroId || hero.id || `unknown_${index}`;
+    const dictionaryHero = heroDict[heroId] || {};
     const equipment = getEquipmentStats(hero.equipment);
     redCount += equipment.redCount;
     holeCount += equipment.holeCount;
     return {
-      heroId: hero.heroId || `unknown_${index}`,
+      heroId,
       artifactId: hero.artifactId || "",
       power: hero.power || 0,
       star: hero.star || 0,
       equipment: hero.equipment,
-      heroName: hero.heroName || dictionaryHero.name || `未知武将_${index}`,
-      heroAvate: hero.heroAvate || dictionaryHero.avatar || "",
+      heroName: hero.heroName || hero.name || dictionaryHero.name || `未知武将_${index}`,
+      heroAvate: hero.heroAvate || hero.headImg || dictionaryHero.avatar || "",
       level: hero.level || 0,
       hole: equipment.holeCount,
       red: equipment.redCount,
-      HolyBeast: hero.hB?.active === true,
-      HBlevel: hero.hB?.order || 0,
+      HolyBeast: hero.hB?.active === true || Number(hero.fourBasest?.level || 0) > 0,
+      HBlevel: hero.hB?.order || hero.fourBasest?.level || 0,
       skillList: hero.skillList || [],
       attributeList: hero.attributeList || [],
       battleTeamSlot: hero.battleTeamSlot,

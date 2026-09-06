@@ -27,7 +27,6 @@ static media from the component refactor queue.
 | P1 | `src/components/Cards/Rank/TopClubListPageCard.vue` | 3,150 lines / 81 KiB | Ranking fetch, club detail queries, export | Establish a shared ranking-page contract before extracting common controls |
 | P1 | `src/components/Cards/Rank/TopRankListPageCard.vue` | 2,346 lines / 61 KiB | Player ranking fetch, detail lookup, table rendering, export | Share ranking controls and player-detail normalization with active ranking pages |
 | P1 | `src/components/Cards/Rank/ServerRankListPageCard.vue` | 2,334 lines / 60 KiB | Server ranking fetch, table rendering, export | Share ranking controls and export preparation with active ranking pages |
-| P2 | `src/components/Club/ClubInfo.vue` | 2,058 lines / 53 KiB | Club query lifecycle, member operations, lineup lookup, export | Move member query/export state into a club-member composable |
 | P2 | `src/components/Club/PeachInfo.vue` | 2,209 lines / 61 KiB | Legacy peach-event presentation and requests | Confirm whether both peach views remain user-selectable before sharing logic |
 | P2 | `src/components/Cards/Activity/FightPvP.vue` | 1,863 lines / 61 KiB | Opponent lookup, repeated battles, result analysis, dialogs | Extract battle runner and result normalization |
 | P2 | `src/views/PushingLevels.vue` | 1,899 lines / 47 KiB | Multi-account progression state, task execution, logs, controls | Extract account progress and execution panels |
@@ -37,6 +36,24 @@ Sizes are a snapshot taken on 2026-09-05 and should be refreshed after each
 completed extraction.
 
 ## Completed Extractions
+
+### Club information management
+
+- Extracted the club overview, member table, application review, and member
+  detail surfaces into four presentation components with explicit props and
+  intent events.
+- Moved member sorting, application normalization, overview derivation, and
+  display formatting into the tested `src/utils/clubInfoData.js` utility, and
+  reused `src/utils/clubPlayerInfo.js` for both batch lineup and member detail
+  responses. Legacy hero response fields remain supported.
+- Kept WebSocket requests, five-member lineup batches, membership actions,
+  sign-in, and image-export orchestration in the owning component. Heavy
+  history and weird-tower views now mount only when selected, avoiding hidden
+  requests.
+- Reduced `ClubInfo.vue` from 2,058 lines / 53 KiB to 397 lines / 14 KiB and
+  removed its historical lint suppressions. Desktop and 390 px browser checks
+  cover overview rendering, lineup loading, member detail, console errors, and
+  page overflow.
 
 ### Peach battle records
 
