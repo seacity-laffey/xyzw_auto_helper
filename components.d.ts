@@ -44,7 +44,6 @@ declare module 'vue' {
     ClubWarRank: typeof import('./src/components/Club/ClubWarRank.vue')['default']
     ClubWarRankingTable: typeof import('./src/components/Club/ClubWarRankingTable.vue')['default']
     ClubWarRankToolbar: typeof import('./src/components/Club/ClubWarRankToolbar.vue')['default']
-    ClubWarRankV2: typeof import('./src/components/Club/ClubWarRankV2.vue')['default']
     ClubWeirdTowerInfo: typeof import('./src/components/Club/ClubWeirdTowerInfo.vue')['default']
     ConsumptionProgressCard: typeof import('./src/components/Cards/Activity/ConsumptionProgressCard.vue')['default']
     DailyTaskCard: typeof import('./src/components/Daily/DailyTaskCard.vue')['default']

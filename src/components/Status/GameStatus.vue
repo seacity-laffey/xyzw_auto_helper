@@ -102,21 +102,6 @@
         </button>
       </nav>
 
-      <div v-if="saltFieldSubTab === 'warrank'" class="style-switch-bar">
-        <div aria-label="盐场样式" class="segmented-control">
-          <button
-            v-for="item in styleOptions"
-            :key="item.value"
-            type="button"
-            :aria-pressed="warrankStyle === item.value"
-            :class="{ active: warrankStyle === item.value }"
-            @click="warrankStyle = item.value"
-          >
-            {{ item.label }}
-          </button>
-        </div>
-      </div>
-
       <div
         v-if="saltFieldSubTab === 'weekBattle'"
         class="warrank-full-container"
@@ -126,11 +111,9 @@
 
       <div
         v-if="saltFieldSubTab === 'warrank'"
-        class="warrank-full-container"
-        :class="{ 'style2-container': warrankStyle === 'style2' }"
+        class="warrank-full-container style2-container"
       >
-        <ClubWarRankV2 v-if="warrankStyle === 'style2'"></ClubWarRankV2>
-        <ClubWarRank v-else></ClubWarRank>
+        <ClubWarRank></ClubWarRank>
       </div>
 
       <div
@@ -310,9 +293,6 @@ const SkinChallengeCard = defineAsyncComponent(
 const ClubWarRank = defineAsyncComponent(
   () => import("../Club/ClubWarRank.vue"),
 );
-const ClubWarRankV2 = defineAsyncComponent(
-  () => import("../Club/ClubWarRankV2.vue"),
-);
 const ClubMonthBattleRecords = defineAsyncComponent(
   () => import("../Club/ClubMonthBattleRecords.vue"),
 );
@@ -356,14 +336,9 @@ const activeSection = ref("daily");
 const saltFieldSubTab = ref("warrank");
 const peachSubTab = ref("peach");
 const rankSubTab = ref("serverrank");
-const warrankStyle = ref(
-  localStorage.getItem("club_warrank_style") || "style1",
-);
 const peachStyle = ref(localStorage.getItem("peach_info_style") || "style1");
 
-watch(warrankStyle, (style) => {
-  localStorage.setItem("club_warrank_style", style);
-});
+localStorage.removeItem("club_warrank_style");
 watch(peachStyle, (style) => {
   localStorage.setItem("peach_info_style", style);
 });
