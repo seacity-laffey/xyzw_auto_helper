@@ -2993,41 +2993,6 @@
       "count": 3
     }
   },
-  "src/views/TokenImport/index.vue": {
-    "antfu/if-newline": {
-      "count": 6
-    },
-    "import/newline-after-import": {
-      "count": 1
-    },
-    "object-shorthand": {
-      "count": 1
-    },
-    "perfectionist/sort-named-imports": {
-      "count": 3
-    },
-    "prefer-template": {
-      "count": 3
-    },
-    "style/operator-linebreak": {
-      "count": 16
-    },
-    "style/padded-blocks": {
-      "count": 1
-    },
-    "vue/attributes-order": {
-      "count": 60
-    },
-    "vue/component-name-in-template-casing": {
-      "count": 4
-    },
-    "vue/define-macros-order": {
-      "count": 1
-    },
-    "vue/html-self-closing": {
-      "count": 13
-    }
-  },
   "src/views/TokenImport/manual.vue": {
     "perfectionist/sort-named-imports": {
       "count": 1

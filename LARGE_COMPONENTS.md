@@ -29,12 +29,25 @@ static media from the component refactor queue.
 | P1 | `src/components/Cards/Rank/ServerRankListPageCard.vue` | 2,334 lines / 60 KiB | Server ranking fetch, table rendering, export | Share ranking controls and export preparation with active ranking pages |
 | P2 | `src/components/Club/PeachInfo.vue` | 2,209 lines / 61 KiB | Legacy peach-event presentation and requests | Confirm whether both peach views remain user-selectable before sharing logic |
 | P2 | `src/views/PushingLevels.vue` | 1,899 lines / 47 KiB | Multi-account progression state, task execution, logs, controls | Extract account progress and execution panels |
-| P2 | `src/views/TokenImport/index.vue` | 1,171 lines / 40 KiB | Token listing, filtering, import workflows, account actions | Extract import dialogs and token-list presentation |
+| P2 | `src/views/TokenImport/index.vue` | 1,016 lines / 35 KiB | Token listing, sorting, drag ordering, account actions | Extract the list/card presentations behind a shared token-row contract |
 
 Sizes are a snapshot taken on 2026-09-05 and should be refreshed after each
 completed extraction.
 
 ## Completed Extractions
+
+### Token workflow dialogs
+
+- Extracted the four-method Token import workflow into
+  `TokenImportDialog.vue`, keeping its method selection local and closing it
+  through a single model event from every form variant.
+- Extracted Token editing into `TokenEditDialog.vue`. The dialog owns an
+  isolated draft and sends validated save intent to the page, while the page
+  retains store updates and notifications.
+- Reduced `src/views/TokenImport/index.vue` from 1,171 lines / 40 KiB to 1,016
+  lines / 35 KiB and removed its stale historical lint suppression entry.
+  Desktop and 390 px browser checks cover import-method switching, editing,
+  save propagation, console errors, and page overflow.
 
 ### Fight PvP presentation
 

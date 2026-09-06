@@ -3,73 +3,7 @@
     class="min-h-[calc(100vh-56px)] bg-background py-6 pb-10 max-md:py-3 max-md:pb-6"
   >
     <div class="mx-auto w-full max-w-[1480px] px-6 max-md:px-3">
-      <!-- Token导入区域 -->
-      <Dialog v-model:open="showImportForm">
-        <DialogContent class="max-h-[88vh] max-w-2xl overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>添加游戏 Token</DialogTitle>
-            <DialogDescription class="sr-only">
-              选择一种 Token 导入方式
-            </DialogDescription>
-          </DialogHeader>
-          <div class="mb-8 flex justify-center max-md:mb-5">
-            <!-- 导入方式选择 -->
-            <div
-              class="flex overflow-hidden rounded-md border border-outline-variant bg-surface-container-lowest max-md:hidden"
-            >
-              <button
-                v-for="option in importMethodOptions"
-                :key="option.value"
-                class="border-r border-outline-variant px-3 py-2 text-body-sm font-medium transition-colors last:border-r-0"
-                type="button"
-                :class="
-                  importMethod === option.value
-                    ? 'bg-primary text-on-primary'
-                    : 'text-on-surface-variant hover:bg-surface-container-high'
-                "
-                @click="importMethod = option.value"
-              >
-                {{ option.label }}
-              </button>
-            </div>
-            <select
-              aria-label="Token 导入方式"
-              class="hidden w-full rounded-md border border-outline-variant bg-surface-container-lowest px-3 py-2 text-body-sm text-on-surface outline-none focus:border-primary max-md:block"
-              v-model="importMethod"
-            >
-              <option
-                v-for="option in importMethodOptions"
-                :key="option.value"
-                :value="option.value"
-              >
-                {{ option.label }}
-              </option>
-            </select>
-          </div>
-          <div>
-            <ManualTokenForm
-              v-if="importMethod === 'manual'"
-              @cancel="() => (showImportForm = false)"
-              @ok="() => (showImportForm = false)"
-            ></ManualTokenForm>
-            <WxQrcodeForm
-              v-if="importMethod === 'wxQrcode'"
-              @cancel="() => (showImportForm = false)"
-              @ok="() => (showImportForm = false)"
-            ></WxQrcodeForm>
-            <BinTokenForm
-              v-if="importMethod === 'bin'"
-              @cancel="() => (showImportForm = false)"
-              @ok="() => (showImportForm = false)"
-            ></BinTokenForm>
-            <single-bin-token-form
-              v-if="importMethod === 'singlebin'"
-              @cancel="() => (showImportForm = false)"
-              @ok="() => (showImportForm = false)"
-            ></single-bin-token-form>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <TokenImportDialog v-model:open="showImportForm"></TokenImportDialog>
 
       <!-- Token列表 -->
       <div
@@ -554,71 +488,15 @@
       </div>
     </div>
 
-    <!-- 编辑Token模态框 -->
-    <Dialog v-model:open="showEditModal">
-      <DialogContent class="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>编辑 Token</DialogTitle>
-          <DialogDescription class="sr-only">
-            编辑当前 Token 的账号和连接信息
-          </DialogDescription>
-        </DialogHeader>
-        <form class="grid gap-4" @submit.prevent="saveEdit">
-          <div class="grid gap-2">
-            <Label for="token-name">名称</Label>
-            <Input id="token-name" required v-model="editForm.name"></Input>
-          </div>
-          <div class="grid gap-2">
-            <Label for="token-value">Token 字符串</Label>
-            <Textarea
-              id="token-value"
-              required
-              placeholder="粘贴 Token 字符串..."
-              rows="3"
-              v-model="editForm.token"
-            ></Textarea>
-          </div>
-          <div class="grid gap-2 sm:grid-cols-2">
-            <div class="grid gap-2">
-              <Label for="token-server">服务器</Label>
-              <Input id="token-server" v-model="editForm.server"></Input>
-            </div>
-            <div class="grid gap-2">
-              <Label for="token-ws-url">WebSocket 地址</Label>
-              <Input id="token-ws-url" v-model="editForm.wsUrl"></Input>
-            </div>
-          </div>
-          <div class="grid gap-2">
-            <Label for="token-remark">备注</Label>
-            <Textarea
-              id="token-remark"
-              placeholder="添加备注信息..."
-              rows="2"
-              v-model="editForm.remark"
-            ></Textarea>
-          </div>
-          <DialogFooter class="mt-2">
-            <Button
-              type="button"
-              variant="outline"
-              @click="showEditModal = false"
-            >
-              取消
-            </Button>
-            <Button type="submit">保存</Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <TokenEditDialog
+      v-model:open="showEditModal"
+      :token="editingToken"
+      @save="saveEdit"
+    ></TokenEditDialog>
   </div>
 </template>
 
 <script setup>
-import ManualTokenForm from "./manual.vue";
-import BinTokenForm from "./bin.vue";
-import singleBinTokenForm from "./singlebin.vue";
-import WxQrcodeForm from "./wxqrcode.vue";
-
 import { useTokenStore } from "@/stores/tokenStore";
 import {
   Plus as AddIcon,
@@ -632,15 +510,8 @@ import {
   Trash2 as TrashBin,
 } from "@lucide/vue";
 import { useDialog, useMessage } from "naive-ui";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import TokenEditDialog from "@/components/Token/TokenEditDialog.vue";
+import TokenImportDialog from "@/components/Token/TokenImportDialog.vue";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -649,10 +520,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { computed, onMounted, reactive, ref, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 
 // 接收路由参数
@@ -674,15 +542,8 @@ const showImportForm = ref(false);
 const isImporting = ref(false);
 const showEditModal = ref(false);
 const editingToken = ref(null);
-const importMethod = ref("manual");
 // 从localStorage读取上次的视图模式，默认为列表视图
 const viewMode = ref(localStorage.getItem("tokenViewMode") || "list");
-const importMethodOptions = [
-  { label: "手动输入", value: "manual" },
-  { label: "微信扫码", value: "wxQrcode" },
-  { label: "BIN 多角色", value: "bin" },
-  { label: "BIN 单角色", value: "singlebin" },
-];
 const dragIndex = ref(null);
 
 // 备注编辑状态管理
@@ -812,15 +673,6 @@ const handleDrop = (index, event) => {
   message.success("Token 顺序已更新");
 };
 
-// 编辑表单
-const editForm = reactive({
-  name: "",
-  token: "",
-  server: "",
-  wsUrl: "",
-  remark: "",
-});
-
 const bulkOptions = [
   { label: "导出所有Token", key: "export" },
   { label: "导入Token文件", key: "import" },
@@ -905,30 +757,23 @@ const handleTokenAction = async (key, token) => {
 
 const editToken = (token) => {
   editingToken.value = token;
-  Object.assign(editForm, {
-    name: token.name,
-    token: token.token,
-    server: token.server || "",
-    wsUrl: token.wsUrl || "",
-    remark: token.remark || "",
-  });
   showEditModal.value = true;
 };
 
-const saveEdit = async () => {
+const saveEdit = async (form) => {
   if (!editingToken.value)
     return;
-  if (!editForm.name.trim() || !editForm.token.trim()) {
+  if (!form.name.trim() || !form.token.trim()) {
     message.warning("名称和 Token 字符串不能为空");
     return;
   }
 
   tokenStore.updateToken(editingToken.value.id, {
-    name: editForm.name,
-    token: editForm.token,
-    server: editForm.server,
-    wsUrl: editForm.wsUrl,
-    remark: editForm.remark,
+    name: form.name,
+    token: form.token,
+    server: form.server,
+    wsUrl: form.wsUrl,
+    remark: form.remark,
   });
 
   message.success("Token信息已更新");
