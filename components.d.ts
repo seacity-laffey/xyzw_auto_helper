@@ -69,6 +69,8 @@ declare module 'vue' {
     DropdownMenuTrigger: typeof import('./src/components/ui/dropdown-menu/DropdownMenuTrigger.vue')['default']
     FightHelperCard: typeof import('./src/components/Cards/Helper/FightHelperCard.vue')['default']
     FightPvP: typeof import('./src/components/Cards/Activity/FightPvP.vue')['default']
+    FightPvpOpponentPanel: typeof import('./src/components/Cards/Activity/FightPvpOpponentPanel.vue')['default']
+    FightPvpResultPanel: typeof import('./src/components/Cards/Activity/FightPvpResultPanel.vue')['default']
     FishHelperCard: typeof import('./src/components/Cards/Helper/FishHelperCard.vue')['default']
     GameStatus: typeof import('./src/components/Status/GameStatus.vue')['default']
     GoldRankListPageCard: typeof import('./src/components/Cards/Rank/GoldRankListPageCard.vue')['default']

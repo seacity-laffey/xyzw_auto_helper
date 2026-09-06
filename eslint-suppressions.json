@@ -41,65 +41,6 @@
       "count": 1
     }
   },
-  "src/components/Cards/Activity/FightPvP.vue": {
-    "antfu/if-newline": {
-      "count": 1
-    },
-    "eqeqeq": {
-      "count": 2
-    },
-    "no-alert": {
-      "count": 2
-    },
-    "no-unneeded-ternary": {
-      "count": 1
-    },
-    "no-var": {
-      "count": 1
-    },
-    "perfectionist/sort-named-imports": {
-      "count": 1
-    },
-    "prefer-const": {
-      "count": 2
-    },
-    "prefer-template": {
-      "count": 2
-    },
-    "style/operator-linebreak": {
-      "count": 1
-    },
-    "style/spaced-comment": {
-      "count": 9
-    },
-    "unicorn/prefer-number-properties": {
-      "count": 2
-    },
-    "vars-on-top": {
-      "count": 1
-    },
-    "vue/attributes-order": {
-      "count": 26
-    },
-    "vue/html-indent": {
-      "count": 21
-    },
-    "vue/html-self-closing": {
-      "count": 11
-    },
-    "vue/max-attributes-per-line": {
-      "count": 1
-    },
-    "vue/no-useless-v-bind": {
-      "count": 1
-    },
-    "vue/operator-linebreak": {
-      "count": 2
-    },
-    "vue/prefer-separate-static-class": {
-      "count": 1
-    }
-  },
   "src/components/Cards/Activity/HangUpStatusCard.vue": {
     "antfu/if-newline": {
       "count": 6

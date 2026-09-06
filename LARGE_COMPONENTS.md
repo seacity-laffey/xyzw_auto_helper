@@ -28,7 +28,6 @@ static media from the component refactor queue.
 | P1 | `src/components/Cards/Rank/TopRankListPageCard.vue` | 2,346 lines / 61 KiB | Player ranking fetch, detail lookup, table rendering, export | Share ranking controls and player-detail normalization with active ranking pages |
 | P1 | `src/components/Cards/Rank/ServerRankListPageCard.vue` | 2,334 lines / 60 KiB | Server ranking fetch, table rendering, export | Share ranking controls and export preparation with active ranking pages |
 | P2 | `src/components/Club/PeachInfo.vue` | 2,209 lines / 61 KiB | Legacy peach-event presentation and requests | Confirm whether both peach views remain user-selectable before sharing logic |
-| P2 | `src/components/Cards/Activity/FightPvP.vue` | 1,412 lines / 35 KiB | Opponent lookup, repeated battles, result analysis, export | Extract opponent and battle-result presentation, then isolate the battle runner |
 | P2 | `src/views/PushingLevels.vue` | 1,899 lines / 47 KiB | Multi-account progression state, task execution, logs, controls | Extract account progress and execution panels |
 | P2 | `src/views/TokenImport/index.vue` | 1,171 lines / 40 KiB | Token listing, filtering, import workflows, account actions | Extract import dialogs and token-list presentation |
 
@@ -36,6 +35,21 @@ Sizes are a snapshot taken on 2026-09-05 and should be refreshed after each
 completed extraction.
 
 ## Completed Extractions
+
+### Fight PvP presentation
+
+- Extracted opponent identity, club statistics, and the clickable lineup into
+  `FightPvpOpponentPanel.vue`; extracted aggregate rates and per-battle rows
+  into `FightPvpResultPanel.vue`.
+- Replaced the oversized nested-card presentation with compact bordered panels
+  and semantic hero buttons while retaining the parent export surface and
+  selected-hero event flow.
+- Removed the migrated template and all associated dead styles, then fixed the
+  remaining template and script lint violations and deleted the component's
+  historical suppression entry. Reduced `FightPvP.vue` from 1,412 lines / 35
+  KiB to about 600 lines / 16 KiB, removing it from this backlog.
+- Desktop and 390 px browser checks cover opponent lookup, hero details, result
+  rates, console errors, and page overflow.
 
 ### Fight PvP hero detail reuse
 
