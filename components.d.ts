@@ -89,6 +89,7 @@ declare module 'vue' {
     PeachBattleRecordsReport: typeof import('./src/components/Club/PeachBattleRecordsReport.vue')['default']
     PeachInfo: typeof import('./src/components/Club/PeachInfo.vue')['default']
     PeachInfoV2: typeof import('./src/components/Club/PeachInfoV2.vue')['default']
+    PushingLevelProgress: typeof import('./src/components/PushingLevels/PushingLevelProgress.vue')['default']
     RecruitHelperCard: typeof import('./src/components/Cards/Helper/RecruitHelperCard.vue')['default']
     RefineHelperCard: typeof import('./src/components/Cards/Helper/RefineHelperCard.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']

@@ -116,58 +116,11 @@
       </div>
     </section>
 
-    <!-- 推图卡片区 -->
-    <div v-if="runningCards.length" class="running-section">
-      <section
-        v-for="card in runningCards"
-        :key="card.tokenId"
-        class="running-card"
-        :class="{ active: card.running }"
-      >
-        <div class="running-head">
-          <div class="card-title">
-            <strong :title="card.tokenName">{{ card.tokenName }}</strong>
-            <span
-              class="status-dot small"
-              :class="getStatusClass(card.tokenId)"
-              :title="getStatusTitle(card.tokenId)"
-            ></span>
-          </div>
-          <div class="result-badges">
-            <Badge class="text-success" variant="outline">{{ card.wins }}胜</Badge>
-            <Badge class="text-destructive" variant="outline">{{ card.losses }}负</Badge>
-          </div>
-        </div>
-        <div class="level-line">
-          当前关卡：{{ card.level > 0 ? `${card.level}关` : "--" }}
-        </div>
-        <div class="level-line">boss：{{ card.bossName || "--" }}</div>
-        <div class="level-line torch-line">{{ card.torchLabel }}</div>
-        <div class="running-body">
-          <template v-if="card.running">
-            <div class="countdown-row">
-              <span class="countdown-text">战斗剩余 {{ formatDuration(card.countdown) }}</span>
-              <div aria-label="战斗倒计时" aria-valuemax="100" aria-valuemin="0" class="inline-progress" role="progressbar" :aria-valuenow="progressPercent(card)">
-                <span :style="{ width: `${progressPercent(card)}%` }"></span>
-              </div>
-            </div>
-            <div class="card-actions">
-              <span>已战斗 {{ card.battles }} 场</span>
-              <Button size="sm" variant="destructive" @click="stopOne(card.tokenId)">停止</Button>
-            </div>
-          </template>
-          <template v-else>
-            <div class="waiting-line">等待推图</div>
-            <div class="card-actions">
-              <span class="err-text" :title="card.lastError || '无'">
-                最近错误：{{ card.lastError || "无" }}
-              </span>
-              <Button size="sm" @click="startOne(card.tokenId)">启动</Button>
-            </div>
-          </template>
-        </div>
-      </section>
-    </div>
+    <PushingLevelProgress
+      :cards="runningCards"
+      @start="startOne"
+      @stop="stopOne"
+    ></PushingLevelProgress>
 
     <!-- 推图日志区 -->
     <section class="log-card panel">
@@ -235,6 +188,7 @@ import {
 } from "vue";
 import { useMessage } from "naive-ui";
 import { batchSelectedTokenIds, useTokenStore } from "@/stores/tokenStore";
+import PushingLevelProgress from "@/components/PushingLevels/PushingLevelProgress.vue";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -375,6 +329,7 @@ const runningCards = computed(() => {
       return {
         tokenId,
         tokenName: token?.name || tokenId,
+        connectionStatus: getWebSocketStatus(tokenId),
         running: Boolean(state.running && !state.stopFlag),
         level,
         bossName:
@@ -718,22 +673,6 @@ function applyLevel(state, level, serverBossName = "") {
     state.bossName = getBossName(state.level);
     state.bossLevel = state.level;
   }
-}
-
-function formatDuration(seconds) {
-  const safeSeconds = Math.max(0, Number(seconds) || 0);
-  const minutes = Math.floor(safeSeconds / 60);
-  const rest = safeSeconds % 60;
-  return minutes > 0 ? `${minutes}m${rest}s` : `${rest}s`;
-}
-
-function progressPercent(card) {
-  if (!card.totalTime)
-    return 0;
-  return Math.max(
-    0,
-    Math.min(100, Math.round((1 - card.countdown / card.totalTime) * 100)),
-  );
 }
 
 function sleep(ms) {
@@ -1485,14 +1424,12 @@ onBeforeUnmount(() => {
 
 .account-card-top,
 .control-card,
-.log-card,
-.running-card {
+.log-card {
   border-radius: var(--radius);
   box-shadow: none;
 }
 
-.panel,
-.running-card {
+.panel {
   padding: 12px 16px;
   background: var(--background);
   border: 1px solid var(--border);
@@ -1608,11 +1545,6 @@ onBeforeUnmount(() => {
   transition: background 0.2s;
 }
 
-.status-dot.small {
-  width: 10px;
-  height: 10px;
-}
-
 .status-gray {
   background: var(--input);
 }
@@ -1687,114 +1619,10 @@ onBeforeUnmount(() => {
   white-space: nowrap;
 }
 
-.running-section {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 10px;
-}
-
-.running-card {
-  min-height: 160px;
-  border: 1px solid var(--border);
-}
-
-.running-card.active {
-  border-color: var(--success);
-}
-
-.running-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  align-items: center;
-  margin-bottom: 6px;
-}
-
-.result-badges,
 .log-title {
   display: flex;
   align-items: center;
   gap: 7px;
-}
-
-.card-title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-}
-
-.card-title strong {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 140px;
-}
-
-.level-line,
-.waiting-line,
-.countdown-text,
-.card-actions {
-  color: var(--muted-foreground);
-  font-size: 12px;
-  line-height: 1.6;
-}
-
-.level-line {
-  color: var(--foreground);
-}
-
-.torch-line {
-  color: var(--warning);
-  font-weight: 500;
-}
-
-.running-body {
-  margin-top: 8px;
-}
-
-.countdown-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.countdown-text {
-  color: var(--foreground);
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.inline-progress {
-  flex: 1;
-  min-width: 0;
-  height: 6px;
-  overflow: hidden;
-  background: var(--muted);
-  border-radius: 2px;
-}
-
-.inline-progress span {
-  display: block;
-  height: 100%;
-  background: var(--success);
-  transition: width 200ms ease;
-}
-
-.card-actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-top: 6px;
-}
-
-.err-text {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 160px;
 }
 
 .log-card {

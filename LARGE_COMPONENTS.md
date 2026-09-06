@@ -28,12 +28,25 @@ static media from the component refactor queue.
 | P1 | `src/components/Cards/Rank/TopRankListPageCard.vue` | 2,346 lines / 61 KiB | Player ranking fetch, detail lookup, table rendering, export | Share ranking controls and player-detail normalization with active ranking pages |
 | P1 | `src/components/Cards/Rank/ServerRankListPageCard.vue` | 2,334 lines / 60 KiB | Server ranking fetch, table rendering, export | Share ranking controls and export preparation with active ranking pages |
 | P2 | `src/components/Club/PeachInfo.vue` | 2,209 lines / 61 KiB | Legacy peach-event presentation and requests | Confirm whether both peach views remain user-selectable before sharing logic |
-| P2 | `src/views/PushingLevels.vue` | 1,899 lines / 47 KiB | Multi-account progression state, task execution, logs, controls | Extract account progress and execution panels |
+| P2 | `src/views/PushingLevels.vue` | 1,727 lines / 43 KiB | Multi-account progression state, task execution, logs, controls | Extract account selection and log presentation |
 
 Sizes are a snapshot taken on 2026-09-06 and should be refreshed after each
 completed extraction.
 
 ## Completed Extractions
+
+### Pushing-level progress presentation
+
+- Extracted the per-account progression cards into
+  `PushingLevelProgress.vue`, keeping the normalized card contract limited to
+  display data and `start`/`stop` intent events.
+- Kept WebSocket connections, countdown state, torch refreshes, battle loops,
+  selection, and logging in `PushingLevels.vue`; migrated the card-specific
+  styles with the presentation.
+- Reduced `src/views/PushingLevels.vue` from 1,899 lines / 47 KiB to 1,727
+  lines / 43 KiB and removed its now-unused historical lint suppressions.
+  Type checking and targeted lint pass; the existing desktop/mobile pushing
+  page screenshots remain available for visual regression review.
 
 ### Token account collection
 

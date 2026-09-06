@@ -2897,32 +2897,6 @@
       "count": 12
     }
   },
-  "src/views/PushingLevels.vue": {
-    "antfu/if-newline": {
-      "count": 38
-    },
-    "regexp/no-super-linear-backtracking": {
-      "count": 1
-    },
-    "style/indent-binary-ops": {
-      "count": 1
-    },
-    "style/operator-linebreak": {
-      "count": 18
-    },
-    "vue/attributes-order": {
-      "count": 24
-    },
-    "vue/html-indent": {
-      "count": 6
-    },
-    "vue/html-self-closing": {
-      "count": 9
-    },
-    "vue/max-attributes-per-line": {
-      "count": 4
-    }
-  },
   "src/views/Register.vue": {
     "antfu/if-newline": {
       "count": 1
