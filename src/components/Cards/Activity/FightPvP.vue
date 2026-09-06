@@ -354,235 +354,34 @@
       </div>
     </div>
 
-    <!-- 武将详情模态框 -->
-    <n-modal
-      v-model:show="showHeroModal"
-      class="hero-detail-modal"
-      preset="card"
-      title="武将信息"
-      size="large"
-      :bordered="false"
-      :segmented="{ content: 'soft', footer: 'soft' }"
-      :style="{ width: '600px' }"
-    >
-      <template #header-extra>
-        <span class="hero-id">武将ID: {{ heroModealTemp?.heroId }}</span>
-      </template>
-
-      <div v-if="heroModealTemp" class="hero-modal-content">
-        <div class="hero-modal-header">
-          <div class="hero-modal-avatar">
-            <img
-              v-if="heroModealTemp.heroAvate"
-              :src="heroModealTemp.heroAvate"
-              :alt="heroModealTemp.heroName"
-            />
-          </div>
-          <div class="hero-modal-basic">
-            <h3 class="hero-modal-name">{{ heroModealTemp.heroName }}</h3>
-            <div class="hero-modal-stats">
-              <span class="stat-item">{{ heroModealTemp.power }}</span>
-              <span class="stat-item">等级: {{ heroModealTemp.level }}</span>
-              <span class="stat-item">星级: {{ heroModealTemp.star }}</span>
-              <n-tag :type="heroModealTemp.HolyBeast ? 'success' : 'warning'">
-                {{ heroModealTemp.HolyBeast ? "已激活" : "未激活" }}
-              </n-tag>
-            </div>
-          </div>
-        </div>
-
-        <div class="hero-modal-details">
-          <n-descriptions label-placement="left" column="3" bordered>
-            <n-descriptions-item label="战力">
-              {{ heroModealTemp.power }}
-            </n-descriptions-item>
-            <n-descriptions-item label="等级">
-              {{ heroModealTemp.level }}
-            </n-descriptions-item>
-            <n-descriptions-item label="星级">
-              {{ heroModealTemp.star }}
-            </n-descriptions-item>
-            <n-descriptions-item label="开孔数">
-              {{ heroModealTemp.hole }}
-            </n-descriptions-item>
-            <n-descriptions-item label="红孔数">
-              {{ heroModealTemp.red }}
-            </n-descriptions-item>
-            <n-descriptions-item label="四圣状态">
-              {{ heroModealTemp.HolyBeast ? "已激活" : "未激活" }}
-            </n-descriptions-item>
-            <n-descriptions-item
-              label="四圣等级"
-              v-if="heroModealTemp.HolyBeast"
-            >
-              {{ heroModealTemp.HBlevel }}
-            </n-descriptions-item>
-            <n-descriptions-item label="鱼灵">
-              {{
-                heroModealTemp?.PearlInfo?.FishInfo?.name != undefined
-                  ? heroModealTemp.PearlInfo?.FishInfo?.name
-                  : "无"
-              }}
-            </n-descriptions-item>
-            <n-descriptions-item label="鱼珠技能">
-              {{
-                heroModealTemp?.PearlInfo?.PearlSkill?.name != undefined
-                  ? heroModealTemp.PearlInfo?.PearlSkill?.name
-                  : "无"
-              }}
-            </n-descriptions-item>
-            <n-descriptions-item label="鱼灵洗练">
-              <div v-if="heroModealTemp?.PearlInfo?.slotMap?.length > 0">
-                <div
-                  v-for="item in heroModealTemp.PearlInfo.slotMap"
-                  :key="item.id"
-                  class="ModalEquipment"
-                  :style="'background-color:' + item.value"
-                ></div>
-              </div>
-              <div v-else>无</div>
-            </n-descriptions-item>
-          </n-descriptions>
-        </div>
-
-        <div class="hero-modal-equipment">
-          <h4 class="section-title">装备详情</h4>
-          <div class="equipment-grid">
-            <div class="equipment-item">
-              <span class="equipment-label">武器:</span>
-              <div class="equipment-slots">
-                <div
-                  v-for="(item, idx) in Object.values(
-                    Object.values(heroModealTemp.equipment)[0]?.quenches || {},
-                  )"
-                  :key="idx"
-                  class="equipment-slot"
-                  :class="{ 'red-slot': item.colorId === 6 }"
-                ></div>
-              </div>
-            </div>
-            <div class="equipment-item">
-              <span class="equipment-label">衣服:</span>
-              <div class="equipment-slots">
-                <div
-                  v-for="(item, idx) in Object.values(
-                    Object.values(heroModealTemp.equipment)[1]?.quenches || {},
-                  )"
-                  :key="idx"
-                  class="equipment-slot"
-                  :class="{ 'red-slot': item.colorId === 6 }"
-                ></div>
-              </div>
-            </div>
-            <div class="equipment-item">
-              <span class="equipment-label">头盔:</span>
-              <div class="equipment-slots">
-                <div
-                  v-for="(item, idx) in Object.values(
-                    Object.values(heroModealTemp.equipment)[2]?.quenches || {},
-                  )"
-                  :key="idx"
-                  class="equipment-slot"
-                  :class="{ 'red-slot': item.colorId === 6 }"
-                ></div>
-              </div>
-            </div>
-            <div class="equipment-item">
-              <span class="equipment-label">坐骑:</span>
-              <div class="equipment-slots">
-                <div
-                  v-for="(item, idx) in Object.values(
-                    Object.values(heroModealTemp.equipment)[3]?.quenches || {},
-                  )"
-                  :key="idx"
-                  class="equipment-slot"
-                  :class="{ 'red-slot': item.colorId === 6 }"
-                ></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <template #footer>
-        <div class="modal-footer">
-          <n-button type="default" @click="showHeroModal = false"
-            >关闭</n-button
-          >
-        </div>
-      </template>
-    </n-modal>
+    <ClubHeroDetailDialog
+      v-model:open="showHeroModal"
+      :hero="heroModealTemp"
+    ></ClubHeroDetailDialog>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from "vue";
-import { useMessage, NDatePicker, NPagination } from "naive-ui";
-import { useTokenStore } from "@/stores/tokenStore";
-import {
-  Trophy,
-  Refresh,
-  Copy,
-  ChevronDown,
-  ChevronUp,
-  DocumentText,
-} from "@vicons/ionicons5";
-import {
-  getLastSaturday,
-  formatTimestamp,
-  formatTimestamp1,
-  parseBattleResult,
-  parseAttackType,
-  formatBattleRecordsForExport,
-  copyToClipboard,
-} from "@/utils/clubBattleUtils";
-import {
-  gettoday,
-  formatWarrankRecordsForExport,
-  allianceincludes,
-} from "@/utils/goldWarrankUtils";
-import {
-  HERO_DICT,
-  HeroFillInfo,
-  formatWeapon,
-  legacycolor,
-} from "@/utils/heroList";
+import { ref, watch } from "vue";
+import { useMessage } from "naive-ui";
+import { Copy, Refresh, Trophy } from "@vicons/ionicons5";
+import ClubHeroDetailDialog from "@/components/Club/ClubHeroDetailDialog.vue";
 import html2canvas from "html2canvas";
 import { downloadCanvasAsImage } from "@/utils/imageExport";
+import { HERO_DICT, HeroFillInfo, formatWeapon, legacycolor } from "@/utils/heroList";
+import { extractClubHeroInfo } from "@/utils/clubPlayerInfo";
+import { useTokenStore } from "@/stores/tokenStore";
 
 // 确保legacycolor在模板中可用
 const legacyColorMap = legacycolor;
 
-const props = defineProps({
-  visible: {
-    type: Boolean,
-    default: false,
-  },
-  inline: {
-    type: Boolean,
-    default: false,
-  },
-});
-
-const emit = defineEmits(["update:visible"]);
-
 const message = useMessage();
 const tokenStore = useTokenStore();
-
-const showModal = computed({
-  get: () => props.visible,
-  set: (val) => emit("update:visible", val),
-});
 
 const exportDom = ref(null);
 const loading1 = ref(false);
 const loadingText = ref("正在查询对手信息...");
-const topranklist = ref(null);
-const expandedMembers = ref(new Set());
-const roleIdinput = ref("");
-const queryDate = ref("");
 const targetId = ref("");
-const teamArray = ref(null);
 //切磋对手信息
 const memberData = ref(null);
 //批量数量
@@ -618,33 +417,10 @@ const options = [
     value: 50,
   },
 ];
-let player_date = { name: "", power: "" };
-
-// 分页状态
-const currentPage = ref(1);
-const pageSize = ref(20); // 每页20条，共5页
-
-// 计算总页数
-const totalPages = computed(() => {
-  if (!topranklist.value) return 0;
-  return Math.ceil(Object.keys(topranklist.value).length / pageSize.value);
-});
-
 const selectHeroInfo = (heroInfo) => {
   showHeroModal.value = true;
   heroModealTemp.value = heroInfo;
 };
-
-// 获取当前页的数据
-const currentPageData = computed(() => {
-  if (!topranklist.value) return {};
-
-  const startIndex = (currentPage.value - 1) * pageSize.value;
-  const endIndex = startIndex + pageSize.value;
-  const entries = Object.entries(topranklist.value);
-
-  return Object.fromEntries(entries.slice(startIndex, endIndex));
-});
 // 格式化战力
 const formatPower = (power) => {
   if (!power) return "0";
@@ -655,30 +431,6 @@ const formatPower = (power) => {
     return (power / 10000).toFixed(2) + "万";
   }
   return power.toString();
-};
-
-// 获取战斗样式类
-const getBattleClass = (battle) => {
-  const classes = [];
-  if (battle.isWin) {
-    classes.push("battle-win");
-  } else {
-    classes.push("battle-loss");
-  }
-  return classes.join(" ");
-};
-
-const formatScore = (score) => {
-  return score.toFixed(0).toString();
-};
-
-const formatServerId = (ServerId) => {
-  return (ServerId - 27).toFixed(0).toString();
-};
-
-// 处理图片加载错误
-const handleImageError = (event) => {
-  event.target.style.display = "none";
 };
 
 // 切磋
@@ -699,7 +451,6 @@ const fetchfightPVP = async () => {
 
   loading1.value = true;
   loadingText.value = "正在进行切磋，请稍候...";
-  queryDate.value = gettoday();
 
   try {
     let winCount = 0;
@@ -765,7 +516,6 @@ const fetchfightPVP = async () => {
     return teamData;
   } catch (error) {
     message.error(`查询失败: ${error.message}`);
-    topranklist.value = null;
   } finally {
     loading1.value = false;
     loadingText.value = "正在查询对手信息...";
@@ -793,7 +543,6 @@ const fetchTargetInfo = async () => {
 
   loading1.value = true;
   loadingText.value = "正在查询对手信息...";
-  queryDate.value = gettoday();
 
   try {
     const result = await tokenStore.sendMessageWithPromise(
@@ -814,23 +563,24 @@ const fetchTargetInfo = async () => {
       return;
     }
     const teamData = {};
-    const heroAndholdAndRed = getHeroInfo(result.roleInfo.heroes);
+    const heroAndholdAndRed = extractClubHeroInfo(result.roleInfo.heroes, HERO_DICT);
     // 处理鱼灵信息
     const fishInfo = HeroFillInfo(result.roleInfo);
     // 将鱼灵信息添加到英雄列表中
     heroAndholdAndRed.heroList.forEach((hero) => {
       hero.PearlInfo = fishInfo[hero.artifactId] || {};
+      hero.power = formatPower(hero.power);
     });
     // 俱乐部名称
     teamData.legionName = result.legionInfo?.name || "无俱乐部";
     // 俱乐部当前红数
     teamData.legionRed =
-      result.legionInfo?.statistics["battle:red:quench"] || "无";
+      result.legionInfo?.statistics?.["battle:red:quench"] || "无";
     // 俱乐部历史最高红数
-    teamData.legionMaxRed = result.legionInfo?.statistics["red:quench"] || "无";
+    teamData.legionMaxRed = result.legionInfo?.statistics?.["red:quench"] || "无";
     // 俱乐部历史最高战力
     teamData.MaxPower = formatPower(
-      result.legionInfo?.statistics["max:power"] || "0",
+      result.legionInfo?.statistics?.["max:power"] || "0",
     );
     // 切磋对手武将信息
     teamData.heroList = heroAndholdAndRed.heroList;
@@ -849,76 +599,12 @@ const fetchTargetInfo = async () => {
     return teamData;
   } catch (error) {
     message.error(`查询失败: ${error.message}`);
-    topranklist.value = null;
   } finally {
     loading1.value = false;
     loadingText.value = "正在查询对手信息...";
   }
 };
 
-/**
- * 提取数组中的英雄信息
- * @param {Object} heroObj
- */
-const getHeroInfo = (heroObj) => {
-  //统计总红数
-  let redCount = 0;
-  let holeCount = 0;
-  let heroList = [];
-  Object.values(heroObj).forEach((hero) => {
-    let heroInfo = HERO_DICT[hero.heroId];
-    let equipmentInfo = getEquipment(hero.equipment);
-    let tempObj = {
-      heroId: hero.heroId, //英雄ID
-      heroSort: hero.battleTeamSlot, //阵容站位
-      artifactId: hero.artifactId, //英雄装备ID，用于匹配鱼灵信息
-      power: formatPower(hero.power), //英雄战力
-      star: hero.star, //英雄星级
-      equipment: hero.equipment, //英雄具体孔数和红数
-      heroName: heroInfo.name, //英雄姓名
-      heroAvate: heroInfo.avatar,
-      level: hero.level, //英雄等级
-      hole: equipmentInfo.holeCount, //英雄开孔数量
-      red: equipmentInfo.redCount, //英雄红数
-      HolyBeast: hero.hB?.active, //激活四圣
-      HBlevel: hero.hB?.order || 0, //四圣等级
-    };
-    redCount += tempObj.red;
-    holeCount += tempObj.hole;
-    heroList.push(tempObj);
-  });
-  return {
-    redCount,
-    holeCount,
-    heroList: heroList.sort((a, b) => {
-      return a.heroSort - b.heroSort;
-    }),
-  };
-};
-
-//获取装备信息红数和孔数
-const getEquipment = (equipment) => {
-  let redCount = 0;
-  let holeCount = 0;
-  let equipArr = [];
-  //此处遍历4件装备
-  Object.values(equipment).forEach((equ) => {
-    //遍历每件装备的属性
-    Object.values(equ.quenches).forEach((item) => {
-      holeCount++;
-      if (item.colorId == 6) {
-        redCount++;
-      }
-    });
-  });
-  return { redCount, holeCount };
-};
-
-// 处理分页大小改变
-const handlePageSizeChange = (size) => {
-  pageSize.value = size;
-  currentPage.value = 1; // 重置到第一页
-};
 // 刷新战绩
 const fightPVPRefresh = () => {
   fetchfightPVP();
@@ -1004,21 +690,9 @@ const handleExport1 = async () => {
   }
 };
 
-// 关闭弹窗
-const handleClose = () => {
-  expandedMembers.value.clear();
-};
-
 // 暴露方法给父组件
 defineExpose({
   fetchfightPVP,
-});
-
-// Inline 模式：挂载后自动拉取
-onMounted(() => {
-  // if (props.inline) {
-  //     topranklistRefresh()
-  // }
 });
 </script>
 
@@ -1677,131 +1351,6 @@ onMounted(() => {
   font-weight: 600;
   color: var(--text-secondary);
   flex-shrink: 0;
-}
-
-/* 英雄详情模态框样式 */
-.hero-detail-modal .hero-modal-content {
-  padding: 20px 0;
-}
-
-.hero-modal-header {
-  display: flex;
-  gap: 24px;
-  align-items: center;
-  margin-bottom: 24px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid var(--border-light);
-}
-
-@media (max-width: 768px) {
-  .hero-modal-header {
-    flex-direction: column;
-    text-align: center;
-  }
-}
-
-.hero-modal-avatar {
-  flex-shrink: 0;
-}
-
-.hero-modal-avatar img {
-  width: 120px;
-  height: 120px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 3px solid var(--primary-color-light);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.hero-modal-basic {
-  flex: 1;
-}
-
-.hero-modal-name {
-  margin: 0 0 12px 0;
-  font-size: 24px;
-  font-weight: 600;
-}
-
-.hero-modal-stats {
-  display: flex;
-  gap: 16px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.hero-modal-stats .stat-item {
-  font-size: 14px;
-  color: var(--text-primary);
-}
-
-.hero-modal-stats .stat-item:first-child {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--primary-color);
-}
-
-.hero-modal-details {
-  margin-bottom: 24px;
-}
-
-.hero-modal-equipment .section-title {
-  margin: 0 0 16px 0;
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.equipment-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
-}
-
-.equipment-item {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.equipment-label {
-  font-size: 14px;
-  color: var(--text-secondary);
-}
-
-.equipment-slots {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.equipment-slot {
-  width: 20px;
-  height: 20px;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  transition: all 0.2s ease;
-}
-
-.equipment-slot.red-slot {
-  background-color: #ef4444;
-  border-color: #ef4444;
-  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
-}
-
-/* 鱼珠洗练样式 */
-.ModalEquipment {
-  display: inline-block;
-  width: 18px;
-  height: 18px;
-  margin-right: 5px;
-  border-radius: 2px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.modal-footer {
-  display: flex;
-  justify-content: center;
-  gap: 12px;
 }
 
 /* 响应式设计 */

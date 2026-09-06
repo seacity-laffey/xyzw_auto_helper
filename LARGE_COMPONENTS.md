@@ -28,7 +28,7 @@ static media from the component refactor queue.
 | P1 | `src/components/Cards/Rank/TopRankListPageCard.vue` | 2,346 lines / 61 KiB | Player ranking fetch, detail lookup, table rendering, export | Share ranking controls and player-detail normalization with active ranking pages |
 | P1 | `src/components/Cards/Rank/ServerRankListPageCard.vue` | 2,334 lines / 60 KiB | Server ranking fetch, table rendering, export | Share ranking controls and export preparation with active ranking pages |
 | P2 | `src/components/Club/PeachInfo.vue` | 2,209 lines / 61 KiB | Legacy peach-event presentation and requests | Confirm whether both peach views remain user-selectable before sharing logic |
-| P2 | `src/components/Cards/Activity/FightPvP.vue` | 1,863 lines / 61 KiB | Opponent lookup, repeated battles, result analysis, dialogs | Extract battle runner and result normalization |
+| P2 | `src/components/Cards/Activity/FightPvP.vue` | 1,412 lines / 35 KiB | Opponent lookup, repeated battles, result analysis, export | Extract opponent and battle-result presentation, then isolate the battle runner |
 | P2 | `src/views/PushingLevels.vue` | 1,899 lines / 47 KiB | Multi-account progression state, task execution, logs, controls | Extract account progress and execution panels |
 | P2 | `src/views/TokenImport/index.vue` | 1,171 lines / 40 KiB | Token listing, filtering, import workflows, account actions | Extract import dialogs and token-list presentation |
 
@@ -36,6 +36,20 @@ Sizes are a snapshot taken on 2026-09-05 and should be refreshed after each
 completed extraction.
 
 ## Completed Extractions
+
+### Fight PvP hero detail reuse
+
+- Replaced the component-local Naive UI hero modal with the shared
+  `ClubHeroDetailDialog.vue`, retaining hero, fish, pearl, equipment, and holy
+  beast details behind the existing selected-hero state.
+- Removed the duplicated hero/equipment parser in favor of the tested
+  `extractClubHeroInfo` utility, preserving formatted power and pearl
+  attachment while adding sparse equipment and legacy response support.
+- Removed unused ranking, pagination, modal-prop, and empty lifecycle remnants,
+  and made optional club statistics safe when absent. Reduced `FightPvP.vue`
+  from 1,863 lines / 47 KiB to 1,412 lines / 35 KiB.
+- Desktop and 390 px browser checks cover opponent lookup, hero details, one
+  battle result, console errors, and page overflow.
 
 ### Club information management
 
