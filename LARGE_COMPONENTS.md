@@ -27,7 +27,6 @@ static media from the component refactor queue.
 | P1 | `src/components/Cards/Rank/TopClubListPageCard.vue` | 3,150 lines / 81 KiB | Ranking fetch, club detail queries, export | Establish a shared ranking-page contract before extracting common controls |
 | P1 | `src/components/Cards/Rank/TopRankListPageCard.vue` | 2,346 lines / 61 KiB | Player ranking fetch, detail lookup, table rendering, export | Share ranking controls and player-detail normalization with active ranking pages |
 | P1 | `src/components/Cards/Rank/ServerRankListPageCard.vue` | 2,334 lines / 60 KiB | Server ranking fetch, table rendering, export | Share ranking controls and export preparation with active ranking pages |
-| P2 | `src/components/Club/PeachBattleRecords.vue` | 2,329 lines / 76 KiB | History aggregation, filtering, table rendering, export | Separate aggregation from table and export presentation |
 | P2 | `src/components/Club/ClubInfo.vue` | 2,058 lines / 53 KiB | Club query lifecycle, member operations, lineup lookup, export | Move member query/export state into a club-member composable |
 | P2 | `src/components/Club/PeachInfo.vue` | 2,209 lines / 61 KiB | Legacy peach-event presentation and requests | Confirm whether both peach views remain user-selectable before sharing logic |
 | P2 | `src/components/Cards/Activity/FightPvP.vue` | 1,863 lines / 61 KiB | Opponent lookup, repeated battles, result analysis, dialogs | Extract battle runner and result normalization |
@@ -38,6 +37,21 @@ Sizes are a snapshot taken on 2026-09-05 and should be refreshed after each
 completed extraction.
 
 ## Completed Extractions
+
+### Peach battle records
+
+- Moved event-date selection, date-key formatting, power display, club record
+  normalization, totals, and rankings into the tested
+  `src/utils/peachBattleRecordData.js` utility.
+- Replaced three duplicated report trees with `PeachBattleRecordsReport.vue`
+  and the reusable two-sided `PeachBattleClubPanel.vue`. All variants retain
+  club metadata, totals, kill/KD/revive/streak rankings, and complete member
+  tables.
+- Kept the five-step protocol workflow in the owning component, adding stale
+  request protection and awaited image export. Reduced
+  `PeachBattleRecords.vue` from 2,329 lines / 76 KiB to 292 lines / 10 KiB and
+  removed its historical lint suppressions. Desktop and 390 px browser checks
+  cover all three variants, request order, totals, rows, and overflow.
 
 ### Club monthly battle records
 
