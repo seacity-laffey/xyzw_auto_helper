@@ -95,7 +95,7 @@
           <div v-if="currentStyle === 'style1'" ref="exportDom" class="records-list style-1">
              <!-- 头部信息 -->
              <div class="style1-header">
-                <h2>{{ queryDate }} {{ club.name || '俱乐部' }}盐场周报</h2>
+                <h2>{{ queryDate }} {{ club?.name || '俱乐部' }}盐场周报</h2>
              </div>
              
              <div class="style1-content">
@@ -222,7 +222,7 @@
                 <div class="style2-title">
                    <span class="trophy-icon">🏆</span>
                    <div class="title-text">
-                      <h2>{{ club.name || '俱乐部' }} 盐场周报</h2>
+                      <h2>{{ club?.name || '俱乐部' }} 盐场周报</h2>
                       <div class="date-text">{{ queryDate }}</div>
                    </div>
                 </div>
@@ -436,11 +436,12 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onBeforeUnmount, onMounted, watch } from 'vue'
 import { useMessage, NCheckboxGroup, NCheckbox, NRadioGroup, NRadioButton } from 'naive-ui'
 import { useTokenStore } from '@/stores/tokenStore'
 import html2canvas from 'html2canvas';
 import { downloadCanvasAsImage } from "@/utils/imageExport";
+import { createLatestRequestController } from "@/utils/latestRequest";
 import {
   Refresh,
   Copy,
@@ -467,6 +468,9 @@ const info = computed(() => tokenStore.gameData?.legionInfo || null);
 const club = computed(() => info.value?.info || null);
 
 const loading = ref(false)
+const battleRecordRequests = createLatestRequestController((isLoading) => {
+  loading.value = isLoading;
+});
 const battleRecords = ref(null)
 const expandedMembers = ref(new Set())
 const queryDate = ref(getLastSaturday())
@@ -650,53 +654,61 @@ const fetchBattleRecordsByDate = (val)=>{
 } 
 
 // 查询战绩
-  const fetchBattleRecords = async () => {
-    if (!tokenStore.selectedToken) {
-      message.warning('请先选择游戏角色')
-      return
-    }
-
-    const tokenId = tokenStore.selectedToken.id
-
-    // 检查WebSocket连接
-    const wsStatus = tokenStore.getWebSocketStatus(tokenId)
-    if (wsStatus !== 'connected') {
-      message.error('WebSocket未连接，无法查询战绩')
-      return
-    }
-
-    loading.value = true
-
-    try {
-      const result = await tokenStore.sendMessageWithPromise(
-        tokenId,
-        'legionwar_getdetails',
-        { date: queryDate.value },
-        10000
-      )
-
-      if (result && result.roleDetailsList) {
-        // 按击杀数从高到低排序
-        const sortedRoleDetailsList = [...result.roleDetailsList].sort((a, b) => {
-          return (b.winCnt || 0) - (a.winCnt || 0)
-        })
-        battleRecords.value = {
-          ...result,
-          roleDetailsList: sortedRoleDetailsList
-        }
-        message.success('战绩加载成功，已按击杀数从高到低排序')
-      } else {
-        battleRecords.value = null
-        message.warning('未查询到战绩数据')
-      }
-    } catch (error) {
-      console.error('查询战绩失败:', error)
-      message.error(`查询失败: ${error.message}`)
-      battleRecords.value = null
-    } finally {
-      loading.value = false
-    }
+const fetchBattleRecords = async () => {
+  if (!tokenStore.selectedToken) {
+    battleRecordRequests.cancel();
+    message.warning('请先选择游戏角色');
+    return;
   }
+
+  const tokenId = tokenStore.selectedToken.id;
+
+  // 检查WebSocket连接
+  const wsStatus = tokenStore.getWebSocketStatus(tokenId);
+  if (wsStatus !== 'connected') {
+    battleRecordRequests.cancel();
+    message.error('WebSocket未连接，无法查询战绩');
+    return;
+  }
+
+  const requestedDate = queryDate.value;
+  return battleRecordRequests.run(
+    `${tokenId}:${requestedDate}`,
+    async (isCurrentRequest) => {
+      try {
+        const result = await tokenStore.sendMessageWithPromise(
+          tokenId,
+          'legionwar_getdetails',
+          { date: requestedDate },
+          10000,
+        );
+        if (!isCurrentRequest())
+          return;
+
+        if (result && result.roleDetailsList) {
+          // 按击杀数从高到低排序
+          const sortedRoleDetailsList = [...result.roleDetailsList].sort((a, b) => {
+            return (b.winCnt || 0) - (a.winCnt || 0);
+          });
+          battleRecords.value = {
+            ...result,
+            roleDetailsList: sortedRoleDetailsList,
+          };
+          message.success('战绩加载成功，已按击杀数从高到低排序');
+        } else {
+          battleRecords.value = null;
+          message.warning('未查询到战绩数据');
+        }
+      } catch (error) {
+        if (!isCurrentRequest())
+          return;
+        console.error('查询战绩失败:', error);
+        message.error(`查询失败: ${error.message}`);
+        battleRecords.value = null;
+      }
+    },
+  );
+};
 
 // 刷新战绩
 const handleRefresh = () => {
@@ -778,6 +790,20 @@ defineExpose({
 onMounted(() => {
   fetchBattleRecords()
 })
+
+onBeforeUnmount(() => {
+  battleRecordRequests.cancel();
+});
+
+watch(
+  () => tokenStore.selectedToken?.id,
+  (newTokenId, oldTokenId) => {
+    if (!newTokenId || newTokenId === oldTokenId)
+      return;
+    battleRecords.value = null;
+    fetchBattleRecords();
+  },
+);
 </script>
 
 <style scoped lang="scss">

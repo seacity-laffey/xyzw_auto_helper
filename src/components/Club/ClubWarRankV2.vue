@@ -61,7 +61,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, reactive, watch } from "vue";
+import { ref, computed, onBeforeUnmount, onMounted, reactive, watch } from "vue";
 import { NInputNumber, NSelect, useMessage } from "naive-ui";
 import { useTokenStore } from "@/stores/tokenStore";
 import html2canvas from "html2canvas";
@@ -86,6 +86,7 @@ import {
   extractClubHeroInfo,
 } from "@/utils/clubPlayerInfo";
 import { runClubDuels } from "@/utils/clubDuelRunner";
+import { createLatestRequestController } from "@/utils/latestRequest";
 import {
   getLastSaturday,
   formatTimestamp1,
@@ -114,6 +115,9 @@ const currentClubInfo = ref(null);
 const currentLegionInfo = computed(() => currentClubInfo.value?.info || null);
 
 const loading1 = ref(false);
+const rankRequests = createLatestRequestController((loading) => {
+  loading1.value = loading;
+});
 const battleRecords1 = ref(null);
 const queryDate = ref("");
 const inputDate1 = ref(getLastSaturday());
@@ -711,6 +715,7 @@ const fetchBattleRecords1 = async (requestTokenId = selectedTokenId.value) => {
   }
 
   if (!requestTokenId) {
+    rankRequests.cancel();
     message.warning("请先选择游戏角色");
     return;
   }
@@ -720,130 +725,97 @@ const fetchBattleRecords1 = async (requestTokenId = selectedTokenId.value) => {
   // 检查WebSocket连接
   const wsStatus = tokenStore.getWebSocketStatus(tokenId);
   if (wsStatus !== "connected") {
+    rankRequests.cancel();
     message.error("WebSocket未连接，无法查询战绩");
     return;
   }
 
-  loading1.value = true;
-  saltFetchStartTime.value = new Date();
-  queryDate.value = formatTimestamp1(inputDate1.value);
-  await fetchCurrentClubInfo(tokenId);
-  if (selectedTokenId.value !== tokenId) return;
+  const requestedDate = formatTimestamp1(inputDate1.value);
+  const requestKey = `${tokenId}:${requestedDate}`;
 
-  if (gettoday() == queryDate.value && new Date().getHours() < 21) {
-    let getbattlefield;
+  return rankRequests.run(requestKey, async (isCurrentRequest) => {
+    saltFetchStartTime.value = new Date();
+    queryDate.value = requestedDate;
+
     try {
-      getbattlefield = await tokenStore.sendMessageWithPromise(
-        tokenId,
-        "legion_getbattlefield",
-        {},
-        10000,
+      await fetchCurrentClubInfo(tokenId);
+      if (!isCurrentRequest() || selectedTokenId.value !== tokenId) return;
+
+      let result;
+      let clubs;
+      if (gettoday() == requestedDate && new Date().getHours() < 21) {
+        const battlefield = await tokenStore.sendMessageWithPromise(
+          tokenId,
+          "legion_getbattlefield",
+          {},
+          10000,
+        );
+        if (!battlefield?.info) {
+          battleRecords1.value = null;
+          message.warning(battlefield?.message || "未查询到盐场匹配数据");
+          return;
+        }
+
+        result = await tokenStore.sendMessageWithPromise(
+          tokenId,
+          "legion_getopponent",
+          {
+            phase: battlefield.info.phase,
+            battlefieldId: battlefield.info.battlefieldId,
+          },
+          10000,
+        );
+
+        if (!result?.opponentList) {
+          battleRecords1.value = null;
+          message.warning(result?.message || "未查询到盐场匹配数据");
+          return;
+        }
+        ScoreShow.value = 1;
+        clubs = result.opponentList;
+      } else {
+        result = await tokenStore.sendMessageWithPromise(
+          tokenId,
+          "legion_getwarrank",
+          { date: requestedDate },
+          10000,
+        );
+        if (!result?.legionRankList) {
+          battleRecords1.value = null;
+          message.warning(result?.message || "未查询到盐场匹配数据");
+          return;
+        }
+        ScoreShow.value = 0;
+        clubs = result.legionRankList.map((club) => ({
+          ...club,
+          sRScore: -1,
+        }));
+      }
+
+      const processedClubs = await loadClubWarRankDetails(
+        clubs,
+        createRankDetailLoaders(tokenId),
       );
+      const sortedLegionList = sortClubRanksByDominantAlliance(
+        processedClubs,
+        allianceincludes,
+      );
+
+      if (!isCurrentRequest() || selectedTokenId.value !== tokenId) return;
+
+      battleRecords1.value = {
+        ...result,
+        legionRankList: sortedLegionList,
+      };
+      message.success("盐场匹配数据加载成功");
     } catch (error) {
+      if (!isCurrentRequest() || selectedTokenId.value !== tokenId) return;
+
       console.error("查询失败:", error);
       message.error(`查询失败: ${error.message || "网络错误"}`);
       battleRecords1.value = null;
-      loading1.value = false;
-      return;
     }
-    if (!getbattlefield.info) {
-      battleRecords1.value = null;
-      message.warning(getbattlefield?.message || "未查询到盐场匹配数据");
-      loading1.value = false;
-      return;
-    }
-    try {
-      const result = await tokenStore.sendMessageWithPromise(
-        tokenId,
-        "legion_getopponent",
-        {
-          phase: getbattlefield.info.phase,
-          battlefieldId: getbattlefield.info.battlefieldId,
-        },
-        10000,
-      );
-
-      if (!result?.opponentList) {
-        battleRecords1.value = null;
-        message.warning(result?.message || "未查询到盐场匹配数据");
-        loading1.value = false;
-        return;
-      }
-      ScoreShow.value = 1;
-      const processedClubs = await loadClubWarRankDetails(
-        result.opponentList,
-        createRankDetailLoaders(tokenId),
-      );
-      const sortedLegionList = sortClubRanksByDominantAlliance(
-        processedClubs,
-        allianceincludes,
-      );
-
-      if (selectedTokenId.value !== tokenId) return;
-
-      battleRecords1.value = {
-        ...result,
-        legionRankList: sortedLegionList,
-      };
-      message.success("盐场匹配数据加载成功");
-    } catch (error) {
-      if (selectedTokenId.value !== tokenId) return;
-
-      console.error("查询失败:", error);
-      message.error(`查询失败: ${error.message}`);
-      battleRecords1.value = null;
-    } finally {
-      if (selectedTokenId.value === tokenId) {
-        loading1.value = false;
-      }
-    }
-  } else {
-    try {
-      const result = await tokenStore.sendMessageWithPromise(
-        tokenId,
-        "legion_getwarrank",
-        { date: queryDate.value },
-        10000,
-      );
-
-      if (!result?.legionRankList) {
-        battleRecords1.value = null;
-        message.warning(result?.message || "未查询到盐场匹配数据");
-        return;
-      }
-      ScoreShow.value = 0;
-      const historicClubs = result.legionRankList.map((club) => ({
-        ...club,
-        sRScore: -1,
-      }));
-      const processedClubs = await loadClubWarRankDetails(
-        historicClubs,
-        createRankDetailLoaders(tokenId),
-      );
-      const sortedLegionList = sortClubRanksByDominantAlliance(
-        processedClubs,
-        allianceincludes,
-      );
-
-      if (selectedTokenId.value !== tokenId) return;
-
-      battleRecords1.value = {
-        ...result,
-        legionRankList: sortedLegionList,
-      };
-      message.success("盐场匹配数据加载成功");
-    } catch (error) {
-      if (selectedTokenId.value !== tokenId) return;
-
-      console.error("查询失败:", error);
-      message.error(`查询失败: ${error.message}`);
-      battleRecords1.value = null;
-    } finally {
-      if (selectedTokenId.value === tokenId) {
-        loading1.value = false;
-      }
-    }
-  }
+  });
 };
 // 刷新战绩
 const handleRefresh1 = () => {
@@ -1062,8 +1034,11 @@ defineExpose({
 
 // Inline 模式：挂载后自动拉取
 onMounted(() => {
-  fetchCurrentClubInfo();
   fetchBattleRecords1();
+});
+
+onBeforeUnmount(() => {
+  rankRequests.cancel();
 });
 
 watch(selectedTokenId, (newTokenId, oldTokenId) => {
@@ -1071,7 +1046,6 @@ watch(selectedTokenId, (newTokenId, oldTokenId) => {
 
   currentClubInfo.value = null;
   battleRecords1.value = null;
-  fetchCurrentClubInfo(newTokenId);
   fetchBattleRecords1(newTokenId);
 });
 </script>

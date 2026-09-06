@@ -823,7 +823,14 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, reactive } from "vue";
+import {
+  ref,
+  computed,
+  onBeforeUnmount,
+  onMounted,
+  reactive,
+  watch,
+} from "vue";
 import {
   useMessage,
   NDatePicker,
@@ -861,6 +868,7 @@ import {
   formatWarrankRecordsForExport,
   allianceincludes,
 } from "@/utils/clubWarrankUtils";
+import { createLatestRequestController } from "@/utils/latestRequest";
 import { HERO_DICT, HeroFillInfo, legacycolor } from "@/utils/heroList";
 
 const ScoreShow = ref(1);
@@ -889,6 +897,9 @@ const showModal = computed({
 });
 
 const loading1 = ref(false);
+const rankRequests = createLatestRequestController((loading) => {
+  loading1.value = loading;
+});
 const battleRecords1 = ref(null);
 const expandedMembers = ref(new Set());
 const queryDate = ref("");
@@ -977,7 +988,8 @@ const handleRankBlur = (member) => {
     return;
   }
 
-  if (newRank === oldRank) return;
+  if (newRank === oldRank)
+    return;
 
   // 查找占用新排名的俱乐部
   const targetMemberId = Object.keys(manualRankings.value).find(
@@ -1117,7 +1129,8 @@ const getHeroInfo = (heroObj) => {
       console.log(`处理第 ${index + 1} 个英雄:`, hero);
 
       // 跳过无效英雄数据
-      if (!hero) return;
+      if (!hero)
+        return;
 
       let heroInfo = HERO_DICT[hero.heroId] || {};
       let equipmentInfo = hero.equipment
@@ -1381,7 +1394,8 @@ const calculateFinalResult = (winCount, lossCount, resultCount) => {
 
 // 切磋功能处理 - 支持连续切磋
 const handleDuel = async () => {
-  if (!playerInfo.value) return;
+  if (!playerInfo.value)
+    return;
 
   // 验证切磋次数
   validateFightCount(fightCount.value);
@@ -1594,7 +1608,8 @@ const filteredLegionList = computed(() => {
 
 // 计算所有俱乐部的红淬排名
 const redQuenchRankings = computed(() => {
-  if (!battleRecords1.value?.legionRankList) return {};
+  if (!battleRecords1.value?.legionRankList)
+    return {};
 
   // 按红淬数量降序排序所有俱乐部，获取真实排名
   const sortedByRedQuench = [...battleRecords1.value.legionRankList].sort(
@@ -1636,7 +1651,8 @@ const getActiveAllianceCount = (alliance) => {
 
 // 格式化战力
 const formatPower = (power) => {
-  if (!power) return "0";
+  if (!power)
+    return "0";
   if (power >= 100000000) {
     return (power / 100000000).toFixed(2) + "亿";
   }
@@ -1702,32 +1718,18 @@ const fetchBattleRecordsByDate = (val) => {
   fetchBattleRecords1();
 };
 
-// 查询战绩
-const fetchBattleRecords1 = async () => {
-  if (!tokenStore.selectedToken) {
-    message.warning("请先选择游戏角色");
-    return;
-  }
+const loadBattleRecords1 = async (tokenId, requestedDate, isCurrentRequest) => {
+  queryDate.value = requestedDate;
 
-  const tokenId = tokenStore.selectedToken.id;
-
-  // 检查WebSocket连接
-  const wsStatus = tokenStore.getWebSocketStatus(tokenId);
-  if (wsStatus !== "connected") {
-    message.error("WebSocket未连接，无法查询战绩");
-    return;
-  }
-
-  loading1.value = true;
-  queryDate.value = formatTimestamp1(inputDate1.value);
-
-  if (gettoday() == queryDate.value && new Date().getHours() < 21) {
+  if (gettoday() == requestedDate && new Date().getHours() < 21) {
     const getbattlefield = await tokenStore.sendMessageWithPromise(
       tokenId,
       "legion_getbattlefield",
       {},
       10000,
     );
+    if (!isCurrentRequest())
+      return;
     if (!getbattlefield.info) {
       battleRecords1.value = null;
       message.warning("未查询到盐场匹配数据");
@@ -1743,6 +1745,8 @@ const fetchBattleRecords1 = async () => {
         },
         10000,
       );
+      if (!isCurrentRequest())
+        return;
 
       if (!result?.opponentList) {
         battleRecords1.value = null;
@@ -1857,6 +1861,8 @@ const fetchBattleRecords1 = async () => {
         }
       });
       const processedClubs = await Promise.all(detailPromises);
+      if (!isCurrentRequest())
+        return;
 
       // 1. 为每个俱乐部添加联盟信息
       const clubsWithAlliance = processedClubs.map((club) => ({
@@ -1920,11 +1926,11 @@ const fetchBattleRecords1 = async () => {
       };
       message.success("盐场匹配数据加载成功");
     } catch (error) {
+      if (!isCurrentRequest())
+        return;
       console.error("查询失败:", error);
       message.error(`查询失败: ${error.message}`);
       battleRecords1.value = null;
-    } finally {
-      loading1.value = false;
     }
   } else {
     try {
@@ -1934,6 +1940,8 @@ const fetchBattleRecords1 = async () => {
         { date: queryDate.value },
         10000,
       );
+      if (!isCurrentRequest())
+        return;
 
       if (!result?.legionRankList) {
         battleRecords1.value = null;
@@ -2049,6 +2057,8 @@ const fetchBattleRecords1 = async () => {
         }
       });
       const processedClubs = await Promise.all(detailPromises);
+      if (!isCurrentRequest())
+        return;
 
       // 1. 为每个俱乐部添加联盟信息
       const clubsWithAlliance = processedClubs.map((club) => ({
@@ -2112,13 +2122,46 @@ const fetchBattleRecords1 = async () => {
       };
       message.success("盐场匹配数据加载成功");
     } catch (error) {
+      if (!isCurrentRequest())
+        return;
       console.error("查询失败:", error);
       message.error(`查询失败: ${error.message}`);
       battleRecords1.value = null;
-    } finally {
-      loading1.value = false;
     }
   }
+};
+
+// 查询战绩
+const fetchBattleRecords1 = async () => {
+  const tokenId = tokenStore.selectedToken?.id;
+  if (!tokenId) {
+    rankRequests.cancel();
+    message.warning("请先选择游戏角色");
+    return;
+  }
+
+  const wsStatus = tokenStore.getWebSocketStatus(tokenId);
+  if (wsStatus !== "connected") {
+    rankRequests.cancel();
+    message.error("WebSocket未连接，无法查询战绩");
+    return;
+  }
+
+  const requestedDate = formatTimestamp1(inputDate1.value);
+  return rankRequests.run(
+    `${tokenId}:${requestedDate}`,
+    async (isCurrentRequest) => {
+      try {
+        await loadBattleRecords1(tokenId, requestedDate, isCurrentRequest);
+      } catch (error) {
+        if (!isCurrentRequest())
+          return;
+        console.error("查询失败:", error);
+        message.error(`查询失败: ${error.message || "网络错误"}`);
+        battleRecords1.value = null;
+      }
+    },
+  );
 };
 // 刷新战绩
 const handleRefresh1 = () => {
@@ -2126,7 +2169,8 @@ const handleRefresh1 = () => {
 };
 
 const hcSort = async () => {
-  if (!battleRecords1.value?.legionRankList) return;
+  if (!battleRecords1.value?.legionRankList)
+    return;
 
   // 1. 按红淬数量排序
   const sortedList = [...battleRecords1.value.legionRankList].sort(
@@ -2150,7 +2194,8 @@ const hcSort = async () => {
 };
 
 const scoreSort = async () => {
-  if (!battleRecords1.value?.legionRankList) return;
+  if (!battleRecords1.value?.legionRankList)
+    return;
 
   // 1. 按积分排序
   const sortedList = [...battleRecords1.value.legionRankList].sort(
@@ -2288,6 +2333,20 @@ defineExpose({
 onMounted(() => {
   fetchBattleRecords1();
 });
+
+onBeforeUnmount(() => {
+  rankRequests.cancel();
+});
+
+watch(
+  () => tokenStore.selectedToken?.id,
+  (newTokenId, oldTokenId) => {
+    if (!newTokenId || newTokenId === oldTokenId)
+      return;
+    battleRecords1.value = null;
+    fetchBattleRecords1();
+  },
+);
 </script>
 
 <style scoped lang="scss">
