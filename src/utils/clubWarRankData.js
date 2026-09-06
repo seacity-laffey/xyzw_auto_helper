@@ -22,12 +22,44 @@ function countHolyBeasts(heroes) {
   ).length;
 }
 
+async function mapWithConcurrency(items, concurrency, mapper) {
+  if (items.length === 0)
+    return [];
+
+  const results = Array.from({ length: items.length });
+  const workerCount = Math.min(
+    items.length,
+    Math.max(1, Math.floor(Number(concurrency) || 1)),
+  );
+  let nextIndex = 0;
+
+  const runWorker = async () => {
+    while (nextIndex < items.length) {
+      const index = nextIndex;
+      nextIndex += 1;
+      results[index] = await mapper(items[index], index);
+    }
+  };
+
+  await Promise.all(Array.from({ length: workerCount }, runWorker));
+  return results;
+}
+
 export async function loadClubWarRankDetails(
   clubs,
-  { fetchClubDetail, fetchRoleInfo, getHeroInfo, getLineupType, onClubError },
+  {
+    concurrency = 2,
+    fetchClubDetail,
+    fetchRoleInfo,
+    getHeroInfo,
+    getLineupType,
+    onClubError,
+  },
 ) {
-  return Promise.all(
-    clubs.map(async (club) => {
+  return mapWithConcurrency(
+    clubs,
+    concurrency,
+    async (club) => {
       try {
         const detail = await fetchClubDetail(club.id);
         if (!detail?.legionData)
@@ -73,7 +105,7 @@ export async function loadClubWarRankDetails(
         onClubError?.(club, error);
         return createEmptyClubRankEntry(club);
       }
-    }),
+    },
   );
 }
 

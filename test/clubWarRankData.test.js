@@ -64,6 +64,37 @@ test("club rank detail loading falls back when detail requests fail", async () =
   assert.deepEqual(errors, [20]);
 });
 
+test("club rank detail loading limits club concurrency and preserves order", async () => {
+  let activeRequests = 0;
+  let maxActiveRequests = 0;
+  const clubs = Array.from({ length: 6 }, (_, index) => ({ id: index + 1 }));
+
+  const result = await loadClubWarRankDetails(clubs, {
+    concurrency: 2,
+    fetchClubDetail: async (clubId) => {
+      activeRequests += 1;
+      maxActiveRequests = Math.max(maxActiveRequests, activeRequests);
+      await Promise.resolve();
+      await Promise.resolve();
+      activeRequests -= 1;
+      return {
+        legionData: {
+          announcement: `联盟${clubId}`,
+          members: {},
+          power: clubId * 100,
+          quenchNum: clubId,
+        },
+      };
+    },
+    fetchRoleInfo: async () => ({}),
+    getHeroInfo: () => ({ heroList: [] }),
+    getLineupType: () => "其他",
+  });
+
+  assert.equal(maxActiveRequests, 2);
+  assert.deepEqual(result.map(club => club.id), clubs.map(club => club.id));
+});
+
 test("club ranks put the largest alliance first and sort each group by red count", () => {
   const result = sortClubRanksByDominantAlliance(
     [
