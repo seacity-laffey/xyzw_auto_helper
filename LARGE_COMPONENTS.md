@@ -29,12 +29,24 @@ static media from the component refactor queue.
 | P1 | `src/components/Cards/Rank/ServerRankListPageCard.vue` | 2,334 lines / 60 KiB | Server ranking fetch, table rendering, export | Share ranking controls and export preparation with active ranking pages |
 | P2 | `src/components/Club/PeachInfo.vue` | 2,209 lines / 61 KiB | Legacy peach-event presentation and requests | Confirm whether both peach views remain user-selectable before sharing logic |
 | P2 | `src/views/PushingLevels.vue` | 1,899 lines / 47 KiB | Multi-account progression state, task execution, logs, controls | Extract account progress and execution panels |
-| P2 | `src/views/TokenImport/index.vue` | 1,016 lines / 35 KiB | Token listing, sorting, drag ordering, account actions | Extract the list/card presentations behind a shared token-row contract |
 
-Sizes are a snapshot taken on 2026-09-05 and should be refreshed after each
+Sizes are a snapshot taken on 2026-09-06 and should be refreshed after each
 completed extraction.
 
 ## Completed Extractions
+
+### Token account collection
+
+- Extracted the shared list/card presentation into
+  `TokenAccountCollection.vue` and the row action menu into
+  `TokenAccountActions.vue`, preserving the existing connection indicators,
+  permanent-token upgrade, edit, copy, delete, and drag-order behavior.
+- Moved temporary remark editing state into the collection while keeping token
+  sorting, store mutations, imports, and account actions in the owning page.
+- Reduced `src/views/TokenImport/index.vue` from 1,016 lines / 35 KiB to 635
+  lines / 20 KiB, removing it from this backlog. Desktop and 390 px browser
+  checks cover list/card switching, remark saving, drag ordering, edit-dialog
+  opening, console errors, and page overflow.
 
 ### Token workflow dialogs
 

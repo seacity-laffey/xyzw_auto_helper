@@ -150,314 +150,17 @@
           </div>
         </div>
 
-        <div
-          v-if="viewMode === 'card'"
-          class="grid grid-cols-1 gap-6 lg:grid-cols-2"
-        >
-          <article
-            v-for="(token, index) in sortedTokens"
-            :key="token.id"
-            class="overflow-hidden rounded-md border border-outline-variant bg-background transition-colors hover:border-input"
-            data-testid="token-card"
-            draggable="true"
-            @dragover="handleDragOver($event)"
-            @dragstart="handleDragStart(index, $event)"
-            @drop="handleDrop(index, $event)"
-          >
-            <header
-              class="flex items-center justify-between gap-4 border-b border-outline-variant px-5 py-4"
-            >
-              <div class="flex min-w-0 items-center gap-3">
-                <img
-                  class="h-10 w-10 shrink-0 rounded-full border border-outline-variant object-cover"
-                  :alt="`${token.name}头像`"
-                  :src="token.avatar || '/icons/xiaoyugan.png'"
-                >
-                <div class="min-w-0">
-                  <div class="flex min-w-0 items-center gap-2">
-                    <strong
-                      class="truncate text-base font-bold text-on-surface"
-                    >{{ token.name }}</strong>
-                    <span
-                      v-if="token.server"
-                      class="shrink-0 rounded border border-outline-variant px-2 py-0.5 font-mono text-[11px] text-primary"
-                    >
-                      {{ token.server }}
-                    </span>
-                  </div>
-                  <div
-                    class="mt-1 flex items-center gap-2 text-xs text-on-surface-variant"
-                  >
-                    <span
-                      class="h-2 w-2 rounded-full"
-                      :class="
-                        getConnectionStatus(token.id) === 'connected'
-                          ? 'bg-primary'
-                          : getConnectionStatus(token.id) === 'connecting'
-                            || getConnectionStatus(token.id) === 'disconnecting'
-                            ? 'bg-tertiary'
-                            : 'bg-error'
-                      "
-                    ></span>
-                    {{ getConnectionStatusText(token.id) }}
-                  </div>
-                </div>
-              </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger as-child>
-                  <button
-                    aria-label="更多操作"
-                    class="grid h-8 w-8 shrink-0 place-items-center rounded-md text-on-surface-variant hover:bg-surface-container-high hover:text-primary"
-                    type="button"
-                    @click.stop
-                  >
-                    <EllipsisHorizontal class="h-5 w-5"></EllipsisHorizontal>
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <template
-                    v-for="action in getTokenActions(token)"
-                    :key="action.key || 'separator'"
-                  >
-                    <DropdownMenuSeparator
-                      v-if="action.type === 'divider'"
-                    ></DropdownMenuSeparator>
-                    <DropdownMenuItem
-                      v-else
-                      :class="{ 'text-destructive': action.key === 'delete' }"
-                      @select="handleTokenAction(action.key, token)"
-                    >
-                      <component :is="action.icon" class="h-4 w-4"></component>
-                      {{ action.label }}
-                    </DropdownMenuItem>
-                  </template>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </header>
-
-            <div class="space-y-4 p-5">
-              <div
-                class="flex min-w-0 items-center gap-2 rounded-md bg-surface-container px-3 py-2"
-              >
-                <span
-                  class="shrink-0 text-xs font-medium text-on-surface-variant"
-                >Token:</span>
-                <code class="truncate font-mono text-xs text-on-surface">{{
-                  maskToken(token.token)
-                }}</code>
-              </div>
-
-              <!-- 备注信息 -->
-              <div
-                v-if="editingRemark === token.id"
-                class="flex items-start gap-2 rounded-md border border-primary bg-surface-container p-3"
-                @click.stop
-              >
-                <span class="shrink-0 text-body-sm font-medium text-on-surface">备注：</span>
-                <textarea
-                  autofocus
-                  class="min-w-0 flex-1 resize-none rounded border border-outline-variant bg-surface-container-lowest px-2 py-1 text-body-sm text-on-surface outline-none focus:border-primary"
-                  placeholder="添加备注信息..."
-                  rows="2"
-                  v-model="tempRemarks[token.id]"
-                  @blur="saveRemark(token)"
-                  @keyup.enter="saveRemark(token)"
-                  @keyup.esc="cancelEditRemark()"
-                ></textarea>
-              </div>
-              <button
-                v-else
-                class="flex w-full items-center gap-2 rounded-md bg-surface-container px-3 py-2 text-left text-body-sm text-on-surface-variant hover:text-primary"
-                type="button"
-                @click.stop="startEditRemark(token)"
-              >
-                <span class="shrink-0 font-medium text-on-surface">备注：</span>
-                <span class="min-w-0 flex-1 truncate">{{
-                  token.remark || "点击添加备注"
-                }}</span>
-                <Create class="h-4 w-4 shrink-0"></Create>
-              </button>
-
-              <div class="grid grid-cols-2 gap-4">
-                <div class="flex flex-col gap-1">
-                  <span class="text-xs text-on-surface-variant">创建：</span>
-                  <span class="text-xs text-on-surface">{{
-                    formatTime(token.createdAt)
-                  }}</span>
-                </div>
-                <div class="flex flex-col gap-1">
-                  <span class="text-xs text-on-surface-variant">使用：</span>
-                  <span class="text-xs text-on-surface">{{
-                    formatTime(token.lastUsed)
-                  }}</span>
-                </div>
-              </div>
-
-              <!-- 存储类型信息 -->
-              <div
-                class="flex flex-wrap items-center justify-between gap-3 border-t border-outline-variant pt-4"
-              >
-                <div
-                  class="flex items-center gap-2 text-body-sm text-on-surface-variant"
-                >
-                  <span>存储类型：</span>
-                  <span
-                    :class="
-                      isPermanentToken(token) ? 'text-primary' : 'text-tertiary'
-                    "
-                  >
-                    {{ isPermanentToken(token) ? "长期有效" : "临时存储" }}
-                  </span>
-                </div>
-                <button
-                  v-if="!isPermanentToken(token)"
-                  class="flex items-center gap-1 text-xs font-semibold text-tertiary hover:underline"
-                  type="button"
-                  @click.stop="upgradeTokenToPermanent(token)"
-                >
-                  <Star class="h-4 w-4"></Star>
-                  升级为长期有效
-                </button>
-              </div>
-            </div>
-          </article>
-        </div>
-
-        <!-- List View -->
-        <div v-else class="space-y-3" data-testid="token-account-list">
-          <article
-            v-for="(token, index) in sortedTokens"
-            :key="token.id"
-            class="group flex items-center justify-between gap-6 rounded-md border border-[color-mix(in_srgb,var(--outline-variant)_72%,transparent)] bg-background px-6 py-5 transition-colors hover:border-input max-xl:flex-col max-xl:items-stretch max-xl:gap-4 max-md:px-4 max-md:py-4"
-            data-testid="token-account-row"
-            draggable="true"
-            @dragover="handleDragOver($event)"
-            @dragstart="handleDragStart(index, $event)"
-            @drop="handleDrop(index, $event)"
-          >
-            <div
-              class="flex min-w-0 flex-1 items-center gap-12 max-xl:w-full max-md:grid max-md:grid-cols-[88px_minmax(0,1fr)] max-md:gap-x-3 max-md:gap-y-4"
-            >
-              <div
-                class="flex min-w-[100px] items-center gap-2 text-body-sm font-medium text-on-surface max-md:min-w-0 max-md:text-xs"
-              >
-                <span
-                  class="h-2 w-2 shrink-0 rounded-full"
-                  :class="
-                    getConnectionStatus(token.id) === 'connected'
-                      ? 'bg-primary'
-                      : getConnectionStatus(token.id) === 'connecting'
-                        || getConnectionStatus(token.id) === 'disconnecting'
-                        ? 'bg-tertiary'
-                        : 'bg-error'
-                  "
-                ></span>
-                <span>{{ getConnectionStatusText(token.id) }}</span>
-              </div>
-
-              <div class="flex min-w-[210px] items-center gap-4 max-md:min-w-0">
-                <img
-                  class="h-10 w-10 shrink-0 rounded-full border border-outline-variant object-cover"
-                  :alt="`${token.name}头像`"
-                  :src="token.avatar || '/icons/xiaoyugan.png'"
-                >
-                <div class="flex min-w-0 items-center gap-2">
-                  <strong
-                    class="max-w-28 truncate text-[15px] font-bold text-on-surface"
-                  >{{ token.name }}</strong>
-                  <span
-                    v-if="token.server"
-                    class="shrink-0 rounded border px-2 py-0.5 font-mono text-[11px] leading-[1.4]"
-                    :class="
-                      getConnectionStatus(token.id) === 'connected'
-                        ? 'border-[color-mix(in_srgb,var(--primary)_24%,transparent)] bg-[color-mix(in_srgb,var(--primary)_10%,transparent)] text-primary'
-                        : 'border-[color-mix(in_srgb,var(--error)_24%,transparent)] bg-[color-mix(in_srgb,var(--error)_10%,transparent)] text-error'
-                    "
-                  >
-                    {{ token.server }}
-                  </span>
-                </div>
-              </div>
-
-              <div
-                class="min-w-[140px] max-w-xs flex-1 max-md:col-span-2 max-md:w-full max-md:max-w-none"
-                @click.stop
-              >
-                <input
-                  v-if="editingRemark === token.id"
-                  autofocus
-                  class="w-full rounded-md border border-outline-variant bg-surface-container px-3 py-1.5 text-body-sm text-on-surface outline-none focus:border-primary"
-                  data-testid="token-remark-input"
-                  placeholder="添加备注..."
-                  v-model="tempRemarks[token.id]"
-                  @blur="saveRemark(token)"
-                  @keyup.enter="saveRemark(token)"
-                  @keyup.esc="cancelEditRemark()"
-                >
-                <button
-                  v-else
-                  class="flex min-w-0 max-w-full items-center gap-1 text-body-sm text-on-surface-variant transition-colors hover:text-primary"
-                  type="button"
-                  @click="startEditRemark(token)"
-                >
-                  <DocumentIcon class="h-4 w-4 shrink-0"></DocumentIcon>
-                  <span class="truncate">{{
-                    token.remark || "点击添加备注"
-                  }}</span>
-                  <Create class="h-3 w-3 shrink-0"></Create>
-                </button>
-              </div>
-            </div>
-
-            <div
-              class="flex shrink-0 items-center gap-3 max-xl:w-full max-xl:justify-end max-md:justify-start max-md:gap-2"
-              @click.stop
-            >
-              <button
-                v-if="!isPermanentToken(token)"
-                class="min-w-14 px-2 text-center text-body-sm font-semibold text-tertiary hover:underline max-md:px-0 max-md:text-left"
-                type="button"
-                @click="upgradeTokenToPermanent(token)"
-              >
-                临时 · 升级
-              </button>
-              <span
-                v-else
-                class="min-w-14 px-2 text-center text-body-sm font-semibold text-primary max-md:px-0 max-md:text-left"
-              >长期</span>
-
-              <DropdownMenu>
-                <DropdownMenuTrigger as-child>
-                  <button
-                    aria-label="更多操作"
-                    class="grid h-8 w-8 shrink-0 place-items-center rounded-md text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-primary"
-                    type="button"
-                  >
-                    <EllipsisHorizontal class="h-5 w-5"></EllipsisHorizontal>
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <template
-                    v-for="action in getTokenActions(token)"
-                    :key="action.key || 'separator'"
-                  >
-                    <DropdownMenuSeparator
-                      v-if="action.type === 'divider'"
-                    ></DropdownMenuSeparator>
-                    <DropdownMenuItem
-                      v-else
-                      :class="{ 'text-destructive': action.key === 'delete' }"
-                      @select="handleTokenAction(action.key, token)"
-                    >
-                      <component :is="action.icon" class="h-4 w-4"></component>
-                      {{ action.label }}
-                    </DropdownMenuItem>
-                  </template>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </article>
-        </div>
+        <TokenAccountCollection
+          :connection-statuses="tokenStore.wsConnections"
+          :tokens="sortedTokens"
+          :view-mode="viewMode"
+          @action="handleTokenAction"
+          @drag-over="handleDragOver"
+          @drag-start="handleDragStart"
+          @drop="handleDrop"
+          @save-remark="saveRemark"
+          @upgrade="upgradeTokenToPermanent"
+        ></TokenAccountCollection>
       </div>
 
       <!-- 空状态 -->
@@ -500,16 +203,11 @@
 import { useTokenStore } from "@/stores/tokenStore";
 import {
   Plus as AddIcon,
-  Copy,
-  Pencil as Create,
-  FileText as DocumentIcon,
-  Ellipsis as EllipsisHorizontal,
   KeyRound as KeyIcon,
   Menu as MenuIcon,
-  Star,
-  Trash2 as TrashBin,
 } from "@lucide/vue";
 import { useDialog, useMessage } from "naive-ui";
+import TokenAccountCollection from "@/components/Token/TokenAccountCollection.vue";
 import TokenEditDialog from "@/components/Token/TokenEditDialog.vue";
 import TokenImportDialog from "@/components/Token/TokenImportDialog.vue";
 import {
@@ -545,10 +243,6 @@ const editingToken = ref(null);
 // 从localStorage读取上次的视图模式，默认为列表视图
 const viewMode = ref(localStorage.getItem("tokenViewMode") || "list");
 const dragIndex = ref(null);
-
-// 备注编辑状态管理
-const editingRemark = ref(null); // 当前正在编辑备注的tokenId
-const tempRemarks = ref({}); // 临时保存编辑中的备注内容
 
 // 监听视图模式变化，保存到localStorage
 watch(viewMode, (newViewMode) => {
@@ -608,10 +302,6 @@ const sortedTokens = computed(() => {
     return 0;
   });
 });
-
-const isPermanentToken = (token) =>
-  ["url", "bin", "wxQrcode"].includes(token.importMethod)
-  || token.upgradedToPermanent;
 
 // 切换排序
 const toggleSort = (field) => {
@@ -704,43 +394,6 @@ const upgradeTokenToPermanent = (token) => {
   });
 };
 
-const getConnectionStatus = (tokenId) => {
-  return tokenStore.getWebSocketStatus(tokenId);
-};
-
-const getConnectionStatusText = (tokenId) => {
-  const status = getConnectionStatus(tokenId);
-  const statusMap = {
-    connected: "已连接",
-    connecting: "连接中...",
-    disconnected: "已断开",
-    error: "连接错误",
-    disconnecting: "断开中...",
-  };
-  return statusMap[status] || "未连接";
-};
-
-const getTokenActions = () => {
-  return [
-    {
-      label: "编辑",
-      key: "edit",
-      icon: Create,
-    },
-    {
-      label: "复制Token",
-      key: "copy",
-      icon: Copy,
-    },
-    { type: "divider" },
-    {
-      label: "删除",
-      key: "delete",
-      icon: TrashBin,
-    },
-  ];
-};
-
 const handleTokenAction = async (key, token) => {
   switch (key) {
     case "edit":
@@ -790,32 +443,11 @@ const copyToken = async (token) => {
   }
 };
 
-// 快速编辑备注功能
-const startEditRemark = (token) => {
-  editingRemark.value = token.id;
-  tempRemarks.value[token.id] = token.remark || "";
-};
-
-// 保存备注的通用函数
-const saveCurrentRemark = () => {
-  if (!editingRemark.value)
-    return;
-
-  const editingTokenId = editingRemark.value;
-  const remark = tempRemarks.value[editingTokenId] || "";
-  tokenStore.updateToken(editingTokenId, {
+const saveRemark = (token, remark) => {
+  tokenStore.updateToken(token.id, {
     remark,
   });
-  editingRemark.value = null;
   message.success("备注已保存");
-};
-
-const saveRemark = (token) => {
-  saveCurrentRemark();
-};
-
-const cancelEditRemark = () => {
-  editingRemark.value = null;
 };
 
 const deleteToken = (token) => {
@@ -900,19 +532,6 @@ const clearAllTokens = () => {
       message.success("所有Token已清除");
     },
   });
-};
-
-const maskToken = (token) => {
-  if (!token)
-    return "";
-  const len = token.length;
-  if (len <= 8)
-    return token;
-  return `${token.substring(0, 4)}***${token.substring(len - 4)}`;
-};
-
-const formatTime = (timestamp) => {
-  return new Date(timestamp).toLocaleString("zh-CN");
 };
 
 // URL参数处理函数

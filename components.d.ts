@@ -107,6 +107,8 @@ declare module 'vue' {
     TeamFormation: typeof import('./src/components/Team/TeamFormation.vue')['default']
     Textarea: typeof import('./src/components/ui/textarea/Textarea.vue')['default']
     ThemeToggle: typeof import('./src/components/Common/ThemeToggle.vue')['default']
+    TokenAccountActions: typeof import('./src/components/Token/TokenAccountActions.vue')['default']
+    TokenAccountCollection: typeof import('./src/components/Token/TokenAccountCollection.vue')['default']
     TokenEditDialog: typeof import('./src/components/Token/TokenEditDialog.vue')['default']
     TokenImportDialog: typeof import('./src/components/Token/TokenImportDialog.vue')['default']
     Tooltip: typeof import('./src/components/ui/tooltip/Tooltip.vue')['default']
