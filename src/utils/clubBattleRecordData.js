@@ -5,6 +5,16 @@ const numberValue = (value) => {
 
 const topThree = (records, compare) => [...records].sort(compare).slice(0, 3);
 
+export function getClubBattleReviveCount(record) {
+  if (
+    record?.computedReviveCnt !== undefined
+    && record?.computedReviveCnt !== null
+  ) {
+    return Math.max(numberValue(record.computedReviveCnt), 0);
+  }
+  return Math.max(numberValue(record?.loseCnt) - 6, 0);
+}
+
 export function createClubBattleRecordSummary(records) {
   const roleDetails = Array.isArray(records) ? records : [];
   const totalKills = roleDetails.reduce(
@@ -20,7 +30,7 @@ export function createClubBattleRecordSummary(records) {
     0,
   );
   const totalRevives = roleDetails.reduce(
-    (total, member) => total + Math.max(numberValue(member?.loseCnt) - 6, 0),
+    (total, member) => total + getClubBattleReviveCount(member),
     0,
   );
   const killRank = topThree(
@@ -48,7 +58,7 @@ export function createClubBattleRecordSummary(records) {
   const reviveRank = topThree(
     roleDetails.map((member) => ({
       ...member,
-      reviveCnt: Math.max(numberValue(member?.loseCnt) - 6, 0),
+      reviveCnt: getClubBattleReviveCount(member),
     })),
     (left, right) => right.reviveCnt - left.reviveCnt,
   );
@@ -97,7 +107,7 @@ export function getBattleRecordPercent(value, maximum) {
   const max = numberValue(maximum);
   if (!max)
     return 0;
-  return Math.min(100, (numberValue(value) / max) * 100);
+  return Math.max(0, Math.min(100, (numberValue(value) / max) * 100));
 }
 
 export function getBattleRecordHeatColor(metric, value) {

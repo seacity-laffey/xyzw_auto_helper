@@ -4,6 +4,7 @@ import {
   createClubBattleRecordSummary,
   getBattleRecordHeatColor,
   getBattleRecordPercent,
+  getClubBattleReviveCount,
 } from "../src/utils/clubBattleRecordData.js";
 
 const records = [
@@ -65,9 +66,15 @@ test("club battle record summary handles empty and zero-death records", () => {
 test("club battle record display helpers clamp percentages and color thresholds", () => {
   assert.equal(getBattleRecordPercent(15, 10), 100);
   assert.equal(getBattleRecordPercent(3, 12), 25);
+  assert.equal(getBattleRecordPercent(-3, 12), 0);
   assert.equal(getBattleRecordPercent(3, 0), 0);
   assert.equal(getBattleRecordHeatColor("kill", 50), "rgba(76, 175, 80, 0.3)");
   assert.equal(getBattleRecordHeatColor("death", 10), "rgba(255, 205, 210, 0.3)");
   assert.equal(getBattleRecordHeatColor("revive", 4), "transparent");
   assert.equal(getBattleRecordHeatColor("unknown", 999), "transparent");
+});
+
+test("club battle revive count accepts pre-aggregated monthly values", () => {
+  assert.equal(getClubBattleReviveCount({ computedReviveCnt: 12, loseCnt: 24 }), 12);
+  assert.equal(getClubBattleReviveCount({ loseCnt: 24 }), 18);
 });

@@ -31,7 +31,6 @@ static media from the component refactor queue.
 | P2 | `src/components/Club/ClubInfo.vue` | 2,058 lines / 53 KiB | Club query lifecycle, member operations, lineup lookup, export | Move member query/export state into a club-member composable |
 | P2 | `src/components/Club/PeachInfo.vue` | 2,209 lines / 61 KiB | Legacy peach-event presentation and requests | Confirm whether both peach views remain user-selectable before sharing logic |
 | P2 | `src/components/Cards/Activity/FightPvP.vue` | 1,863 lines / 61 KiB | Opponent lookup, repeated battles, result analysis, dialogs | Extract battle runner and result normalization |
-| P2 | `src/components/Club/ClubMonthBattleRecords.vue` | 1,628 lines / 53 KiB | Monthly history queries, aggregation, table rendering, export | Separate record aggregation and export preparation |
 | P2 | `src/views/PushingLevels.vue` | 1,899 lines / 47 KiB | Multi-account progression state, task execution, logs, controls | Extract account progress and execution panels |
 | P2 | `src/views/TokenImport/index.vue` | 1,171 lines / 40 KiB | Token listing, filtering, import workflows, account actions | Extract import dialogs and token-list presentation |
 
@@ -39,6 +38,20 @@ Sizes are a snapshot taken on 2026-09-05 and should be refreshed after each
 completed extraction.
 
 ## Completed Extractions
+
+### Club monthly battle records
+
+- Moved monthly battle-date calculation, sequential record loading, cross-date
+  member aggregation, and per-day stat access into the tested
+  `src/utils/clubMonthBattleRecordData.js` utility.
+- Extracted the monthly overview and daily matrix into
+  `ClubMonthBattleRecordsReport.vue`. Monthly summary variants now reuse
+  `ClubBattleRecordsReport.vue` through an explicit week/month label contract.
+- Preserved per-battle resurrection totals while adding stale-request
+  protection and sequential same-command requests. Reduced
+  `ClubMonthBattleRecords.vue` from 1,628 lines / 53 KiB to 244 lines / 8 KiB.
+  Desktop and 390 px browser checks cover all three variants, loading
+  completion, totals, rows, and overflow.
 
 ### Club weekly battle records report
 

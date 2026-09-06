@@ -2,7 +2,7 @@
   <div class="records-list" :class="variant === 'style2' ? 'style-2' : 'style-1'">
     <template v-if="variant === 'style1'">
       <header class="report-heading">
-        <h2>{{ date }} {{ displayClubName }}盐场周报</h2>
+        <h2>{{ date }} {{ displayClubName }}盐场{{ periodLabel }}报</h2>
       </header>
 
       <div class="compact-layout">
@@ -72,13 +72,13 @@
     <template v-else>
       <header class="report-heading detailed-heading">
         <div>
-          <h2>{{ displayClubName }}盐场周报</h2>
+          <h2>{{ displayClubName }}盐场{{ periodLabel }}报</h2>
           <p>{{ date }}</p>
         </div>
         <div v-if="stats.mvpPlayer" class="mvp-player">
           <img v-if="stats.mvpPlayer.headImg" alt="" :src="stats.mvpPlayer.headImg" @error="hideBrokenImage">
           <span v-else class="avatar-placeholder large">{{ stats.mvpPlayer.name?.charAt(0) || "?" }}</span>
-          <span><small>本周 MVP</small><strong>{{ stats.mvpPlayer.name }}</strong></span>
+          <span><small>本{{ periodLabel }} MVP</small><strong>{{ stats.mvpPlayer.name }}</strong></span>
         </div>
       </header>
 
@@ -147,18 +147,20 @@ import { computed } from "vue";
 import {
   getBattleRecordHeatColor,
   getBattleRecordPercent,
+  getClubBattleReviveCount,
 } from "@/utils/clubBattleRecordData";
 
 const props = defineProps({
   clubName: { type: String, default: "" },
   date: { type: String, required: true },
+  periodLabel: { type: String, default: "周" },
   records: { type: Array, default: () => [] },
   stats: { type: Object, required: true },
   variant: { type: String, default: "style1" },
 });
 
 const displayClubName = computed(() => props.clubName || "俱乐部");
-const reviveCount = (player) => Math.max(Number(player?.loseCnt || 0) - 6, 0);
+const reviveCount = (player) => getClubBattleReviveCount(player);
 const formatKd = (player) => {
   const deaths = Number(player?.loseCnt || 0);
   return deaths ? (Number(player?.winCnt || 0) / deaths).toFixed(2) : "0.00";
@@ -204,7 +206,7 @@ const metrics = computed(() => [
 </script>
 
 <style scoped>
-.records-list { width: 100%; color: var(--foreground); }
+.records-list { width: 100%; min-width: 0; box-sizing: border-box; color: var(--foreground); }
 .style-1, .style-2 { padding: 16px; background: var(--background); }
 .report-heading { margin-bottom: 16px; padding: 12px 16px; border-bottom: 2px solid var(--foreground); }
 .report-heading h2 { margin: 0; font-size: 18px; letter-spacing: 0; text-align: center; }
