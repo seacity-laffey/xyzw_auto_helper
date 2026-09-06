@@ -33,6 +33,7 @@ declare module 'vue' {
     Button: typeof import('./src/components/ui/button/Button.vue')['default']
     Checkbox: typeof import('./src/components/ui/checkbox/Checkbox.vue')['default']
     ClubBattleRecords: typeof import('./src/components/Club/ClubBattleRecords.vue')['default']
+    ClubBattleRecordsReport: typeof import('./src/components/Club/ClubBattleRecordsReport.vue')['default']
     ClubDailyBattleStats: typeof import('./src/components/Club/ClubDailyBattleStats.vue')['default']
     ClubHeroDetailDialog: typeof import('./src/components/Club/ClubHeroDetailDialog.vue')['default']
     ClubHistoryRecords: typeof import('./src/components/Club/ClubHistoryRecords.vue')['default']

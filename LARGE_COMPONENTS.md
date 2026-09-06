@@ -32,7 +32,6 @@ static media from the component refactor queue.
 | P2 | `src/components/Club/PeachInfo.vue` | 2,209 lines / 61 KiB | Legacy peach-event presentation and requests | Confirm whether both peach views remain user-selectable before sharing logic |
 | P2 | `src/components/Cards/Activity/FightPvP.vue` | 1,863 lines / 61 KiB | Opponent lookup, repeated battles, result analysis, dialogs | Extract battle runner and result normalization |
 | P2 | `src/components/Club/ClubMonthBattleRecords.vue` | 1,628 lines / 53 KiB | Monthly history queries, aggregation, table rendering, export | Separate record aggregation and export preparation |
-| P2 | `src/components/Club/ClubBattleRecords.vue` | 1,504 lines / 45 KiB | Weekly history queries, aggregation, table rendering, export | Share stable battle-record transforms with the monthly view |
 | P2 | `src/views/PushingLevels.vue` | 1,899 lines / 47 KiB | Multi-account progression state, task execution, logs, controls | Extract account progress and execution panels |
 | P2 | `src/views/TokenImport/index.vue` | 1,171 lines / 40 KiB | Token listing, filtering, import workflows, account actions | Extract import dialogs and token-list presentation |
 
@@ -40,6 +39,18 @@ Sizes are a snapshot taken on 2026-09-05 and should be refreshed after each
 completed extraction.
 
 ## Completed Extractions
+
+### Club weekly battle records report
+
+- Extracted both weekly report presentations into
+  `ClubBattleRecordsReport.vue` and moved summary, ranking, percentage, and heat
+  calculations into the tested `src/utils/clubBattleRecordData.js` utility.
+- Kept request lifecycle, date selection, and export orchestration in the owning
+  component. Restored the previously inert table-copy export and made image
+  export completion precede its success notification.
+- Reduced `ClubBattleRecords.vue` from 1,504 lines / 45 KiB to 506 lines / 13
+  KiB. The extracted report is 264 lines / 13 KiB; desktop and 390 px browser
+  checks cover both report variants, loading completion, rows, and overflow.
 
 ### Legacy salt-field ranking removal
 
