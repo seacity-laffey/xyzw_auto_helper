@@ -5,7 +5,7 @@ export function getEquipmentStats(equipment) {
   Object.values(equipment || {}).forEach((item) => {
     Object.values(item?.quenches || {}).forEach((quench) => {
       holeCount += 1;
-      if (quench?.colorId === 6)
+      if (Number(quench?.colorId) === 6)
         redCount += 1;
     });
   });

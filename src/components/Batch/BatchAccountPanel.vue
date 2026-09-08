@@ -19,10 +19,22 @@
           <SlidersHorizontal :size="14"></SlidersHorizontal>
           管理分组
         </Button>
+        <Button
+          class="collapse-button"
+          size="icon"
+          variant="ghost"
+          :aria-expanded="!collapsed"
+          :aria-label="collapsed ? '展开账号工具' : '折叠账号工具'"
+          :title="collapsed ? '展开账号工具' : '折叠账号工具'"
+          @click="collapsed = !collapsed"
+        >
+          <ChevronDown v-if="collapsed" :size="17"></ChevronDown>
+          <ChevronUp v-else :size="17"></ChevronUp>
+        </Button>
       </div>
     </header>
 
-    <div class="panel-content">
+    <div v-show="!collapsed" class="panel-content">
       <div v-if="groups.length" class="group-row">
         <span>分组</span>
         <button
@@ -82,7 +94,7 @@
               @update:model-value="(checked) => toggleToken(token.id, checked === true)"
             ></Checkbox>
             <span class="status-dot" :class="tokenStatus[token.id] || 'waiting'"></span>
-            <span class="token-name">{{ token.name || "未命名账号" }}</span>
+            <span class="token-name">{{ token.name || "未命名账号" }}<small v-if="templateNames?.[token.id]" class="block truncate" :title="templateNames[token.id]">模板：{{ templateNames[token.id] }}</small></span>
             <small>{{ getStatusText(token.id) }}</small>
           </label>
           <Button
@@ -102,8 +114,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
-import { Gamepad2, Settings, SlidersHorizontal, Users } from "@lucide/vue";
+import { computed, ref } from "vue";
+import { ChevronDown, ChevronUp, Gamepad2, Settings, SlidersHorizontal, Users } from "@lucide/vue";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -130,6 +142,7 @@ interface SortConfig {
 }
 
 const props = defineProps<{
+  templateNames?: Record<string, string>;
   groups: TokenGroup[];
   isOpeningGames: boolean;
   isRunning: boolean;
@@ -150,6 +163,7 @@ const emit = defineEmits<{
   "toggleGroup": [groupId: string];
   "update:selectedTokens": [tokenIds: string[]];
 }>();
+const collapsed = ref(false);
 
 const isAllSelected = computed(
   () => props.tokens.length > 0 && props.selectedTokens.length === props.tokens.length,
@@ -259,7 +273,9 @@ const getStatusText = (tokenId: string) => {
 
 .panel-content {
   display: grid;
+  max-height: 300px;
   gap: 14px;
+  overflow-y: auto;
   padding: 18px 20px;
 }
 
@@ -433,6 +449,7 @@ const getStatusText = (tokenId: string) => {
   }
 
   .panel-content {
+    max-height: none;
     padding: 14px;
   }
 

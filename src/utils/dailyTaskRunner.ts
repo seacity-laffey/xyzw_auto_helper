@@ -1,5 +1,20 @@
 // @ts-nocheck
-import { useTokenStore } from "@/stores/tokenStore";
+import { canRunBlackMarketPurchase } from "./blackMarketPurchase";
+import { getTemplateTaskSummary, resolveAccountTaskSettings } from "./taskTemplateConfig";
+import { isDungeonOpen } from "./dreamConstants";
+import {
+  canClaimCardReward,
+  canClaimClubSignIn,
+  canClaimCollectionFreeReward,
+  canClaimDailyDiscount,
+  canClaimSystemSignIn,
+  canDrawFreeGacha,
+  canStartDailyDungeon,
+  canSweepDeepSea,
+  getRemainingFreeSweepTickets,
+  hasClaimableMailAttachment,
+  hasClaimablePointReward,
+} from "./dailyRewardEligibility";
 
 // 辅助函数
 const pickArenaTargetId = (targets) => {
@@ -11,12 +26,12 @@ const pickArenaTargetId = (targets) => {
     return candidate?.roleId || candidate?.id || candidate?.targetId;
   }
 
-  const candidate =
-    targets?.rankList?.[0] ||
-    targets?.roleList?.[0] ||
-    targets?.targets?.[0] ||
-    targets?.targetList?.[0] ||
-    targets?.list?.[0];
+  const candidate
+    = targets?.rankList?.[0]
+      || targets?.roleList?.[0]
+      || targets?.targets?.[0]
+      || targets?.targetList?.[0]
+      || targets?.list?.[0];
 
   if (candidate) {
     if (candidate.roleId) return candidate.roleId;
@@ -32,7 +47,7 @@ const isTodayAvailable = (statisticsTime) => {
 
   // 如果有时间戳，检查是否为今天
   const today = new Date().toDateString();
-  //系统返回得时间戳是秒，要转换成毫秒
+  // 系统返回得时间戳是秒，要转换成毫秒
   const recordDate = new Date(statisticsTime * 1000).toDateString();
 
   return today !== recordDate;
@@ -49,7 +64,7 @@ export class DailyTaskRunner {
     this.tokenStore = tokenStore;
     this.delaySettings = delaySettings || {
       commandDelay: 500,
-      taskDelay: 500
+      taskDelay: 500,
     };
   }
 
@@ -152,30 +167,19 @@ export class DailyTaskRunner {
 
   loadSettings(roleId) {
     try {
-      const raw = localStorage.getItem(`daily-settings:${roleId}`);
-      const defaultSettings = {
-        arenaFormation: 1,
-        bossFormation: 1,
-        bossTimes: 2,
-        claimBottle: true,
-        payRecruit: true,
-        openBox: true,
-        arenaEnable: true,
-        claimHangUp: true,
-        claimEmail: true,
-        blackMarketPurchase: true,
-        freeGachaEnable: true,
-      };
-      return raw ? { ...defaultSettings, ...JSON.parse(raw) } : defaultSettings;
+      return resolveAccountTaskSettings(roleId);
     } catch (error) {
       console.error("Failed to load settings:", error);
-      return null;
+      throw error;
     }
   }
 
   async run(tokenId, callbacks = {}, customSettings = null) {
     this.callbacks = callbacks;
     const settings = customSettings || this.loadSettings(tokenId); // 优先使用传入的设置
+    const enabled = (key) => settings[key] !== false;
+    if (settings.templateName)
+      this.log(`执行模板：${settings.templateName}；任务：${getTemplateTaskSummary(settings).join("、")}`);
 
     // 获取角色信息以确认 roleId 和 任务状态
     this.log("正在获取角色信息...");
@@ -224,7 +228,7 @@ export class DailyTaskRunner {
     const taskList = [];
 
     // 1. 基础任务
-    if (!isTaskCompleted(2)) {
+    if (enabled("shareEnable") && !isTaskCompleted(2)) {
       taskList.push({
         name: "分享一次游戏",
         execute: () =>
@@ -237,7 +241,7 @@ export class DailyTaskRunner {
       });
     }
 
-    if (!isTaskCompleted(3)) {
+    if (enabled("friendGoldEnable") && !isTaskCompleted(3)) {
       taskList.push({
         name: "赠送好友金币",
         execute: () =>
@@ -246,16 +250,18 @@ export class DailyTaskRunner {
     }
 
     if (!isTaskCompleted(4)) {
-      taskList.push({
-        name: "免费招募",
-        execute: () =>
-          this.executeGameCommand(
-            tokenId,
-            "hero_recruit",
-            { recruitType: 3, recruitNumber: 1 },
-            "免费招募",
-          ),
-      });
+      if (enabled("freeRecruitEnable")) {
+        taskList.push({
+          name: "免费招募",
+          execute: () =>
+            this.executeGameCommand(
+              tokenId,
+              "hero_recruit",
+              { recruitType: 3, recruitNumber: 1 },
+              "免费招募",
+            ),
+        });
+      }
 
       if (settings.payRecruit) {
         taskList.push({
@@ -271,7 +277,7 @@ export class DailyTaskRunner {
       }
     }
 
-    if (!isTaskCompleted(6) && isTodayAvailable(statisticsTime["buy:gold"])) {
+    if (enabled("freeGoldEnable") && !isTaskCompleted(6) && isTodayAvailable(statisticsTime["buy:gold"])) {
       for (let i = 0; i < 3; i++) {
         taskList.push({
           name: `免费点金 ${i + 1}/3`,
@@ -324,26 +330,30 @@ export class DailyTaskRunner {
       });
     }
 
-    taskList.push({
-      name: "停止盐罐计时",
-      execute: () =>
-        this.executeGameCommand(
-          tokenId,
-          "bottlehelper_stop",
-          {},
-          "停止盐罐计时",
-        ),
-    });
-    taskList.push({
-      name: "开始盐罐计时",
-      execute: () =>
-        this.executeGameCommand(
-          tokenId,
-          "bottlehelper_start",
-          {},
-          "开始盐罐计时",
-        ),
-    });
+    if (enabled("bottleTimerEnable")) {
+      taskList.push({
+        name: "停止盐罐计时",
+        execute: () =>
+          this.executeGameCommand(
+            tokenId,
+            "bottlehelper_stop",
+            {},
+            "停止盐罐计时",
+          ),
+      });
+    }
+    if (enabled("bottleTimerEnable")) {
+      taskList.push({
+        name: "开始盐罐计时",
+        execute: () =>
+          this.executeGameCommand(
+            tokenId,
+            "bottlehelper_start",
+            {},
+            "开始盐罐计时",
+          ),
+      });
+    }
 
     if (!isTaskCompleted(14) && settings.claimBottle) {
       taskList.push({
@@ -426,7 +436,7 @@ export class DailyTaskRunner {
     }
 
     // 3. BOSS
-    if (settings.bossTimes > 0) {
+    if (enabled("legionBossEnable") && settings.bossTimes > 0) {
       let alreadyLegionBoss = statistics["legion:boss"] ?? 0;
       if (isTodayAvailable(statisticsTime["legion:boss"])) {
         alreadyLegionBoss = 0;
@@ -463,16 +473,18 @@ export class DailyTaskRunner {
     }
 
     const todayBossId = getTodayBossId();
-    taskList.push({
-      name: "每日BOSS阵容检查",
-      execute: () =>
-        this.switchToFormationIfNeeded(
-          tokenId,
-          settings.bossFormation,
-          "BOSS阵容",
-        ),
-    });
-    for (let i = 0; i < 3; i++) {
+    if (enabled("dailyBossEnable")) {
+      taskList.push({
+        name: "每日BOSS阵容检查",
+        execute: () =>
+          this.switchToFormationIfNeeded(
+            tokenId,
+            settings.bossFormation,
+            "BOSS阵容",
+          ),
+      });
+    }
+    for (let i = 0; enabled("dailyBossEnable") && i < 3; i++) {
       taskList.push({
         name: `每日BOSS ${i + 1}/3`,
         execute: () =>
@@ -486,21 +498,76 @@ export class DailyTaskRunner {
       });
     }
 
-    // 4. 固定奖励
-    const fixedRewards = [
-      { name: "福利签到", cmd: "system_signinreward" },
-      { name: "俱乐部", cmd: "legion_signin" },
-      { name: "领取每日礼包", cmd: "discount_claimreward" },
-      { name: "领取每日免费奖励", cmd: "collection_claimfreereward" },
-      { name: "领取免费礼包", cmd: "card_claimreward" },
-      {
+    // 4. 固定奖励：先读取状态，只有明确可领取时才发送领取请求
+    let discountInfo = null;
+    let collectionGoodsInfo = null;
+    let mailInfo = null;
+    try {
+      discountInfo = await this.executeGameCommand(
+        tokenId,
+        "discount_getdiscountinfo",
+        {},
+        "读取每日特惠状态",
+      );
+    } catch (error) {
+      this.log(`每日特惠状态读取失败，跳过领取: ${error.message}`, "warning");
+    }
+    try {
+      collectionGoodsInfo = await this.executeGameCommand(
+        tokenId,
+        "collection_goodslist",
+        {},
+        "读取珍宝阁免费奖励状态",
+      );
+    } catch (error) {
+      this.log(`珍宝阁状态读取失败，跳过领取: ${error.message}`, "warning");
+    }
+    if (settings.claimEmail) {
+      try {
+        mailInfo = await this.executeGameCommand(
+          tokenId,
+          "mail_getlist",
+          { category: [0, 4, 5], lastId: 0, size: 60 },
+          "读取邮件附件状态",
+        );
+      } catch (error) {
+        this.log(`邮件状态读取失败，跳过领取: ${error.message}`, "warning");
+      }
+    }
+
+    const fixedRewards = [];
+    if (enabled("systemSignEnable") && canClaimSystemSignIn(roleData.signInReward))
+      fixedRewards.push({ name: "福利签到", cmd: "system_signinreward" });
+    if (enabled("clubSignEnable") && canClaimClubSignIn(statisticsTime))
+      fixedRewards.push({ name: "俱乐部", cmd: "legion_signin" });
+    if (enabled("discountEnable") && canClaimDailyDiscount(discountInfo)) {
+      fixedRewards.push({
+        name: "领取每日礼包",
+        cmd: "discount_claimreward",
+        params: { discountId: 1 },
+      });
+    }
+    if (enabled("collectionEnable") && canClaimCollectionFreeReward(collectionGoodsInfo)) {
+      fixedRewards.push({
+        name: "领取珍宝阁免费礼包",
+        cmd: "collection_claimfreereward",
+      });
+    }
+    if (enabled("cardRewardEnable") && canClaimCardReward(roleData.cardTime, 1)) {
+      fixedRewards.push({
+        name: "领取免费礼包",
+        cmd: "card_claimreward",
+        params: { cardId: 1 },
+      });
+    }
+    if (enabled("permanentCardEnable") && canClaimCardReward(roleData.cardTime, 4003)) {
+      fixedRewards.push({
         name: "领取永久卡礼包",
         cmd: "card_claimreward",
         params: { cardId: 4003 },
-      },
-    ];
-
-    if (settings.claimEmail) {
+      });
+    }
+    if (settings.claimEmail && hasClaimableMailAttachment(mailInfo)) {
       fixedRewards.push({
         name: "领取邮件奖励",
         cmd: "mail_claimallattachment",
@@ -520,30 +587,9 @@ export class DailyTaskRunner {
       });
     });
 
-    taskList.push({
-      name: "开始领取珍宝阁礼包",
-      execute: () =>
-        this.executeGameCommand(
-          tokenId,
-          "collection_goodslist",
-          {},
-          "开始领取珍宝阁礼包",
-        ),
-    });
-    taskList.push({
-      name: "领取珍宝阁免费礼包",
-      execute: () =>
-        this.executeGameCommand(
-          tokenId,
-          "collection_claimfreereward",
-          {},
-          "领取珍宝阁免费礼包",
-        ),
-    });
-
     if (
       settings.freeGachaEnable !== false
-      && isTodayAvailable(statisticsTime["gacha:free"])
+      && canDrawFreeGacha(roleData.statistics)
     ) {
       taskList.push({
         name: "免费扭蛋",
@@ -558,7 +604,7 @@ export class DailyTaskRunner {
     }
 
     // 5. 免费活动
-    if (isTodayAvailable(statistics["artifact:normal:lottery:time"])) {
+    if (enabled("freeFishEnable") && isTodayAvailable(statistics["artifact:normal:lottery:time"])) {
       for (let i = 0; i < 3; i++) {
         taskList.push({
           name: `免费钓鱼 ${i + 1}/3`,
@@ -574,7 +620,7 @@ export class DailyTaskRunner {
     }
 
     const kingdoms = ["魏国", "蜀国", "吴国", "群雄"];
-    for (let gid = 1; gid <= 4; gid++) {
+    for (let gid = 1; enabled("freeGenieEnable") && gid <= 4; gid++) {
       if (isTodayAvailable(statisticsTime[`genie:daily:free:${gid}`])) {
         taskList.push({
           name: `${kingdoms[gid - 1]}灯神免费扫荡`,
@@ -589,9 +635,13 @@ export class DailyTaskRunner {
       }
     }
 
-    for (let i = 0; i < 3; i++) {
+    const remainingSweepTickets = getRemainingFreeSweepTickets(
+      roleData.statistics,
+      roleData.statisticsTime,
+    );
+    for (let i = 0; enabled("freeSweepTicketsEnable") && i < remainingSweepTickets; i++) {
       taskList.push({
-        name: `领取免费扫荡卷 ${i + 1}/3`,
+        name: `领取免费扫荡卷 ${i + 1}/${remainingSweepTickets}`,
         execute: () =>
           this.executeGameCommand(
             tokenId,
@@ -606,24 +656,29 @@ export class DailyTaskRunner {
     if (!isTaskCompleted(12) && settings.blackMarketPurchase) {
       taskList.push({
         name: "黑市购买1次物品",
-        execute: () =>
-          this.executeGameCommand(
+        execute: async () => {
+          const purchaseConfig = await this.executeGameCommand(
+            tokenId,
+            "store_getpurchase",
+            {},
+            "读取黑市采购配置",
+          );
+          if (!canRunBlackMarketPurchase(purchaseConfig)) {
+            this.log("黑市采购清单或采购次数未配置，已跳过", "warning");
+            return;
+          }
+          await this.executeGameCommand(
             tokenId,
             "store_purchase",
-            { goodsId: 1 },
+            {},
             "黑市购买1次物品",
-          ),
+          );
+        },
       });
     }
 
     // 咸王梦境
-    const mengyandayOfWeek = new Date().getDay();
-    if (
-      (mengyandayOfWeek === 0) |
-      (mengyandayOfWeek === 1) |
-      (mengyandayOfWeek === 3) |
-      (mengyandayOfWeek === 4)
-    ) {
+    if (enabled("dreamEnable") && canStartDailyDungeon(roleData.dungeon)) {
       const mjbattleTeam = { 0: 107 };
       taskList.push({
         name: "咸王梦境",
@@ -638,10 +693,7 @@ export class DailyTaskRunner {
     }
 
     // 深海灯神
-    if (
-      mengyandayOfWeek === 1 &&
-      isTodayAvailable(statisticsTime[`genie:daily:free:5`])
-    ) {
+    if (enabled("deepSeaEnable") && canSweepDeepSea(roleData.genie, roleData.statisticsTime)) {
       taskList.push({
         name: "深海灯神",
         execute: () =>
@@ -651,6 +703,34 @@ export class DailyTaskRunner {
             { genieId: 5, sweepCnt: 1 },
             "深海灯神",
           ),
+      });
+    }
+
+    if (settings.dreamPurchaseEnable && isDungeonOpen()) {
+      taskList.push({
+        name: "梦境商店购买",
+        execute: async () => {
+          const list = settings.dreamPurchaseList || [];
+          this.log(`梦境采购来源：${settings.dreamPurchaseSource || "模板采购清单"}`);
+          if (!list.length) {
+            this.log("梦境购买清单为空，已跳过", "warning");
+            return;
+          }
+          const response = await this.tokenStore.sendGetRoleInfo(tokenId);
+          const role = response?.role;
+          if (!role?.dungeon?.merchant || Number(role.levelId) < 4000 || !isDungeonOpen()) {
+            this.log("梦境商店未开放或状态不足，已跳过", "warning");
+            return;
+          }
+          const selected = new Set(list);
+          for (const [merchantId, items] of Object.entries(role.dungeon.merchant)) {
+            if (!Array.isArray(items)) continue;
+            for (let pos = items.length - 1; pos >= 0; pos--) {
+              if (selected.has(`${merchantId}-${items[pos]}`))
+                await this.executeGameCommand(tokenId, "dungeon_buymerchant", { id: Number(merchantId), index: items[pos], pos }, "购买梦境商品");
+            }
+          }
+        },
       });
     }
 
@@ -668,7 +748,10 @@ export class DailyTaskRunner {
     }
 
     // 7. 任务奖励
-    for (let taskId = 1; taskId <= 10; taskId++) {
+    for (let taskId = 1; enabled("dailyPointEnable") && taskId <= 10; taskId++) {
+      const taskRewardStatus = Number(completedTasks[taskId]);
+      if (!Number.isFinite(taskRewardStatus) || taskRewardStatus <= 0)
+        continue;
       taskList.push({
         name: `领取任务奖励${taskId}`,
         execute: () =>
@@ -682,8 +765,12 @@ export class DailyTaskRunner {
       });
     }
 
-    taskList.push(
-      {
+    if (enabled("dailyRewardEnable") && hasClaimablePointReward(
+      roleData.dailyTask?.dailyPoint,
+      roleData.dailyTask?.dailyReward,
+      20,
+    )) {
+      taskList.push({
         name: "领取日常任务奖励",
         execute: () =>
           this.executeGameCommand(
@@ -692,8 +779,14 @@ export class DailyTaskRunner {
             {},
             "领取日常任务奖励",
           ),
-      },
-      {
+      });
+    }
+    if (enabled("weeklyRewardEnable") && hasClaimablePointReward(
+      roleData.dailyTask?.weekPoint,
+      roleData.dailyTask?.weekReward,
+      100,
+    )) {
+      taskList.push({
         name: "领取周常任务奖励",
         execute: () =>
           this.executeGameCommand(
@@ -702,8 +795,10 @@ export class DailyTaskRunner {
             {},
             "领取周常任务奖励",
           ),
-      },
-      {
+      });
+    }
+    if (enabled("battlePassEnable")) {
+      taskList.push({
         name: "领取通行证奖励",
         execute: () =>
           this.executeGameCommand(
@@ -712,8 +807,8 @@ export class DailyTaskRunner {
             { actId: 1 },
             "领取通行证奖励",
           ),
-      },
-    );
+      });
+    }
 
     // 执行
     const totalTasks = taskList.length;

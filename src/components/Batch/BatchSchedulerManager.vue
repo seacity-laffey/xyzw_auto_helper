@@ -1,5 +1,5 @@
 <template>
-  <Dialog v-model:open="listOpen">
+  <Dialog :open="listOpen && !editorOpen && !deleteTarget" @update:open="listOpen = $event">
     <DialogContent class="max-h-[88vh] max-w-3xl overflow-hidden p-0" data-testid="batch-schedule-list-dialog">
       <DialogHeader class="border-b border-border px-5 py-4 pr-14">
         <DialogTitle>定时任务</DialogTitle>
@@ -175,6 +175,43 @@
             </label>
           </div>
         </section>
+        <section v-if="parameterFields.length || form.selectedTasks.includes('batchLegacyGiftSendEnhanced')" class="selection-section">
+          <Label>执行参数</Label>
+          <div v-for="field in parameterFields" :key="field.key" class="field-row">
+            <Label :for="`schedule-${field.key}`">{{ field.label }}</Label>
+            <Input :id="`schedule-${field.key}`" type="number" v-model.number="form.parameters[field.key]" :max="field.max" :min="1"></Input>
+          </div>
+          <div v-if="form.selectedTasks.includes('batchOpenBox')" class="field-row">
+            <Label for="schedule-box-type">宝箱类型</Label>
+            <select id="schedule-box-type" class="parameter-select" v-model.number="form.parameters.defaultBoxType">
+              <option v-for="option in boxTypeOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+            </select>
+          </div>
+          <div v-if="form.selectedTasks.includes('batchFish')" class="field-row">
+            <Label for="schedule-fish-type">鱼竿类型</Label>
+            <select id="schedule-fish-type" class="parameter-select" v-model.number="form.parameters.defaultFishType">
+              <option v-for="option in fishTypeOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+            </select>
+          </div>
+          <template v-if="form.selectedTasks.includes('batchLegacyGiftSendEnhanced')">
+            <div class="field-row">
+              <Label for="schedule-receiver">接收者 ID</Label>
+              <Input id="schedule-receiver" v-model="form.parameters.receiverId"></Input>
+            </div>
+            <div class="field-row">
+              <Label for="schedule-password">安全密码</Label>
+              <Input id="schedule-password" autocomplete="new-password" type="password" v-model="form.parameters.password"></Input>
+            </div>
+            <div class="field-row">
+              <Label for="schedule-gift-mode">赠送数量</Label>
+              <select id="schedule-gift-mode" class="parameter-select" :value="form.parameters.giftQuantity === 0 ? 'all' : 'fixed'" @change="form.parameters.giftQuantity = ($event.target as HTMLSelectElement).value === 'all' ? 0 : 10">
+                <option value="all">全部库存（每个账号最多 9999）</option>
+                <option value="fixed">指定数量</option>
+              </select>
+              <Input v-if="form.parameters.giftQuantity !== 0" aria-label="指定赠送数量" type="number" v-model.number="form.parameters.giftQuantity" :max="9999" :min="1"></Input>
+            </div>
+          </template>
+        </section>
       </div>
 
       <DialogFooter>
@@ -215,9 +252,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { availableTasks, calculateNextRuns, validateCronExpression } from "@/utils/batch";
+import { availableTasks, boxTypeOptions, calculateNextRuns, fishTypeOptions, validateCronExpression } from "@/utils/batch";
+import { createScheduledTaskParameters, validateScheduledTaskParameters } from "@/utils/scheduledTaskParameters";
+import type { ScheduledTaskParameters } from "@/utils/scheduledTaskParameters";
 
 interface ScheduledTask {
+  parameters: ScheduledTaskParameters;
   cronExpression: string;
   enabled: boolean;
   id: string;
@@ -279,6 +319,9 @@ const taskGroupDefinitions = [
       "store_purchase",
       "collection_claimfreereward",
       "batchGenieSweep",
+      "batchUseGenieTickets",
+      "batchFreeGacha",
+      "batchUseGachaCoins",
     ],
   },
   {
@@ -308,6 +351,7 @@ const taskGroupDefinitions = [
 ];
 
 const createEmptyForm = () => ({
+  parameters: createScheduledTaskParameters(),
   cronExpression: "",
   enabled: true,
   name: "",
@@ -326,6 +370,12 @@ const activeTaskGroup = ref("daily");
 const form = reactive<ReturnType<typeof createEmptyForm> & { runType: "cron" | "daily" }>(createEmptyForm());
 
 const enabledCount = computed(() => props.tasks.filter((task) => task.enabled).length);
+const parameterFields = computed(() => ([
+  { task: "batchOpenBox", key: "boxCount" as const, label: "开箱数量", max: 10000 },
+  { task: "batchFish", key: "fishCount" as const, label: "钓鱼数量", max: 10000 },
+  { task: "batchRecruit", key: "recruitCount" as const, label: "招募数量", max: 10000 },
+  { task: "batchOpenBoxByPoints", key: "targetBoxPoints" as const, label: "按积分开箱目标", max: 1000000 },
+]).filter((field) => form.selectedTasks.includes(field.task)));
 const groupedTasks = computed(() => {
   const result: Record<string, typeof availableTasks> = {};
   const assigned = new Set<string>();
@@ -370,6 +420,7 @@ const openList = () => {
 const openEdit = (task: ScheduledTask) => {
   editingTaskId.value = task.id;
   Object.assign(form, {
+    parameters: createScheduledTaskParameters(task.parameters),
     cronExpression: task.cronExpression || "",
     enabled: task.enabled,
     name: task.name,
@@ -432,9 +483,13 @@ const submitTask = () => {
     return emit("notify", { text: "请选择至少一个任务", type: "warning" });
 
   const isNew = !editingTaskId.value;
+  const parameterError = validateScheduledTaskParameters(form.selectedTasks, form.parameters);
+  if (parameterError)
+    return emit("notify", { text: parameterError, type: "warning" });
   emit("save", {
     isNew,
     task: {
+      parameters: createScheduledTaskParameters(form.parameters),
       cronExpression: form.runType === "cron" ? form.cronExpression.trim() : "",
       enabled: form.enabled,
       id: editingTaskId.value || `task_${Date.now()}`,
@@ -463,6 +518,16 @@ defineExpose({ openList, openNew });
 </script>
 
 <style scoped>
+.parameter-select {
+  width: 100%;
+  min-width: 0;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--background);
+  color: var(--foreground);
+}
 .list-toolbar {
   padding: 12px 20px;
   border-bottom: 1px solid var(--border);

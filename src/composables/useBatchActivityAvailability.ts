@@ -1,10 +1,10 @@
 import { computed } from "vue";
+import { useNow } from "@vueuse/core";
+import { isDungeonOpen } from "../utils/dreamConstants";
 
 export const useBatchActivityAvailability = () => {
-  const dreamActivityOpen = computed(() => {
-    const day = new Date().getDay();
-    return day === 0 || day === 1 || day === 3 || day === 4;
-  });
+  const now = useNow({ interval: 1000 });
+  const dreamActivityOpen = computed(() => isDungeonOpen(now.value));
 
   const arenaActivityOpen = computed(() => {
     const hour = new Date().getHours();

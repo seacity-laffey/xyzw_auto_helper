@@ -3,9 +3,9 @@
     <div class="legion-war-map-card">
       <div v-if="!isAccessible" class="access-denied-container">
         <n-result
+          description="该功能仅在特定时间开放"
           status="403"
           title="暂未开放"
-          description="该功能仅在特定时间开放"
         >
           <template #footer>
             <div class="access-denied-info">
@@ -22,10 +22,10 @@
         <div class="header-section">
           <div class="header-left">
             <img
-              src="/icons/moonPalace.png"
               alt="盐场图标"
               class="header-icon"
-            />
+              src="/icons/moonPalace.png"
+            >
             <div class="header-title">
               <h2>盐场实时地图</h2>
               <p>获取盐场位置分布</p>
@@ -49,27 +49,27 @@
             <div class="stat-item">
               <n-button
                 size="small"
-                :type="isEntireBattlefield ? 'success' : 'warning'"
                 :loading="connecting"
+                :type="isEntireBattlefield ? 'success' : 'warning'"
                 @click="toggleBattlefieldEntry"
               >
                 <template #icon>
                   <n-icon>
-                    <LogInOutline />
+                    <LogInOutline ></LogInOutline>
                   </n-icon>
                 </template>
                 {{ isEntireBattlefield ? "已进入战场" : "进入战场" }}
               </n-button>
               <n-button
                 size="small"
+                style="margin-right: 8px"
                 type="primary"
                 :disabled="!isConnected && !isEntireBattlefield"
                 @click="refreshData"
-                style="margin-right: 8px"
               >
                 <template #icon>
                   <n-icon>
-                    <RefreshOutline />
+                    <RefreshOutline ></RefreshOutline>
                   </n-icon>
                 </template>
                 刷新数据
@@ -77,13 +77,13 @@
               <n-button
                 size="small"
                 type="info"
+                :disabled="!validData"
                 :loading="exporting"
                 @click="exportImage"
-                :disabled="!validData"
               >
                 <template #icon>
                   <n-icon>
-                    <ImageOutline />
+                    <ImageOutline ></ImageOutline>
                   </n-icon>
                 </template>
                 导出图片
@@ -103,16 +103,16 @@
             <div v-if="!validData" class="empty-state-overlay">
               <div class="empty-content">
                 <template v-if="connecting">
-                  <n-spin size="large" />
+                  <n-spin size="large" ></n-spin>
                   <p>正在连接战场...</p>
                 </template>
                 <template v-else-if="isConnected">
-                  <n-spin size="large" />
+                  <n-spin size="large" ></n-spin>
                   <p>正在获取地图数据...</p>
                 </template>
                 <template v-else>
-                  <n-icon size="48" color="#ccc">
-                    <MapOutline />
+                  <n-icon color="#ccc" size="48">
+                    <MapOutline ></MapOutline>
                   </n-icon>
                   <p>暂无地图数据，请手动刷新数据</p>
                 </template>
@@ -122,8 +122,8 @@
 
           <!-- 右侧信息栏 -->
           <div
-            class="side-info-panel"
             v-if="validData && sortedLegions.length > 0"
+            class="side-info-panel"
           >
             <div class="legion-list">
               <template
@@ -136,7 +136,7 @@
                     <span class="group-count">({{ group.length }})</span>
                   </div>
                   <div
-                    v-for="(legion, index) in group"
+                    v-for="legion in group"
                     :key="legion.id"
                     class="legion-item"
                     :style="{ borderLeftColor: legion.color }"
@@ -165,17 +165,17 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { useMessage } from "naive-ui";
-import { useTokenStore } from "@/stores/tokenStore";
 import { useLegionWarStore } from "@/stores/legionWarStore";
-import { extractValidData, HexGraph, roadPointList } from "@/utils/legionWar";
+import { roadPointList } from "@/utils/legionWar";
+import { renderLegionWarMap } from "@/utils/legionWarMapRenderer.js";
 import { getCurrentTimeByFormat } from "@/utils/dateTimeUtils";
 import {
+  ImageOutline,
   LogInOutline,
   MapOutline,
   RefreshOutline,
-  ImageOutline,
 } from "@vicons/ionicons5";
 import { allianceincludes } from "@/utils/clubWarrankUtils";
 import { isLegionWarAccessible } from "@/utils/clubBattleUtils";
@@ -183,7 +183,6 @@ import { storeToRefs } from "pinia";
 import html2canvas from "html2canvas";
 
 const message = useMessage();
-const tokenStore = useTokenStore();
 const legionWarStore = useLegionWarStore();
 
 const isAccessible = ref(isLegionWarAccessible());
@@ -200,10 +199,7 @@ const {
 
 // 本地状态
 const legionWarMapDom = ref(null);
-let ctx = null;
 let resizeHandler = null;
-
-const isJoined = isEntireBattlefield; // alias for compatibility if needed, but we use isEntireBattlefield in template
 
 const exporting = ref(false);
 
@@ -240,7 +236,8 @@ const exportImage = async () => {
 
 // 俱乐部排序
 const sortedLegions = computed(() => {
-  if (!validData.value || !validData.value.legionInfo) return [];
+  if (!validData.value || !validData.value.legionInfo)
+    return [];
 
   // 将对象转换为数组并排序
   // 排序规则：红度 > 战力 > ID
@@ -253,14 +250,14 @@ const sortedLegions = computed(() => {
       : "未知联盟";
 
     // 优先使用详情中的红淬数据
-    const redCount =
-      detail.quenchNum !== undefined ? detail.quenchNum : legion.redCount;
+    const redCount
+      = detail.quenchNum !== undefined ? detail.quenchNum : legion.redCount;
 
     return {
       ...legion,
       announcement: detail.announcement || "",
-      alliance: alliance,
-      redCount: redCount,
+      alliance,
+      redCount,
     };
   });
 
@@ -274,7 +271,7 @@ const sortedLegions = computed(() => {
       return b.power - a.power;
     }
     // 3. ID 升序
-    return parseInt(a.id) - parseInt(b.id);
+    return Number.parseInt(a.id) - Number.parseInt(b.id);
   });
 });
 
@@ -343,337 +340,15 @@ const allianceGroups = computed(() => {
   return groups;
 });
 
-// Canvas 相关配置
-const dpr = window.devicePixelRatio || 1;
-let hexSize = 15.5;
-const gap = 3;
-let hexWidth = 2 * hexSize;
-let hexHeight = Math.sqrt(3) * hexSize;
-const arr = Array.from({ length: 41 }, () =>
-  Array.from({ length: 41 }, () => 0),
-);
-let leftMaxPoint = [0, 0];
-
-// 颜色映射
-const typeBg = (type) => {
-  switch (type) {
-    case 1:
-      return "#4477CE"; // 30分 - 小 - 蓝色
-    case 2:
-      return "#D835D8"; // 50分 - 中 - 粉紫色
-    case 3:
-      return "#F9B500"; // 80分 - 大 - 金色
-    case 4:
-      return "#D21E1E"; // 大本营 - 本 - 红色
-    case 5:
-      return "#2B2B2B"; // 100分 - 城 - 深灰色
-    case 6:
-      return "#000000"; // 核心 - 黑
-    case 9:
-      return "#4477CE"; // 道路 - 蓝色
-    default:
-      return "#cccccc";
-  }
-};
-
-// 标签映射
-const typeLabel = (type) => {
-  switch (type) {
-    case 1:
-      return "小";
-    case 2:
-      return "中";
-    case 3:
-      return "大";
-    case 4:
-      return "本";
-    case 5:
-      return "城";
-    case 6:
-      return "核";
-    default:
-      return "";
-  }
-};
-
-// 绘制六边形
-const drawHexagon = (x, y, color, type) => {
-  ctx.beginPath();
-  for (let i = 0; i < 6; i++) {
-    const angle = ((2 * Math.PI) / 6) * i;
-    const px = x + hexSize * Math.cos(angle);
-    const py = y + hexSize * Math.sin(angle);
-    i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
-
-    if (px >= leftMaxPoint[0]) leftMaxPoint[0] = px;
-    if (py >= leftMaxPoint[1]) leftMaxPoint[1] = py;
-  }
-  ctx.closePath();
-
-  // 填充背景
-  ctx.fillStyle = color;
-  ctx.fill();
-
-  // 描边
-  ctx.strokeStyle = "#ffffff"; // 白色边框
-  ctx.lineWidth = 1;
-  ctx.stroke();
-};
-
-// 联盟颜色映射
-const allianceColors = {
-  大联盟: "#667eea", // var(--primary-color)
-  梦盟: "#18a058", // var(--success-color)
-  正义联盟: "#2080f0", // var(--info-color)
-  龙盟: "#d03050", // var(--error-color)
-  曦盟: "#9c27b0", // 紫色
-  未知联盟: "#f5a623", // var(--warning-color)
-};
-
-// 绘制文字
-const drawText = (x, y, text, color = "#fff", fontSize = 10) => {
-  ctx.fillStyle = color;
-  ctx.font = `bold ${fontSize}px Microsoft Yahei`;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText(text, x, y);
-};
-
-// 绘制地图内容
-const drawCanvasContent = () => {
-  if (!ctx) return;
-
-  // 清空画布
-  ctx.clearRect(0, 0, ctx.canvas.width / dpr, ctx.canvas.height / dpr);
-
-  // 重置 arr 数组
-  arr.forEach((row) => row.fill(0));
-
-  // 获取图结构实例
-  let graph = HexGraph.getInstance();
-  graph.removeAllNode();
-
-  // 计算需要绘制的行列数以铺满画布
-  const canvasWidth = ctx.canvas.width / dpr;
-  const canvasHeight = ctx.canvas.height / dpr;
-  const horizontalStep = hexWidth * 0.75 + gap;
-  const verticalStep = hexHeight + gap;
-
-  const maxCols = Math.ceil(canvasWidth / horizontalStep) + 2;
-  const maxRows = Math.ceil(canvasHeight / verticalStep) + 2;
-
-  // 绘制背景网格
-  ctx.strokeStyle = "#e0e0e0"; // 浅灰色边框
-  ctx.lineWidth = 1;
-
-  for (let row = 0; row < maxRows; row++) {
-    for (let col = 0; col < maxCols; col++) {
-      // 背景网格从第0行开始绘制，铺满全屏
-      const x = col * (hexWidth * 0.75) + hexSize + gap * col;
-      const y =
-        row * hexHeight + (col % 2 === 1 ? hexHeight / 2 : 0) + gap * row;
-
-      ctx.beginPath();
-      for (let i = 0; i < 6; i++) {
-        const angle = ((2 * Math.PI) / 6) * i;
-        const px = x + hexSize * Math.cos(angle);
-        const py = y + hexSize * Math.sin(angle);
-        i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
-      }
-      ctx.closePath();
-      ctx.stroke();
-
-      // 绘制坐标
-      //drawText(x, y, `${col},${row}`, "#e0e0e0", 8);
-    }
-  }
-
-  // 平移画布以居中显示有效区域
-  // 假设有效区域左上角偏移约为 (-2, -3) 个六边形
-  ctx.save();
-  ctx.translate(2 * (hexWidth * 0.75 + gap), -1 * (hexHeight + gap));
-
-  // 使用静态数据作为基础，结合 validData 处理颜色和状态
-  // 1. 准备数据
-  // 注意：即使 validData 为 null，也应该填充 graph，以显示基础地图
-  graph.addNodeList(
-    roadPointList.map((item) => {
-      const realTimeNode = validData.value?.buildingData?.[item.id];
-      // 优先使用实时数据中的 type，如果没有则使用静态 type
-      const type = realTimeNode?.type || item.type;
-      const belongsLegionId = realTimeNode ? realTimeNode.belongsLegionId : -1;
-
-      return {
-        id: item.id,
-        type: type,
-        belongsLegionId: belongsLegionId,
-        hP: realTimeNode ? realTimeNode.hP : 0,
-        maxHP: realTimeNode ? realTimeNode.maxHP : 0,
-        point: realTimeNode ? realTimeNode.point : 0,
-        belongsLegionInfo: validData.value?.legionInfo?.[belongsLegionId],
-      };
-    }),
-  );
-
-  // 2. 绘制所有网格节点
-  // 使用 graph.getAllNodes() 获取 graph 中的节点，如果为空则使用 roadPointList
-  const graphNodes = graph.getAllNodes();
-  const nodesToDraw =
-    graphNodes.length > 0
-      ? graphNodes
-      : roadPointList.map((item) => {
-          // 确保静态数据也有正确的属性结构
-          return {
-            ...item,
-            // 如果是静态数据，确保这些字段存在
-            type: item.type,
-            belongsLegionId: -1,
-          };
-        });
-
-  nodesToDraw.forEach((node) => {
-    const [colStr, rowStr] = node.id.split("_");
-    const col = parseInt(colStr);
-    const row = parseInt(rowStr);
-
-    if (!isNaN(col) && !isNaN(row)) {
-      const x = col * (hexWidth * 0.75) + hexSize + gap * col;
-      const y =
-        row * hexHeight + (col % 2 === 1 ? hexHeight / 2 : 0) + gap * row;
-
-      // 决定背景色：始终使用类型颜色，不依赖归属情况
-      let bgColor = typeBg(node.type);
-
-      // 核心周围特殊处理
-      const coreSurroundingPoints = [
-        "19_16",
-        "19_17",
-        "20_16",
-        "20_18",
-        "21_16",
-        "21_17",
-      ];
-      if (coreSurroundingPoints.includes(node.id)) {
-        bgColor = "#cccccc";
-      }
-
-      // 核心始终显示黑色 (根据类型6判断，不依赖归属)
-      if (node.type === 6) {
-        bgColor = "#000000";
-      }
-
-      drawHexagon(x, y, bgColor, node.type);
-
-      // 绘制标签
-      if (node.type !== 9) {
-        const label = typeLabel(node.type);
-        drawText(x, y, label, "#fff", 12);
-      }
-    }
+const resizeAndRedraw = () =>
+  renderLegionWarMap({
+    canvas: legionWarMapDom.value,
+    data: validData.value,
+    legionDetails: legionDetails.value,
+    pixelRatio: window.devicePixelRatio || 1,
+    resolveAlliance: allianceincludes,
+    roadPoints: roadPointList,
   });
-
-  // 绘制俱乐部名称 (独立逻辑)
-  if (validData.value && validData.value.legionInfo) {
-    Object.values(validData.value.legionInfo).forEach((legion) => {
-      // 必须有大本营坐标
-      if (legion.strongholdId) {
-        const [colStr, rowStr] = legion.strongholdId.split("_");
-        const col = parseInt(colStr);
-        const row = parseInt(rowStr);
-
-        if (!isNaN(col) && !isNaN(row)) {
-          const x = col * (hexWidth * 0.75) + hexSize + gap * col;
-          const y =
-            row * hexHeight + (col % 2 === 1 ? hexHeight / 2 : 0) + gap * row;
-
-          // 格式：【区服】名称，使用 legionInfo 中的 legionID
-          const sidStr = `【${legion.serverId}】`;
-          const nameStr = `${sidStr}${legion.name}`;
-
-          // 获取联盟信息
-          const detail = legionDetails.value[legion.id] || {};
-          const alliance = detail.announcement
-            ? allianceincludes(detail.announcement)
-            : "未知联盟";
-          const allianceColor =
-            allianceColors[alliance] || allianceColors["未知联盟"];
-
-          // 绘制背景和文字
-          ctx.font = "bold 12px Microsoft Yahei";
-          const textWidth = ctx.measureText(nameStr).width;
-          const padding = 10;
-          const height = 24;
-          const bgX = x - textWidth / 2 - padding / 2;
-          const bgY = y - 32;
-          const bgWidth = textWidth + padding;
-
-          ctx.fillStyle = allianceColor;
-
-          const r = 4;
-          ctx.beginPath();
-          ctx.moveTo(bgX + r, bgY);
-          ctx.arcTo(bgX + bgWidth, bgY, bgX + bgWidth, bgY + height, r);
-          ctx.arcTo(bgX + bgWidth, bgY + height, bgX, bgY + height, r);
-          ctx.arcTo(bgX, bgY + height, bgX, bgY, r);
-          ctx.arcTo(bgX, bgY, bgX + bgWidth, bgY, r);
-          ctx.closePath();
-          ctx.fill();
-
-          drawText(x, bgY + height / 2, nameStr, "#fff", 12);
-        }
-      }
-    });
-  }
-};
-const resizeAndRedraw = () => {
-  if (!legionWarMapDom.value) return;
-  const canvas = legionWarMapDom.value;
-  const container = canvas.parentElement;
-
-  // 移除之前添加的 style 尺寸设置
-  canvas.style.width = "100%";
-  canvas.style.height = "100%";
-
-  const w = container.clientWidth;
-  const h = container.clientHeight;
-
-  // 设置 Canvas 物理像素大小
-  canvas.width = w * dpr;
-  canvas.height = h * dpr;
-
-  // 根据容器大小动态计算合适的 hexSize
-  // 地图尺寸: 41列 * 41行
-  const cols = 41;
-  const rows = 41;
-
-  // 计算可用空间下最大的 hexSize
-  // 宽度公式: w = cols * (1.5 * s + gap) + 0.5 * s
-  // 高度公式: h = rows * (sqrt(3) * s + gap) + sqrt(3)/2 * s
-
-  // 简化计算 (减少边距以最大化显示)
-  const padding = 10;
-  const availableW = w - padding * 2;
-  const availableH = h - padding * 2;
-
-  const sizeW = (availableW - (cols - 1) * gap) / (cols * 1.5 + 0.5);
-  const sizeH =
-    (availableH - (rows - 1) * gap) / (rows * Math.sqrt(3) + Math.sqrt(3) / 2);
-
-  // 取较小值以确保完整显示
-  hexSize = Math.min(sizeW, sizeH);
-
-  // 限制最大最小尺寸，避免极端情况
-  hexSize = Math.max(12, Math.min(hexSize, 30));
-
-  // 更新依赖变量
-  hexWidth = 2 * hexSize;
-  hexHeight = Math.sqrt(3) * hexSize;
-
-  if (ctx) {
-    ctx.scale(dpr, dpr);
-    drawCanvasContent();
-  }
-};
 
 const toggleBattlefieldEntry = async () => {
   if (isEntireBattlefield.value) {
@@ -698,20 +373,15 @@ const refreshData = () => {
 
 const initializeCanvas = async () => {
   await nextTick();
-  const canvas = legionWarMapDom.value;
-  if (!canvas) return false;
-
-  const context = canvas.getContext("2d");
-  if (!context) return false;
-  ctx = context;
+  if (!legionWarMapDom.value)
+    return false;
 
   if (!resizeHandler) {
     resizeHandler = () => resizeAndRedraw();
     window.addEventListener("resize", resizeHandler);
   }
 
-  resizeAndRedraw();
-  return true;
+  return resizeAndRedraw();
 };
 
 // 生命周期钩子

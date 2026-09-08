@@ -1,5 +1,6 @@
 // @ts-nocheck
 import type { BatchTaskDeps } from "./types";
+import { canStartDailyDungeon } from "../dailyRewardEligibility";
 import {
   isDungeonOpen,
   merchantConfig,
@@ -29,6 +30,7 @@ export function createTasksDungeon(deps: BatchTaskDeps) {
     tokenStore,
     addLog,
     message,
+    loadSettings,
     currentRunningTokenId,
   } = deps;
 
@@ -38,6 +40,10 @@ export function createTasksDungeon(deps: BatchTaskDeps) {
   const batchmengjing = async () => {
     if (selectedTokens.value.length === 0)
       return;
+    if (!isDungeonOpen()) {
+      message.warning("当前不是梦境开放时间（周三/周四/周日/周一）");
+      return;
+    }
     isRunning.value = true;
     shouldStop.value = false;
 
@@ -60,13 +66,15 @@ export function createTasksDungeon(deps: BatchTaskDeps) {
         if (shouldStop.value)
           return;
         const mjbattleTeam = { 0: 107 };
-        const dayOfWeek = new Date().getDay();
-        if (
-          dayOfWeek === 0
-          || dayOfWeek === 1
-          || dayOfWeek === 3
-          || dayOfWeek === 4
-        ) {
+        const roleInfo = await tokenStore.sendMessageWithPromise(
+          tokenId,
+          "role_getroleinfo",
+          {},
+          15000,
+        );
+        if (shouldStop.value)
+          return;
+        if (canStartDailyDungeon(roleInfo?.role?.dungeon)) {
           await tokenStore.sendMessageWithPromise(
             tokenId,
             "dungeon_selecthero",
@@ -81,10 +89,11 @@ export function createTasksDungeon(deps: BatchTaskDeps) {
             type: "success",
           });
         } else {
+          tokenStatus.value[tokenId] = "completed";
           addLog({
             time: new Date().toLocaleTimeString(),
-            message: `=== ${token.name} 当前未在开放时间 ===`,
-            type: "error",
+            message: `${token.name} 梦境本期已参与、未开放或状态不足，已跳过`,
+            type: "info",
           });
         }
       } catch (error) {
@@ -124,8 +133,16 @@ export function createTasksDungeon(deps: BatchTaskDeps) {
       return;
     }
 
-    const purchaseList = batchSettings.dreamPurchaseList || [];
-    if (purchaseList.length === 0) {
+    const purchaseLists = new Map(selectedTokens.value.map((tokenId) => {
+      const accountSettings = loadSettings?.(tokenId);
+      const accountList = accountSettings?.dreamPurchaseList;
+      if (accountSettings?.dreamPurchaseEnable === false)
+        return [tokenId, []];
+      return [tokenId, Array.isArray(accountList)
+        ? [...accountList]
+        : [...(batchSettings.dreamPurchaseList || [])]];
+    }));
+    if (![...purchaseLists.values()].some((list) => list.length > 0)) {
       message.warning("请先在设置中配置购买清单");
       return;
     }
@@ -140,6 +157,16 @@ export function createTasksDungeon(deps: BatchTaskDeps) {
     const taskPromises = selectedTokens.value.map(async (tokenId) => {
       if (shouldStop.value)
         return;
+      const purchaseList = purchaseLists.get(tokenId) || [];
+      if (purchaseList.length === 0) {
+        tokenStatus.value[tokenId] = "skipped";
+        addLog({
+          time: new Date().toLocaleTimeString(),
+          message: `${tokens.value.find((token) => token.id === tokenId)?.name || tokenId} 未配置梦境购买商品，已跳过，请先配置购买清单`,
+          type: "warning",
+        });
+        return;
+      }
       tokenStatus.value[tokenId] = "running";
       const token = tokens.value.find((t) => t.id === tokenId);
       try {

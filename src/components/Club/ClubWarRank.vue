@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="club-warrank-container">
     <div class="club-warrank-card">
       <ClubWarRankToolbar
@@ -15,7 +15,7 @@
         @sort-red="hcSort"
         @sort-score="scoreSort"
         @toggle-edit="toggleEditMode"
-      />
+      ></ClubWarRankToolbar>
 
       <!-- 表格内容区 -->
       <div ref="exportDom" class="table-content">
@@ -27,14 +27,14 @@
           :fetch-time="saltFetchTimeText"
           :total="battleRecords1.legionRankList.length"
           @select="setActiveAlliance"
-        />
+        ></ClubWarAllianceSummary>
         <ClubWarRankingTable
           :columns="saltTableColumns"
           :has-data="Boolean(battleRecords1?.legionRankList)"
           :loading="loading1"
           :row-class-name="getSaltTableRowClassName"
           :rows="groupedSaltTableData"
-        />
+        ></ClubWarRankingTable>
       </div>
     </div>
 
@@ -51,17 +51,17 @@
       @reset-result="resetFightResult"
       @select-hero="selectHeroInfo"
       @update:fight-count="handleFightCountUpdate"
-    />
+    ></ClubPlayerDuelDialog>
 
     <ClubHeroDetailDialog
       v-model:open="showHeroModal"
       :hero="heroModealTemp"
-    />
+    ></ClubHeroDetailDialog>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onBeforeUnmount, onMounted, reactive, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { NInputNumber, NSelect, useMessage } from "naive-ui";
 import { useTokenStore } from "@/stores/tokenStore";
 import html2canvas from "html2canvas";
@@ -72,6 +72,7 @@ import ClubWarAllianceSummary from "@/components/Club/ClubWarAllianceSummary.vue
 import ClubWarRankingTable from "@/components/Club/ClubWarRankingTable.vue";
 import ClubWarRankToolbar from "@/components/Club/ClubWarRankToolbar.vue";
 import { createClubWarRankColumns } from "@/composables/createClubWarRankColumns";
+import { useClubPlayerDuel } from "@/composables/useClubPlayerDuel.js";
 import {
   calculateClubAverageRedQuench,
   countClubRanksByAlliance,
@@ -81,25 +82,21 @@ import {
   loadClubWarRankDetails,
   sortClubRanksByDominantAlliance,
 } from "@/utils/clubWarRankData";
-import {
-  buildClubPlayerInfo,
-  extractClubHeroInfo,
-} from "@/utils/clubPlayerInfo";
-import { runClubDuels } from "@/utils/clubDuelRunner";
+import { extractClubHeroInfo } from "@/utils/clubPlayerInfo";
 import { createLatestRequestController } from "@/utils/latestRequest";
 import {
-  getLastSaturday,
   formatTimestamp1,
+  getLastSaturday,
 } from "@/utils/clubBattleUtils";
 import {
-  gettoday,
-  formatWarrankRecordsForExport,
   allianceincludes,
+  formatWarrankRecordsForExport,
+  gettoday,
 } from "@/utils/clubWarrankUtils";
 import {
+  getLineupType,
   HERO_DICT,
   HeroFillInfo,
-  getLineupType,
   LINEUP_RULES,
 } from "@/utils/heroList";
 
@@ -154,8 +151,8 @@ const toggleEditMode = () => {
           manualRankings.value[member.id] = redQuenchRankings.value[member.id];
         }
         if (manualAlliances.value[member.id] === undefined) {
-          manualAlliances.value[member.id] =
-            allianceincludes(member.announcement) || "未知联盟";
+          manualAlliances.value[member.id]
+            = allianceincludes(member.announcement) || "未知联盟";
         }
       });
 
@@ -206,7 +203,8 @@ const handleRankBlur = (member) => {
     return;
   }
 
-  if (newRank === oldRank) return;
+  if (newRank === oldRank)
+    return;
 
   // 查找占用新排名的俱乐�?
   const targetMemberId = Object.keys(manualRankings.value).find(
@@ -264,69 +262,19 @@ const getMemberRank = (member) => {
   return redQuenchRankings.value[member.id];
 };
 
-// 新增查询对手相关状�?
-const queryLoading = ref(false);
-// 玩家信息模态框状�?
-const showPlayerInfoModal = ref(false);
-const playerInfo = ref(null);
-
-// 新增切磋次数相关状�?
-const fightCount = ref(1);
-const isFightCountValid = ref(true);
-
-// 切磋进度状�?
-const fightProgress = reactive({
-  visible: false,
-  totalCount: 0,
-  completedCount: 0,
-  remainingCount: 0,
-  winCount: 0,
-  lossCount: 0,
-  percentage: 0,
-});
-
-// 最终结果状�?
-const fightResult = reactive({
-  visible: false,
-  totalCount: 0,
-  winCount: 0,
-  lossCount: 0,
-  winRate: 0,
-  ourDieRate: 0,
-  enemyDieRate: 0,
-  resultCount: [], // 存储每场战斗的详细结�?
-});
-
-// 掉将统计
-const dieStats = reactive({
-  ourDieHeroGameCount: 0,
-  enemyDieHeroGameCount: 0,
-});
-
-// 武将详情模态框状�?
-const showHeroModal = ref(false);
-// 选中的武将信�?
-const heroModealTemp = ref(null);
-
-// 选择武将信息，显示详情模态框
-const selectHeroInfo = (heroInfo) => {
-  showHeroModal.value = true;
-  heroModealTemp.value = heroInfo;
-};
-
 const getHeroInfo = (heroes) =>
   extractClubHeroInfo(heroes, HERO_DICT);
 
 const formatDateTime = (date) => {
   const pad = (value) => String(value).padStart(2, "0");
   return (
-    [date.getFullYear(), pad(date.getMonth() + 1), pad(date.getDate())].join(
+    `${[date.getFullYear(), pad(date.getMonth() + 1), pad(date.getDate())].join(
       "-",
     )
-    + " "
-    + [pad(date.getHours()), pad(date.getMinutes()), pad(date.getSeconds())].join(
-      ":",
-    )
+    } ${
+      [pad(date.getHours()), pad(date.getMinutes()), pad(date.getSeconds())].join(
+        ":",
+      )}`
   );
 };
 
@@ -336,10 +284,12 @@ const getSaltFetchTimeText = () => {
 };
 
 const fetchCurrentClubInfo = async (tokenId = selectedTokenId.value) => {
-  if (!tokenId) return null;
+  if (!tokenId)
+    return null;
 
   const wsStatus = tokenStore.getWebSocketStatus(tokenId);
-  if (wsStatus !== "connected") return null;
+  if (wsStatus !== "connected")
+    return null;
 
   try {
     const result = await tokenStore.sendMessageWithPromise(
@@ -362,10 +312,12 @@ const fetchCurrentClubInfo = async (tokenId = selectedTokenId.value) => {
 };
 
 const isCurrentAccountClub = (row) => {
-  if (!row || row.__isGroupHeader || row.__isFetchTimeFooter) return false;
+  if (!row || row.__isGroupHeader || row.__isFetchTimeFooter)
+    return false;
 
   const clubInfo = currentLegionInfo.value;
-  if (!clubInfo) return false;
+  if (!clubInfo)
+    return false;
 
   const currentId = clubInfo.id ?? clubInfo.legionId;
   const rowId = row.id ?? row.legionId;
@@ -420,179 +372,6 @@ const getLineupTagStyle = (lineupType) => {
     whiteSpace: "nowrap",
     flexShrink: "0",
   };
-};
-
-// 新增查询对手信息功能
-const fetchTargetInfo = async (roleId) => {
-  if (!tokenStore.selectedToken) {
-    message.warning("请先选择游戏角色");
-    return;
-  }
-
-  const tokenId = tokenStore.selectedToken.id;
-
-  // 检查WebSocket连接
-  const wsStatus = tokenStore.getWebSocketStatus(tokenId);
-  if (wsStatus !== "connected") {
-    message.error("WebSocket未连接，无法查询战绩");
-    return;
-  }
-
-  // 重置之前的切磋结�?
-  resetFightResult();
-
-  queryLoading.value = true;
-
-  try {
-    const result = await tokenStore.sendMessageWithPromise(
-      tokenId,
-      "rank_getroleinfo",
-      {
-        bottleType: 0,
-        includeBottleTeam: false,
-        isSearch: false,
-        roleId: roleId,
-        includeHero: true,
-        includeHeroDetail: true,
-        includePearl: true,
-      },
-      5000,
-    );
-
-    const playerData = buildClubPlayerInfo(roleId, result, {
-      fillPearls: HeroFillInfo,
-      formatPower,
-      heroDict: HERO_DICT,
-    });
-    if (!playerData) {
-      message.warning("未查询到对手信息");
-      return;
-    }
-    playerInfo.value = playerData;
-    showPlayerInfoModal.value = true;
-    message.success("查询成功");
-  } catch (error) {
-    message.error(`查询失败: ${error.message}`);
-    console.error("查询失败详细信息:", error);
-  } finally {
-    queryLoading.value = false;
-  }
-};
-
-// 车头头像点击处理
-const handleHeroClick = (hero) => {
-  if (hero.id && !queryLoading.value) {
-    message.info(`正在查询车头信息: ${hero.name}`);
-    fetchTargetInfo(hero.id);
-  } else if (!hero.id) {
-    message.error("车头ID不存在，无法查询信息");
-    console.error("车头ID不存在", hero);
-  }
-};
-
-// 验证切磋次数
-const validateFightCount = (value) => {
-  const num = parseInt(value);
-  isFightCountValid.value = !isNaN(num) && num >= 1 && num <= 100;
-};
-
-const handleFightCountUpdate = (value) => {
-  fightCount.value = value;
-  validateFightCount(value);
-};
-
-// 重置切磋结果
-const resetFightResult = () => {
-  fightResult.visible = false;
-  fightProgress.visible = false;
-  dieStats.ourDieHeroGameCount = 0;
-  dieStats.enemyDieHeroGameCount = 0;
-  fightCount.value = 1;
-  validateFightCount(1);
-};
-
-// 切磋功能处理 - 支持连续切磋
-const handleDuel = async () => {
-  if (!playerInfo.value) return;
-
-  // 验证切磋次数
-  validateFightCount(fightCount.value);
-  if (!isFightCountValid.value) {
-    message.error("请输入有效的切磋次数 (1-100)");
-    return;
-  }
-
-  const totalCount = parseInt(fightCount.value);
-  message.info(`开始连续切磋 ${playerInfo.value.name}，共${totalCount}次`);
-
-  if (!tokenStore.selectedToken) {
-    message.warning("请先选择游戏角色");
-    return;
-  }
-
-  const tokenId = tokenStore.selectedToken.id;
-
-  // 检查WebSocket连接
-  const wsStatus = tokenStore.getWebSocketStatus(tokenId);
-  if (wsStatus !== "connected") {
-    message.error("WebSocket未连接，无法发起切磋");
-    return;
-  }
-
-  queryLoading.value = true;
-
-  // 初始化切磋进�?
-  fightProgress.visible = true;
-  fightProgress.totalCount = totalCount;
-  fightProgress.completedCount = 0;
-  fightProgress.remainingCount = totalCount;
-  fightProgress.winCount = 0;
-  fightProgress.lossCount = 0;
-  fightProgress.percentage = 0;
-
-  // 重置掉将统计
-  dieStats.ourDieHeroGameCount = 0;
-  dieStats.enemyDieHeroGameCount = 0;
-
-  try {
-    const summary = await runClubDuels({
-      totalCount,
-      targetId: playerInfo.value.id,
-      requestFight: (targetId) =>
-        tokenStore.sendMessageWithPromise(
-          tokenId,
-          "fight_startpvp",
-          { targetId },
-          10000,
-        ),
-      formatPower,
-      onAttempt: ({ attemptNumber }) => {
-        message.info(`正在进行第${attemptNumber}/${totalCount} 场切磋`);
-      },
-      onInvalidResult: ({ attemptNumber, message: errorMessage }) => {
-        message.warning(`第${attemptNumber} 场切磋失败: ${errorMessage}`);
-      },
-      onProgress: (progress) => {
-        Object.assign(fightProgress, progress);
-      },
-    });
-
-    Object.assign(dieStats, {
-      ourDieHeroGameCount: summary.ourDieHeroGameCount,
-      enemyDieHeroGameCount: summary.enemyDieHeroGameCount,
-    });
-    Object.assign(fightResult, summary, { visible: true });
-    fightProgress.visible = false;
-
-    message.success(`连续切磋完成，共${totalCount}场`);
-  } catch (error) {
-    console.error("连续切磋失败:", error);
-    message.error(`连续切磋失败: ${error.message || "网络错误"}`);
-    fightProgress.visible = false;
-  } finally {
-    queryLoading.value = false;
-    // 不关闭模态框，让用户可以继续查看或再次切�?
-  }
 };
 
 // 联盟筛选计算属�?
@@ -650,19 +429,43 @@ const allianceCounts = computed(() =>
 
 // 格式化战�?
 const formatPower = (power) => {
-  if (!power) return "0";
+  if (!power)
+    return "0";
   if (power >= 100000000) {
-    return (power / 100000000).toFixed(2) + "亿";
+    return `${(power / 100000000).toFixed(2)}亿`;
   }
   if (power >= 10000) {
-    return (power / 10000).toFixed(2) + "万";
+    return `${(power / 10000).toFixed(2)}万`;
   }
   return power.toString();
 };
 
-//日期选择时调用查询战绩方�?
+const {
+  dieStats,
+  fightCount,
+  fightProgress,
+  fightResult,
+  handleDuel,
+  handleFightCountUpdate,
+  handleHeroClick,
+  heroModealTemp,
+  isFightCountValid,
+  playerInfo,
+  resetFightResult,
+  selectHeroInfo,
+  showHeroModal,
+  showPlayerInfoModal,
+} = useClubPlayerDuel({
+  tokenStore,
+  message,
+  fillPearls: HeroFillInfo,
+  formatPower,
+  heroDict: HERO_DICT,
+});
+
+// 日期选择时调用查询战绩方�?
 const fetchBattleRecordsByDate = (val) => {
-  if (undefined != val) {
+  if (val !== undefined) {
     inputDate1.value = val;
   } else {
     inputDate1.value = getLastSaturday();
@@ -739,11 +542,12 @@ const fetchBattleRecords1 = async (requestTokenId = selectedTokenId.value) => {
 
     try {
       await fetchCurrentClubInfo(tokenId);
-      if (!isCurrentRequest() || selectedTokenId.value !== tokenId) return;
+      if (!isCurrentRequest() || selectedTokenId.value !== tokenId)
+        return;
 
       let result;
       let clubs;
-      if (gettoday() == requestedDate && new Date().getHours() < 21) {
+      if (gettoday() === requestedDate && new Date().getHours() < 21) {
         const battlefield = await tokenStore.sendMessageWithPromise(
           tokenId,
           "legion_getbattlefield",
@@ -801,7 +605,8 @@ const fetchBattleRecords1 = async (requestTokenId = selectedTokenId.value) => {
         allianceincludes,
       );
 
-      if (!isCurrentRequest() || selectedTokenId.value !== tokenId) return;
+      if (!isCurrentRequest() || selectedTokenId.value !== tokenId)
+        return;
 
       battleRecords1.value = {
         ...result,
@@ -809,7 +614,8 @@ const fetchBattleRecords1 = async (requestTokenId = selectedTokenId.value) => {
       };
       message.success("盐场匹配数据加载成功");
     } catch (error) {
-      if (!isCurrentRequest() || selectedTokenId.value !== tokenId) return;
+      if (!isCurrentRequest() || selectedTokenId.value !== tokenId)
+        return;
 
       console.error("查询失败:", error);
       message.error(`查询失败: ${error.message || "网络错误"}`);
@@ -823,7 +629,8 @@ const handleRefresh1 = () => {
 };
 
 const hcSort = async () => {
-  if (!battleRecords1.value?.legionRankList) return;
+  if (!battleRecords1.value?.legionRankList)
+    return;
 
   // 1. 按红淬数量排�?
   const sortedList = [...battleRecords1.value.legionRankList].sort(
@@ -847,7 +654,8 @@ const hcSort = async () => {
 };
 
 const scoreSort = async () => {
-  if (!battleRecords1.value?.legionRankList) return;
+  if (!battleRecords1.value?.legionRankList)
+    return;
 
   // 1. 按积分排�?
   const sortedList = [...battleRecords1.value.legionRankList].sort(
@@ -896,7 +704,7 @@ const handleExport1 = async () => {
 const exportToImage = async () => {
   // 校验：确保DOM已正确绑�?
   if (!exportDom.value) {
-    alert("未找到要导出的DOM元素");
+    message.error("未找到要导出的DOM元素");
     return;
   }
 
@@ -972,13 +780,13 @@ const exportToImage = async () => {
     });
 
     // 6. Canvas转图片链接并下载
-    const filename =
-      queryDate.value.replace("/", "年").replace("/", "月") +
-      "日盐场匹配信息.png";
+    const filename
+      = `${queryDate.value.replace("/", "年").replace("/", "月")
+      }日盐场匹配信息.png`;
     downloadCanvasAsImage(canvas, filename);
   } catch (err) {
     console.error("DOM转图片失败：", err);
-    alert("导出图片失败，请重试");
+    message.error("导出图片失败，请重试");
   } finally {
     exportDom.value.classList.remove("salt-image-exporting");
     originalNodeState.forEach(
@@ -1042,7 +850,8 @@ onBeforeUnmount(() => {
 });
 
 watch(selectedTokenId, (newTokenId, oldTokenId) => {
-  if (!newTokenId || newTokenId === oldTokenId) return;
+  if (!newTokenId || newTokenId === oldTokenId)
+    return;
 
   currentClubInfo.value = null;
   battleRecords1.value = null;

@@ -248,7 +248,9 @@ export function registerDefaultCommands(reg: CommandRegistry) {
     // 商店
     .register("store_goodslist", { storeId: 1 })
     .register("store_buy", { goodsId: 1 })
-    .register("store_purchase", { goodsId: 1 })
+    .register("store_getpurchase")
+    .register("store_setpurchase")
+    .register("store_purchase")
     .register("store_refresh", { storeId: 1 })
 
     // 军团
@@ -331,6 +333,7 @@ export function registerDefaultCommands(reg: CommandRegistry) {
     .register("genie_buysweep")
 
     // 礼包相关
+    .register("discount_getdiscountinfo")
     .register("discount_claimreward", { discountId: 1 })
     .register("collection_claimfreereward")
     .register("card_claimreward", { cardId: 1 })
@@ -1155,6 +1158,7 @@ export class XyzwWebSocketClient {
       // 1:1 响应映射（优先级高）
       fight_startpvpresp: "fight_startpvp",
       activity_getresp: "activity_get",
+      discount_getdiscountinforesp: "discount_getdiscountinfo",
       collection_goodslistresp: "collection_goodslist",
       collection_claimfreerewardresp: "collection_claimfreereward",
       legion_getarearankresp: "legion_getarearank",
@@ -1188,6 +1192,7 @@ export class XyzwWebSocketClient {
       presetteam_saveteamresp: "presetteam_saveteam",
       presetteam_getinforesp: "presetteam_getinfo",
       mail_claimallattachmentresp: "mail_claimallattachment",
+      mail_getlistresp: "mail_getlist",
       store_buyresp: "store_purchase",
       system_getdatabundleverresp: "system_getdatabundlever",
       tower_claimrewardresp: "tower_claimreward",

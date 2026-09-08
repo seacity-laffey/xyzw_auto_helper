@@ -1,5 +1,9 @@
 export const DEFAULT_RESPONSE_COMMAND_MAP = Object.freeze({
+  discount_getdiscountinforesp: "discount_getdiscountinfo",
   legionwar_getdetailsresp: "legionwar_getdetails",
+  mail_getlistresp: "mail_getlist",
+  store_getpurchaseresp: "store_getpurchase",
+  store_setpurchaseresp: "store_setpurchase",
 });
 
 export function resolveOriginalResponseCommands(responseCommand, commandMap = {}) {

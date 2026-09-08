@@ -1,120 +1,42 @@
 <template>
   <div class="pushing-levels-page">
-    <div class="pl-header">
-      <div>
-        <h2>战斗推关</h2>
-        <p>主线推图</p>
-      </div>
-      <div class="pl-header-actions">
-        <Button size="sm" variant="outline" :aria-expanded="showAccountTools" @click="showAccountTools = !showAccountTools">
-          账号工具 {{ selectedTokenIds.length }}/{{ tokens.length }}
-        </Button>
-        <label class="switch-field">
-          <Switch v-model="autoContinue"></Switch>
-          <span>{{ autoContinue ? "自动继续" : "手动停止" }}</span>
-        </label>
-        <Input class="retry-input w-[110px]" max="999999" min="1" type="number" v-model.number="maxRetries"></Input>
-        <span class="retry-label">最大重试</span>
-      </div>
-    </div>
-
-    <!-- 账号列表（上方，勾选模式，4个一行，简洁） -->
-    <section v-if="showAccountTools" class="account-card-top panel">
-      <div class="account-toolbar">
-        <Input class="search-input w-[180px]" placeholder="搜索账号" v-model="searchKeyword"></Input>
-        <label class="checkbox-field">
-          <Checkbox
-            :model-value="someVisibleSelected ? 'indeterminate' : allVisibleSelected"
-            @update:model-value="toggleAllVisible"
-          ></Checkbox>
-          <span>全选</span>
-        </label>
-        <div v-if="tokenGroups.length" class="group-list-inline">
-          <button
-            v-for="group in tokenGroups"
-            :key="group.id"
-            class="group-chip"
-            :class="{ selected: selectedGroupIds.includes(group.id) }"
-            :style="groupChipStyle(group)"
-            @click="toggleGroup(group)"
-          >
-            {{ group.name }}
-          </button>
-        </div>
-      </div>
-
-      <div v-if="filteredTokens.length" class="token-grid">
-        <div
-          v-for="token in filteredTokens"
-          :key="token.id"
-          class="token-cell"
-          :class="{ selected: selectedTokenIds.includes(token.id) }"
-        >
-          <Checkbox
-            :model-value="selectedTokenIds.includes(token.id)"
-            @click.stop
-            @update:model-value="(checked) => toggleToken(token.id, checked === true)"
-          ></Checkbox>
-          <span class="token-server" :title="token.server || '未知区服'">
-            {{ token.server || "未知区服" }}
-          </span>
-          <span class="token-sep">-</span>
-          <span class="token-name" :title="token.name || token.id">
-            {{ token.name || token.id }}
-          </span>
-          <span
-            class="status-dot"
-            :class="getStatusClass(token.id)"
-            :title="getStatusTitle(token.id)"
-          ></span>
-        </div>
-      </div>
-      <div v-else class="empty-state">暂无账号</div>
-    </section>
-
-    <!-- 操作区：火把配置 + 控制按钮（同行） -->
-    <section class="control-card panel">
-      <div class="control-row">
-        <div class="torch-field">
-          <span class="torch-label">火把类型</span>
-          <select class="native-select torch-select" v-model.number="torchItemId">
-            <option v-for="option in torchOptions" :key="option.value" :value="option.value">
-              {{ option.label }}
-            </option>
-          </select>
-        </div>
-        <div class="torch-field">
-          <span class="torch-label">使用数量（1-999）</span>
-          <Input class="torch-input w-[120px] max-sm:w-[100px]" max="999" min="1" type="number" v-model.number="torchQuantity"></Input>
-        </div>
-        <Button
-          size="sm"
-          :disabled="!selectedTokenIds.length || !hasAnyRunning"
-          @click="useTorchForSelected"
-        >
-          {{ torchRunning ? "使用中" : "使用火把" }}
-        </Button>
-        <Button
-          size="sm"
-          :disabled="!selectedTokenIds.length || allSelectedRunning"
-          @click="startSelected"
-        >
-          开始推图
-        </Button>
-        <Button
-          size="sm"
-          variant="destructive"
-          :disabled="!hasSelectedRunning"
-          @click="stopSelected"
-        >
-          全部停止
-        </Button>
-        <div class="control-spacer"></div>
-        <span class="status-text">已选择 {{ selectedTokenIds.length }} 个账号，正在推图
-          {{ runningCount }} 个账号</span>
-        <Button size="sm" variant="outline" @click="clearSelection">清除选择</Button>
-      </div>
-    </section>
+    <PushingLevelControls
+      :account-tools-open="showAccountTools"
+      :all-selected-running="allSelectedRunning"
+      :auto-continue="autoContinue"
+      :has-any-running="hasAnyRunning"
+      :has-selected-running="hasSelectedRunning"
+      :max-retries="maxRetries"
+      :running-count="runningCount"
+      :selected-count="selectedTokenIds.length"
+      :torch-item-id="torchItemId"
+      :torch-options="torchOptions"
+      :torch-quantity="torchQuantity"
+      :torch-running="torchRunning"
+      :total-count="tokens.length"
+      @clear-selection="clearSelection"
+      @start="startSelected"
+      @stop="stopSelected"
+      @toggle-account-tools="showAccountTools = !showAccountTools"
+      @update:auto-continue="autoContinue = $event"
+      @update:max-retries="maxRetries = $event"
+      @update:torch-item-id="torchItemId = $event"
+      @update:torch-quantity="torchQuantity = $event"
+      @use-torch="useTorchForSelected"
+    >
+      <PushingAccountSelector
+        v-if="showAccountTools"
+        :all-visible-selected="allVisibleSelected"
+        :groups="groupModels"
+        :search-keyword="searchKeyword"
+        :some-visible-selected="someVisibleSelected"
+        :tokens="filteredTokens"
+        @toggle-all="toggleAllVisible"
+        @toggle-group="toggleGroup"
+        @toggle-token="toggleToken"
+        @update:search-keyword="searchKeyword = $event"
+      ></PushingAccountSelector>
+    </PushingLevelControls>
 
     <PushingLevelProgress
       :cards="runningCards"
@@ -122,81 +44,49 @@
       @stop="stopOne"
     ></PushingLevelProgress>
 
-    <!-- 推图日志区 -->
-    <section class="log-card panel">
-      <div class="log-header">
-        <div class="log-title">
-          <strong>推图日志</strong>
-          <Badge variant="outline">{{ logs.length }}/2000 条</Badge>
-        </div>
-        <div class="log-actions">
-          <label class="checkbox-field">
-            <Checkbox v-model="autoScroll"></Checkbox>
-            <span>自动滚动</span>
-          </label>
-          <label class="checkbox-field">
-            <Checkbox v-model="onlyErrors"></Checkbox>
-            <span>只看错误</span>
-          </label>
-          <Button size="sm" variant="outline" @click="clearLogs">清空</Button>
-        </div>
-      </div>
-      <div class="log-filter">
-        <span class="log-filter-label">筛选账号：</span>
-        <select class="native-select log-filter-select w-[200px] max-sm:w-[100px]" v-model="logFilterTokenId">
-          <option value="">全部账号</option>
-          <option v-for="option in logFilterOptions" :key="option.value" :value="option.value">
-            {{ option.label }}
-          </option>
-        </select>
-        <Button
-          size="sm"
-          variant="outline"
-          :disabled="!logFilterTokenId"
-          @click="logFilterTokenId = null"
-        >
-          清除筛选
-        </Button>
-        <span class="log-filter-count">共 {{ visibleLogs.length }} 条</span>
-      </div>
-      <div ref="logsContainer" class="log-container">
-        <div
-          v-for="(log, index) in visibleLogs"
-          :key="index"
-          class="log-item"
-          :class="log.type"
-        >
-          <span class="log-time">{{ log.time }}</span>
-          <span class="log-name">[{{ log.tokenName }}]</span>
-          <span class="log-msg">{{ log.msg }}</span>
-        </div>
-        <div v-if="!visibleLogs.length" class="empty-state log-empty">暂无日志</div>
-      </div>
-    </section>
+    <PushingLogPanel
+      :auto-scroll="autoScroll"
+      :filter-options="logFilterOptions"
+      :filter-token-id="logFilterTokenId"
+      :logs="visibleLogs"
+      :only-errors="onlyErrors"
+      :total="logs.length"
+      @clear="clearLogs"
+      @update:auto-scroll="autoScroll = $event"
+      @update:filter-token-id="logFilterTokenId = $event"
+      @update:only-errors="onlyErrors = $event"
+    ></PushingLogPanel>
   </div>
 </template>
 
 <script setup>
 import {
   computed,
-  nextTick,
   onBeforeUnmount,
   onMounted,
   reactive,
   ref,
-  watch,
 } from "vue";
 import { useMessage } from "naive-ui";
+import PushingAccountSelector from "@/components/PushingLevels/PushingAccountSelector.vue";
+import PushingLevelControls from "@/components/PushingLevels/PushingLevelControls.vue";
 import { batchSelectedTokenIds, useTokenStore } from "@/stores/tokenStore";
 import PushingLevelProgress from "@/components/PushingLevels/PushingLevelProgress.vue";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
-import { BOSS_NAMES } from "./bossNames.js";
+import PushingLogPanel from "@/components/PushingLevels/PushingLogPanel.vue";
+import { usePushingAccountSelection } from "@/composables/usePushingAccountSelection";
+import { usePushingLogs } from "@/composables/usePushingLogs";
+import {
+  applyPushingLevel as applyLevel,
+  computeTorchRemaining,
+  formatTorchTime,
+  getBossName,
+  pickNumber,
+  readTorchFromResponse,
+  responseBody,
+  sanitizePushingError as sanitizeError,
+  sleep,
+} from "@/utils/pushingLevelRuntime";
 
-const MAX_LOGS = 2000;
 const KNOWLEDGE_COIN_ITEM_ID = 1024;
 // 火把信息刷新间隔（毫秒）
 const TORCH_REFRESH_INTERVAL = 30000;
@@ -206,19 +96,12 @@ const tokenStore = useTokenStore();
 
 const selectedTokenIds = batchSelectedTokenIds;
 const showAccountTools = ref(false);
-const selectedGroupIds = ref([]);
-const searchKeyword = ref("");
 const autoContinue = ref(true);
 const maxRetries = ref(999999);
-const autoScroll = ref(true);
-const onlyErrors = ref(false);
-const logsContainer = ref(null);
-const logs = ref([]);
 const runningStates = reactive({});
 const torchRunning = ref(false);
 const torchItemId = ref(1008);
 const torchQuantity = ref(150);
-const logFilterTokenId = ref(null);
 // 倒计时刷新（用于火把时间），每秒更新一次显示
 const tickNow = ref(Date.now());
 let tickTimer = null;
@@ -232,57 +115,38 @@ const torchOptions = [
 const tokens = computed(() => tokenStore.gameTokens || []);
 const tokenGroups = computed(() => tokenStore.tokenGroups || []);
 
-watch(
+const {
+  allVisibleSelected,
+  clearAccountSelection,
+  filteredTokens,
+  groupModels,
+  searchKeyword,
+  someVisibleSelected,
+  toggleAllVisible,
+  toggleGroup,
+  toggleToken,
+} = usePushingAccountSelection({
+  getConnectionStatus: getWebSocketStatus,
+  selectedTokenIds,
+  tokenGroups,
   tokens,
-  (currentTokens) => {
-    const validTokenIds = new Set(currentTokens.map((token) => token.id));
-    selectedTokenIds.value = selectedTokenIds.value.filter((tokenId) => validTokenIds.has(tokenId));
-  },
-  { immediate: true },
-);
-
-const filteredTokens = computed(() => {
-  const keyword = searchKeyword.value.trim().toLowerCase();
-  const list = [...tokens.value].sort((a, b) => {
-    const left = new Date(
-      a.lastUsed || a.updatedAt || a.createdAt || 0,
-    ).getTime();
-    const right = new Date(
-      b.lastUsed || b.updatedAt || b.createdAt || 0,
-    ).getTime();
-    return left - right;
-  });
-
-  if (!keyword)
-    return list;
-  return list.filter((token) => {
-    return [token.name, token.server, token.remark, token.id]
-      .filter(Boolean)
-      .some((value) => String(value).toLowerCase().includes(keyword));
-  });
 });
+
+const {
+  autoScroll,
+  addLog,
+  clearLogs,
+  logFilterOptions,
+  logFilterTokenId,
+  logs,
+  onlyErrors,
+  visibleLogs,
+} = usePushingLogs({ getToken, runningStates, selectedTokenIds });
 
 const runningCount = computed(() => {
   return Object.values(runningStates).filter(
     (state) => state?.running && !state.stopFlag,
   ).length;
-});
-
-const allVisibleSelected = computed(() => {
-  return (
-    filteredTokens.value.length > 0
-    && filteredTokens.value.every((token) =>
-      selectedTokenIds.value.includes(token.id),
-    )
-  );
-});
-
-const someVisibleSelected = computed(() => {
-  return (
-    filteredTokens.value.some((token) =>
-      selectedTokenIds.value.includes(token.id),
-    ) && !allVisibleSelected.value
-  );
 });
 
 const allSelectedRunning = computed(() => {
@@ -305,7 +169,7 @@ const hasAnyRunning = computed(() => {
 function getTorchLabel(state) {
   if (!state)
     return "火把 无";
-  const remaining = computeTorchRemaining(state);
+  const remaining = computeTorchRemaining(state, tickNow.value);
   if (state.torchType > 0 && remaining > 0) {
     const name = state.torchTypeName || getTorchName(state.torchType);
     return `${name} ${formatTorchTime(remaining)}`;
@@ -347,54 +211,6 @@ const runningCards = computed(() => {
     });
 });
 
-const visibleLogs = computed(() => {
-  let list = logs.value;
-  if (logFilterTokenId.value) {
-    list = list.filter((log) => log.tokenId === logFilterTokenId.value);
-  }
-  if (onlyErrors.value) {
-    list = list.filter((log) => log.type === "error");
-  }
-  return list;
-});
-
-const logFilterOptions = computed(() => {
-  const map = new Map();
-  logs.value.forEach((log) => {
-    if (!map.has(log.tokenId)) {
-      map.set(log.tokenId, { label: log.tokenName, value: log.tokenId });
-    }
-  });
-  selectedTokenIds.value.forEach((id) => {
-    if (!map.has(id)) {
-      const t = getToken(id);
-      map.set(id, { label: t?.name || id, value: id });
-    }
-  });
-  Object.values(runningStates).forEach((state) => {
-    if (state?.tokenId && !map.has(state.tokenId)) {
-      map.set(state.tokenId, {
-        label: state.tokenName || state.tokenId,
-        value: state.tokenId,
-      });
-    }
-  });
-  return Array.from(map.values());
-});
-
-watch(
-  () => [visibleLogs.value.length, onlyErrors.value, logFilterTokenId.value],
-  () => {
-    if (!autoScroll.value)
-      return;
-    nextTick(() => {
-      const el = logsContainer.value;
-      if (el)
-        el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
-    });
-  },
-);
-
 function getToken(tokenId) {
   return tokens.value.find((token) => token.id === tokenId);
 }
@@ -416,81 +232,6 @@ function isRunning(tokenId) {
   return Boolean(state?.running && !state.stopFlag);
 }
 
-function getStatusClass(tokenId) {
-  const status = getWebSocketStatus(tokenId);
-  if (status === "connected")
-    return "status-green";
-  if (status === "connecting")
-    return "status-blue";
-  if (status === "error")
-    return "status-red";
-  return "status-gray";
-}
-
-function getStatusTitle(tokenId) {
-  const status = getWebSocketStatus(tokenId);
-  const map = {
-    connected: "已连接",
-    connecting: "连接中",
-    disconnected: "未连接",
-    error: "连接异常",
-    disconnecting: "断开中",
-  };
-  return map[status] || "未连接";
-}
-
-function toggleToken(tokenId, checked) {
-  if (checked) {
-    selectedTokenIds.value = [...new Set([...selectedTokenIds.value, tokenId])];
-  } else {
-    selectedTokenIds.value = selectedTokenIds.value.filter(
-      (id) => id !== tokenId,
-    );
-  }
-}
-
-function toggleAllVisible(checked) {
-  const visibleIds = filteredTokens.value.map((token) => token.id);
-  if (checked) {
-    selectedTokenIds.value = [
-      ...new Set([...selectedTokenIds.value, ...visibleIds]),
-    ];
-    return;
-  }
-
-  const visibleSet = new Set(visibleIds);
-  selectedTokenIds.value = selectedTokenIds.value.filter(
-    (id) => !visibleSet.has(id),
-  );
-}
-
-function toggleGroup(group) {
-  const index = selectedGroupIds.value.indexOf(group.id);
-  const validIds = (group.tokenIds || []).filter((tokenId) =>
-    getToken(tokenId),
-  );
-
-  if (index >= 0) {
-    selectedGroupIds.value.splice(index, 1);
-    const groupSet = new Set(validIds);
-    selectedTokenIds.value = selectedTokenIds.value.filter(
-      (tokenId) => !groupSet.has(tokenId),
-    );
-  } else {
-    selectedGroupIds.value.push(group.id);
-    selectedTokenIds.value = [
-      ...new Set([...selectedTokenIds.value, ...validIds]),
-    ];
-  }
-}
-
-function groupChipStyle(group) {
-  const selected = selectedGroupIds.value.includes(group.id);
-  return selected
-    ? { backgroundColor: group.color, borderColor: group.color, color: "#fff" }
-    : { borderColor: group.color, color: group.color };
-}
-
 function clearSelection() {
   Object.keys(runningStates).forEach((tokenId) => {
     stopOne(tokenId);
@@ -498,8 +239,7 @@ function clearSelection() {
   Object.keys(runningStates).forEach((tokenId) => {
     delete runningStates[tokenId];
   });
-  selectedTokenIds.value = [];
-  selectedGroupIds.value = [];
+  clearAccountSelection();
 }
 
 function initState(tokenId, tokenName) {
@@ -534,49 +274,6 @@ function initState(tokenId, tokenName) {
   };
 }
 
-function addLog(tokenId, tokenName, msg, type = "info") {
-  logs.value.push({
-    time: new Date().toLocaleTimeString(),
-    tokenId,
-    tokenName,
-    msg,
-    type,
-  });
-
-  if (logs.value.length > MAX_LOGS) {
-    const overflow = logs.value.length - MAX_LOGS;
-    logs.value.splice(0, overflow);
-  }
-}
-
-function clearLogs() {
-  logs.value = [];
-}
-
-function sanitizeError(error) {
-  return String(error?.message || error || "")
-    .replace(/请求超时: \w+(\s*\(\d+ms\))?/g, "请求超时")
-    .replace(/\b\w[\dA-Za-z]*_\w+\b(\s*\(\d+ms\))?/g, "")
-    .trim();
-}
-
-function pickNumber(...values) {
-  for (const value of values) {
-    if (value === null || value === undefined || value === "")
-      continue;
-    const number = Number(value);
-    if (Number.isFinite(number))
-      return number;
-  }
-  return null;
-}
-
-function responseBody(response) {
-  if (response?.body && typeof response.body === "object")
-    return response.body;
-  return response || {};
-}
-
 function getTorchName(torchType) {
   if (!torchType || torchType === 0)
     return "";
@@ -599,84 +296,6 @@ function applyTorchInfo(state, info) {
   state.torchBaseTimestamp = Date.now();
   state.torchBaseRemaining = remaining;
   state.lastTorchFetch = Date.now();
-}
-
-function readTorchFromResponse(response) {
-  const body = responseBody(response);
-  const role = body.role || body.body?.role || {};
-  return {
-    torchType: pickNumber(role.autoClickType, body.autoClickType) || 0,
-    torchRemaining: pickNumber(role.autoClickTime, body.autoClickTime) || 0,
-    torchSettleTime:
-      pickNumber(role.autoClickSettleTime, body.autoClickSettleTime) || 0,
-  };
-}
-
-function computeTorchRemaining(state) {
-  if (!state)
-    return 0;
-  // settleTime 是绝对时间戳时才使用它计算倒计时
-  if (state.torchSettleTime > 0) {
-    const settleMs
-      = state.torchSettleTime < 1e12
-        ? state.torchSettleTime * 1000
-        : state.torchSettleTime;
-    if (settleMs > tickNow.value) {
-      return Math.max(0, Math.floor((settleMs - tickNow.value) / 1000));
-    }
-  }
-  // 否则用基础值做本地倒计时
-  if (state.torchBaseTimestamp && state.torchBaseRemaining) {
-    const diff
-      = state.torchBaseRemaining
-        - Math.floor((tickNow.value - state.torchBaseTimestamp) / 1000);
-    return Math.max(0, diff);
-  }
-  return Number(state.torchRemaining || 0);
-}
-
-function formatTorchTime(seconds) {
-  if (!seconds || seconds <= 0)
-    return "0分钟";
-  const total = Math.floor(seconds);
-  const h = Math.floor(total / 3600);
-  const m = Math.floor((total % 3600) / 60);
-  if (h > 0)
-    return `${h}小时${m}分钟`;
-  return `${m}分钟`;
-}
-
-function getBossName(level) {
-  if (!level || level <= 0)
-    return "";
-  return BOSS_NAMES[level] || "";
-}
-
-/**
- * 更新关卡并同步 BOSS 名称。
- * 服务器返回名称时优先使用，否则按当前关卡从 BOSS_NAMES 重新取值，
- * 避免关卡推进后仍显示启动时那一关的 BOSS。
- */
-function applyLevel(state, level, serverBossName = "") {
-  if (!state)
-    return;
-  const nextLevel = Number(level) || 0;
-  if (nextLevel > 0)
-    state.level = nextLevel;
-
-  if (serverBossName) {
-    state.bossName = serverBossName;
-    state.bossLevel = state.level;
-    return;
-  }
-  if (state.bossLevel !== state.level || !state.bossName) {
-    state.bossName = getBossName(state.level);
-    state.bossLevel = state.level;
-  }
-}
-
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function waitConnected(tokenId, timeoutMs = 3000) {
@@ -1363,365 +982,18 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .pushing-levels-page {
+  display: flex;
   height: 100%;
   min-height: 0;
-  padding: 16px;
-  background: var(--background);
-  display: flex;
   flex-direction: column;
   gap: 12px;
-}
-
-.pl-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.pl-header h2 {
-  margin: 0;
-  color: var(--foreground);
-  font-size: 22px;
-  font-weight: 700;
-}
-
-.pl-header p {
-  margin: 2px 0 0;
-  color: var(--muted-foreground);
-  font-size: 13px;
-}
-
-.pl-header-actions,
-.account-toolbar,
-.log-header,
-.log-actions,
-.control-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.switch-field,
-.checkbox-field {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  color: var(--foreground);
-  font-size: 13px;
-  cursor: pointer;
-}
-
-.retry-input {
-  width: 110px;
-}
-
-.retry-label {
-  color: var(--muted-foreground);
-  font-size: 13px;
-}
-
-.account-card-top,
-.control-card,
-.log-card {
-  border-radius: var(--radius);
-  box-shadow: none;
-}
-
-.panel {
-  padding: 12px 16px;
+  padding: 16px;
   background: var(--background);
-  border: 1px solid var(--border);
-}
-
-.account-card-top {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.search-input {
-  width: 180px;
-}
-
-.group-list-inline {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.group-chip {
-  border: 1px solid;
-  border-radius: var(--radius);
-  padding: 3px 8px;
-  background: var(--background);
-  font-size: 11px;
-  cursor: pointer;
-  line-height: 1.4;
-}
-
-.token-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
-}
-
-@media (max-width: 1100px) {
-  .token-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 760px) {
-  .token-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 480px) {
-  .token-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.token-cell {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 10px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: var(--background);
-  font-size: 12px;
-  line-height: 1.4;
-  transition:
-    border-color 0.2s,
-    background 0.2s;
-  cursor: pointer;
-  min-height: 0;
-}
-
-.token-cell:hover {
-  border-color: var(--input);
-}
-
-.token-cell.selected {
-  background: var(--muted);
-  border-color: var(--foreground);
-}
-
-.token-server {
-  color: var(--muted-foreground);
-  font-weight: 500;
-  max-width: 140px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.token-sep {
-  color: var(--text-tertiary);
-}
-
-.token-name {
-  color: var(--foreground);
-  font-weight: 600;
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.status-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: var(--input);
-  display: inline-block;
-  flex-shrink: 0;
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  transition: background 0.2s;
-}
-
-.status-gray {
-  background: var(--input);
-}
-
-.status-green {
-  background: var(--success);
-}
-
-.status-red {
-  background: var(--error);
-}
-
-.status-blue {
-  background: var(--info);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--info) 20%, transparent);
-  animation: pulse 1.2s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%,
-  100% {
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--info) 20%, transparent);
-  }
-  50% {
-    box-shadow: 0 0 0 6px color-mix(in srgb, var(--info) 5%, transparent);
-  }
-}
-
-.control-row {
-  align-items: flex-end;
-}
-
-.torch-field {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  color: var(--foreground);
-  font-size: 11px;
-}
-
-.torch-label {
-  color: var(--muted-foreground);
-}
-
-.torch-select,
-.torch-input {
-  width: 120px;
-}
-
-.native-select {
-  height: 36px;
-  padding: 0 30px 0 10px;
-  color: var(--foreground);
-  background: var(--background);
-  border: 1px solid var(--input);
-  border-radius: var(--radius);
-  outline: none;
-}
-
-.native-select:focus-visible {
-  border-color: var(--ring);
-  box-shadow: 0 0 0 1px var(--ring);
-}
-
-.control-spacer {
-  flex: 1;
-}
-
-.status-text {
-  font-size: 13px;
-  color: var(--muted-foreground);
-  white-space: nowrap;
-}
-
-.log-title {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-}
-
-.log-card {
-  min-height: 320px;
-}
-
-.log-header {
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--border);
-}
-
-.log-filter {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-  flex-wrap: wrap;
-}
-
-.log-filter-label {
-  color: var(--muted-foreground);
-  font-size: 12px;
-  flex-shrink: 0;
-}
-
-.log-filter-select {
-  width: 200px;
-}
-
-.log-filter-count {
-  color: var(--text-tertiary);
-  font-size: 11px;
-}
-
-.log-container {
-  height: 300px;
-  overflow-y: auto;
-  padding: 2px;
-  font-family: Consolas, "Courier New", monospace;
-  font-size: 12px;
-}
-
-.empty-state {
-  display: grid;
-  min-height: 56px;
-  place-items: center;
-  color: var(--muted-foreground);
-  font-size: 13px;
-}
-
-.log-empty {
-  min-height: 240px;
-}
-
-.log-item {
-  display: grid;
-  grid-template-columns: 74px minmax(110px, 180px) minmax(0, 1fr);
-  gap: 8px;
-  padding: 3px 6px;
-  border-radius: 4px;
-  color: var(--foreground);
-}
-
-.log-item.success {
-  color: var(--success);
-}
-
-.log-item.warning {
-  color: var(--warning);
-}
-
-.log-item.error {
-  background: color-mix(in srgb, var(--error) 8%, transparent);
-  color: var(--error);
-}
-
-.log-name,
-.log-msg {
-  overflow-wrap: anywhere;
 }
 
 @media (max-width: 640px) {
   .pushing-levels-page {
     padding: 10px;
-  }
-
-  .pl-header {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .log-item {
-    grid-template-columns: 64px minmax(80px, 110px) minmax(0, 1fr);
-  }
-
-  .torch-select,
-  .torch-input,
-  .log-filter-select {
-    width: 100px;
   }
 }
 </style>

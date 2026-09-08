@@ -31,10 +31,6 @@
       <div class="function-section">
         <div class="function-left">
           <div class="export-options">
-            <n-radio-group v-model:value="currentStyle" size="small">
-              <n-radio-button value="style1">样式一</n-radio-button>
-              <n-radio-button value="style2">样式二</n-radio-button>
-            </n-radio-group>
             <n-checkbox-group v-model:value="exportmethod" name="group-exportmethod" size="small">
               <n-checkbox value="1">表格导出</n-checkbox>
               <n-checkbox value="2">图片导出</n-checkbox>
@@ -96,11 +92,11 @@
           class="records-wrapper"
         >
           <ClubBattleRecordsReport
+            variant="style1"
             :club-name="club?.name || ''"
             :date="queryDate"
             :records="roleDetails"
             :stats="battleStats"
-            :variant="currentStyle"
           ></ClubBattleRecordsReport>
         </div>
 
@@ -120,7 +116,7 @@
 
 <script setup>
 import { ref, computed, onBeforeUnmount, onMounted, watch } from 'vue'
-import { useMessage, NCheckboxGroup, NCheckbox, NRadioGroup, NRadioButton } from 'naive-ui'
+import { useMessage, NCheckboxGroup, NCheckbox } from 'naive-ui'
 import { useTokenStore } from '@/stores/tokenStore'
 import html2canvas from 'html2canvas';
 import ClubBattleRecordsReport from "@/components/Club/ClubBattleRecordsReport.vue";
@@ -137,12 +133,6 @@ import {
   formatBattleRecordsForExport,
   copyToClipboard
 } from '@/utils/clubBattleUtils'
-
-const currentStyle = ref(localStorage.getItem('club_battle_records_style') || 'style1')
-
-watch(currentStyle, (newStyle) => {
-  localStorage.setItem('club_battle_records_style', newStyle)
-})
 
 const exportmethod = ref(['2']);
 const exportDom = ref(null);

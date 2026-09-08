@@ -135,6 +135,13 @@ const heroModealTemp = ref(null);
 const showApplyList = ref(false);
 const loadingApply = ref(false);
 const applyList = ref([]);
+const selectedConnection = computed(() => {
+  const token = tokenStore.selectedToken;
+  return {
+    tokenId: token?.id || "",
+    status: token ? tokenStore.getWebSocketStatus(token.id) : "disconnected",
+  };
+});
 
 const selectedToken = () => tokenStore.selectedToken;
 const updateMemberLineup = (roleId, lineupType) => {
@@ -371,6 +378,19 @@ function refreshClub() {
   if (activeTab.value === "members")
     fetchAllMembersLineup();
 }
+
+let lastAutoFetchedTokenId = "";
+watch(selectedConnection, ({ tokenId, status }) => {
+  if (!tokenId || status !== "connected") {
+    lastAutoFetchedTokenId = "";
+    return;
+  }
+  if (lastAutoFetchedTokenId === tokenId)
+    return;
+
+  lastAutoFetchedTokenId = tokenId;
+  refreshClub();
+}, { immediate: true });
 
 watch(activeTab, (tab) => {
   if (tab === "members" && !batchLoading.value && !members.value.some((member) => member.lineupType))

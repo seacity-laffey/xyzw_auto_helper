@@ -55,6 +55,8 @@
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { useNow } from "@vueuse/core";
+import { canDrawFreeGacha } from "@/utils/dailyRewardEligibility";
 import { LayoutGrid } from "@lucide/vue";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -100,6 +102,7 @@ const tabs: Array<{ label: string; value: FunctionTab }> = [
 ];
 
 const activeTab = ref<FunctionTab>("daily");
+const now = useNow({ interval: 1000 });
 const baseDisabled = computed(() => props.isRunning || props.selectedCount === 0);
 const activityDisabled = (open: boolean) => baseDisabled.value || !open;
 
@@ -120,7 +123,10 @@ const activeActions = computed<ActionItem[]>(() => {
       },
       { action: "storePurchase", label: "一键黑市采购", disabled: common },
       { action: "claimCollectionReward", label: "一键领取珍宝阁", disabled: common },
-      { action: "batchGenieSweep", label: "一键灯神扫荡", disabled: common },
+      { action: "batchGenieSweep", label: "一键免费灯神扫荡", disabled: common },
+      { action: "batchUseGenieTickets", label: "一键使用灯神券", disabled: common },
+      { action: "batchFreeGacha", label: "一键免费扭蛋", disabled: common || !canDrawFreeGacha({}, now.value), title: "周二、周四、周六开放" },
+      { action: "batchUseGachaCoins", label: "一键使用扭蛋币", disabled: common },
     ],
     dungeon: [
       { action: "climbTower", label: "一键爬塔", disabled: common },

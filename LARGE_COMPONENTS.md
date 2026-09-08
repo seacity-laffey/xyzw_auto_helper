@@ -17,23 +17,230 @@ static media from the component refactor queue.
 
 ## Current Backlog
 
-| Priority | Component | Size | Main responsibilities | Next boundary |
-| --- | --- | ---: | --- | --- |
-| P2 | `src/views/BatchDailyTasks.vue` | 1,998 lines / 57 KiB | Scheduler runtime, recipient lookup, and task execution orchestration | Isolate recipient lookup; then move the scheduler loop behind a tested runtime contract |
-| P1 | `src/components/Cards/Activity/UnlimitedLineup.vue` | 3,430 lines / 90 KiB | Player lookup, lineup analysis, editing, export, multiple dialogs | Extract lineup board, saved-lineup manager, and remaining editors |
-| P1 | `src/components/Club/PeachInfoV2.vue` | 3,487 lines / 91 KiB | Peach event state, opponent analysis, battle actions, history, exports | Extract overview, opponent panel, and battle history |
-| P1 | `src/components/Cards/Rank/GoldRankListPageCard.vue` | 3,352 lines / 87 KiB | Ranking fetch, filtering, detail queries, export | Establish a shared ranking-page contract before extracting common controls |
-| P1 | `src/components/Club/GreatRouteRankListPageCard.vue` | 3,302 lines / 85 KiB | Ranking fetch, club detail queries, export | Establish a shared ranking-page contract before extracting common controls |
-| P1 | `src/components/Cards/Rank/TopClubListPageCard.vue` | 3,150 lines / 81 KiB | Ranking fetch, club detail queries, export | Establish a shared ranking-page contract before extracting common controls |
-| P1 | `src/components/Cards/Rank/TopRankListPageCard.vue` | 2,346 lines / 61 KiB | Player ranking fetch, detail lookup, table rendering, export | Share ranking controls and player-detail normalization with active ranking pages |
-| P1 | `src/components/Cards/Rank/ServerRankListPageCard.vue` | 2,334 lines / 60 KiB | Server ranking fetch, table rendering, export | Share ranking controls and export preparation with active ranking pages |
-| P2 | `src/components/Club/PeachInfo.vue` | 2,209 lines / 61 KiB | Legacy peach-event presentation and requests | Confirm whether both peach views remain user-selectable before sharing logic |
-| P2 | `src/views/PushingLevels.vue` | 1,727 lines / 43 KiB | Multi-account progression state, task execution, logs, controls | Extract account selection and log presentation |
+No business-facing Vue components currently exceed the review thresholds.
 
-Sizes are a snapshot taken on 2026-09-06 and should be refreshed after each
+Sizes are a snapshot taken on 2026-09-07 and should be refreshed after each
 completed extraction.
 
 ## Completed Extractions
+
+### Legion-war canvas renderer
+
+- Extracted hex sizing, coordinate projection, node colors and labels,
+  background-grid drawing, stronghold labels, and high-DPI canvas setup into
+  `legionWarMapRenderer`.
+- Kept accessibility timing, Pinia state, WebSocket connection ownership,
+  refresh controls, export, and resize lifecycle in `LegionWarMap`.
+- Added focused regression tests for size bounds, odd-column projection, and
+  the map legend. Removed the component's historical ESLint suppression entry
+  and unused store, graph, and compatibility references.
+- Reduced `LegionWarMap.vue` from 1,017 lines / 27 KiB to 687 lines / 18 KiB.
+  Type checking, targeted lint, 24 regression tests, production build, and an
+  isolated browser canvas workflow with three alliance strongholds pass.
+
+### Club-war shared player duel runtime
+
+- Replaced the page-local player lookup, fight-count validation, sequential
+  duel execution, progress, result, death statistics, and hero-dialog state
+  with `useClubPlayerDuel`.
+- Reused `ClubPlayerDuelDialog` and `ClubHeroDetailDialog` without changing
+  their data or event contracts. Kept rank loading, club-detail enrichment,
+  alliance grouping, manual ordering, and export ownership in `ClubWarRank`.
+- Removed the component's historical ESLint suppression entry, including its
+  Unicode BOM, and replaced two blocking export alerts with the existing
+  message surface.
+- Reduced `ClubWarRank.vue` from 1,053 lines / 30 KiB to 862 lines / 24 KiB.
+  Type checking, targeted lint, 21 regression tests, production build, and an
+  isolated browser workflow covering rank load through player-dialog opening
+  pass.
+
+### Game player utility panels
+
+- Extracted the protocol record list, filters, message detail, and observer
+  controls into `GameProtocolObserver`, including protocol-specific formatting.
+- Extracted local BIN selection, status, actions, and saved-entry presentation
+  into `GameBinManager` behind explicit props and intent events.
+- Kept iframe ownership, cross-window source validation, observer dispatch,
+  input synchronization, local-storage reads, and navigation in `GamePlayer`.
+- Moved the remaining page-only layout rules to `GamePlayer.css`. Reduced
+  `GamePlayer.vue` from 1,330 lines / 30 KiB to 538 lines / 15 KiB. Type
+  checking, targeted lint, 21 regression tests, production build, and isolated
+  desktop plus fixed 390 px browser rendering pass.
+
+### Refine helper presentation and normalization
+
+- Extracted hero/equipment selection, slot locking, password controls, action
+  controls, and automatic-refine conditions into `RefineHelperPanel` behind
+  explicit props and intent events.
+- Moved preset-team parsing, hero and slot normalization, quench response
+  normalization, quality detection, and target-condition matching into the
+  tested `refineHelper` utility.
+- Kept WebSocket requests, password verification, lock updates, continuous and
+  automatic timers, stop ownership, and equipment mutation in the owning card.
+- Reduced `RefineHelperCard.vue` from 1,429 lines / 37 KiB to 640 lines / 18 KiB.
+  Desktop and fixed 390 px browser fixtures cover the complete extracted panel,
+  and the former file-level ESLint suppressions are no longer needed.
+
+### Pushing-level controls, account selection, and logs
+
+- Extracted the page header and torch controls into `PushingLevelControls`,
+  account search/group/selection presentation into `PushingAccountSelector`,
+  and filtering plus auto-scroll presentation into `PushingLogPanel`.
+- Moved account selection state into `usePushingAccountSelection`, log limits and
+  filtering into `usePushingLogs`, and pure response, torch-time, and level
+  normalization into `pushingLevelRuntime`.
+- Kept WebSocket ownership, reconnects, battle loops, timers, torch requests,
+  and teardown in the owning page. Preserved the original header, account,
+  control, progress, and log ordering through the controls component slot.
+- Reduced `PushingLevels.vue` from 1,727 lines / 43 KiB to 999 lines / 27 KiB,
+  below the review threshold. Desktop and 390 px browser fixtures cover all
+  extracted panels, including narrow-screen account and control layouts.
+
+### Legacy peach overview and requests
+
+- Confirmed that `PeachInfo.vue` remains the default `style1` view selected by
+  `GameStatus`, so it cannot be treated as dead code.
+- Extracted the legacy date, club matchup, loading, empty, and table UI into
+  `PeachLegacyOverview`, and moved its real-time/history request sequence plus
+  image export into `useLegacyPeachBattle`.
+- Moved row rendering into `createPeachLegacyColumns`, and reused
+  `usePeachDuel`, `ClubPlayerDuelDialog`, and `ClubHeroDetailDialog` for player
+  lookup, duel execution, and detail presentation.
+- Kept the original WebSocket command ordering and registered the initial
+  fetch only after all request callbacks were created. Reduced
+  `PeachInfo.vue` from 2,209 lines / 61 KiB to 94 lines / 3 KiB; its four
+  focused modules total 866 lines, with no module above 360 lines. Desktop and
+  390 px browser fixtures cover the legacy toolbar, matchup, table, and narrow
+  viewport overflow.
+
+### Player ranking pages
+
+- Added `PlayerRankingToolbar` and `PlayerRankingTable`, sharing title/date
+  controls, loading and empty states, player rows, legacy tags, rank medals,
+  player-selection intent, and image-export DOM access.
+- Reused `useClubPlayerDuel`, `ClubPlayerDuelDialog`, and
+  `ClubHeroDetailDialog` in both Top Rank and Server Rank pages.
+- Preserved the distinct `arena_getarearank` and `rank_getserverrank`
+  protocols, response normalization, existing 100-row display limit, and
+  export filenames in their owning pages.
+- Reduced `TopRankListPageCard.vue` from 2,346 lines / 61 KiB to 290 lines /
+  8 KiB and `ServerRankListPageCard.vue` from 2,334 lines / 60 KiB to 290 lines
+  / 8 KiB. Desktop and 390 px browser fixtures cover both titles, score-column
+  meanings, player links, legacy badges, and responsive overflow.
+
+### Top Club controls and shared ranking table
+
+- Extracted the title, query date, export options, and actions into
+  `TopClubRankToolbar`.
+- Reused `ClubRankingTable` with its new explicit `showScore` contract, keeping
+  score columns enabled by default for Gold and Great Route and disabled for
+  Top Club.
+- Kept area-rank fetching, club-detail loading, workbook export, and image
+  export orchestration in the owning page. The table exposes only its export
+  DOM element.
+- Reduced `TopClubListPageCard.vue` from 1,600 lines / 39 KiB to 375 lines /
+  10 KiB, below the large-component review threshold. Desktop and 390 px
+  browser fixtures cover the no-score table layout and responsive overflow.
+
+### Top Club player drilldown and duel runtime
+
+- Replaced the page-local player and hero modals with
+  `ClubPlayerDuelDialog` and `ClubHeroDetailDialog`.
+- Reused `useClubPlayerDuel` for player lookup, hero normalization, fight-count
+  validation, sequential duel execution, progress, and result state.
+- Preserved the `legion_getarearank` request, club-detail loading, ordering, and
+  export workflow in the owning page.
+- Fixed image-export style restoration so it no longer references variables
+  outside their scope, and replaced blocking export alerts with page messages.
+- Reduced `TopClubListPageCard.vue` from 3,150 lines / 81 KiB to 1,600 lines /
+  39 KiB. Shared player and duel regression tests, type checking, and targeted
+  lint pass.
+
+### Shared club ranking presentation
+
+- Generalized the Gold ranking table as `ClubRankingTable`, with explicit rank
+  and score field contracts used by both Gold and Great Route rankings.
+- Extracted the Great Route header and actions into `GreatRouteRankToolbar`,
+  and its table plus pagination into `GreatRouteRankingTable`.
+- Kept island lookup, rank requests, page caching, detail loading, and image
+  export in the owning Great Route page. Narrow screens hide the pagination
+  quick jumper while retaining page navigation and internal table scrolling.
+- Reduced `GreatRouteRankListPageCard.vue` from 1,751 lines / 43 KiB to 506
+  lines / 14 KiB, below the large-component review threshold. Desktop and 390
+  px browser fixtures cover island metadata, table field mapping, ranking,
+  pagination, and responsive overflow.
+
+### Great Route player drilldown and duel runtime
+
+- Replaced the page-local player and hero modals with
+  `ClubPlayerDuelDialog` and `ClubHeroDetailDialog`.
+- Reused `useClubPlayerDuel` for player lookup, hero normalization, fight-count
+  validation, sequential duel execution, progress, and result state.
+- Preserved the `saltroad_getwartype` then
+  `saltroad_getsaltroadwartotalrank` request order, page cache, club-detail
+  loading, pagination, and image export in the owning page.
+- Reduced `GreatRouteRankListPageCard.vue` from 3,302 lines / 85 KiB to 1,751
+  lines / 43 KiB. Shared player and duel regression tests, type checking, and
+  targeted lint pass.
+
+### Gold rank controls and table
+
+- Extracted the header, export controls, and rank-group selector into
+  `GoldRankToolbar`, and moved loading, empty, and rank-row presentation into
+  `GoldRankTable`.
+- Kept rank fetching, club-detail requests, rate-limited workbook export, and
+  image export orchestration in the owning page. The table exposes only its
+  export DOM element to the parent.
+- Corrected grouped rank labels so the second through fifth groups begin at
+  101, 201, 301, and 401, while medals remain limited to the global top three.
+- Reduced `GoldRankListPageCard.vue` from 1,844 lines / 47 KiB to 532 lines /
+  15 KiB, below the large-component review threshold.
+
+### Gold rank player drilldown and duel runtime
+
+- Replaced the page-local player and hero modals with
+  `ClubPlayerDuelDialog` and `ClubHeroDetailDialog`.
+- Added `useClubPlayerDuel`, composing the existing `clubPlayerInfo` and
+  `clubDuelRunner` utilities into one reusable query, validation, progress,
+  result, and dialog-state contract for ranking pages.
+- Preserved the gold-rank query, group selection, club-detail loading, and
+  rate-limited export workflows in the page.
+- Reduced `GoldRankListPageCard.vue` from 3,352 lines / 87 KiB to 1,844 lines /
+  47 KiB. Shared duel and player-normalization tests, type checking, and
+  targeted lint pass.
+
+### Peach opponent analysis and duel runtime
+
+- Reused `ClubPlayerDuelDialog` and `ClubHeroDetailDialog` for opponent details,
+  duel progress and results, lineup inspection, and hero details.
+- Extracted the date picker and action toolbar into `PeachBattleToolbar`, and
+  moved the club matchup plus opponent table presentation into
+  `PeachOpponentMatchup` while retaining parent-owned column actions.
+- Moved opponent lookup, single-player duel progress, five-round batch
+  simulation, retry handling, and dialog state into `usePeachDuel` without
+  reordering WebSocket commands.
+- Reduced `PeachInfoV2.vue` from 3,487 lines / 91 KiB to 913 lines / 26 KiB,
+  below the large-component review threshold. Connected-account query and duel
+  workflows still require live WebSocket verification.
+
+### Unlimited lineup presentation, storage, and workflows
+
+- Extracted the current lineup board, saved-lineup manager, equipment-refine
+  details, and hero exchange editor into four focused presentation components.
+- Kept drag/drop mutation and equipment editing in the owning component;
+  children receive normalized view models and emit intent.
+- Moved per-role local persistence, rename/delete confirmation, and JSON
+  import/export into `useUnlimitedLineupStorage`.
+- Moved player and preset-team loading, connection lifecycle handling, and team
+  switching into `useUnlimitedLineupData` without changing initialization order.
+- Moved saved-lineup capture into `useUnlimitedLineupCapture`, and isolated the
+  existing hero, fish, pearl, technology, and weapon command sequence in
+  `useUnlimitedLineupApplication`.
+- Reduced `UnlimitedLineup.vue` from 3,430 lines / 90 KiB to 927 lines / 25 KiB,
+  below the large-component review threshold. Type checking, targeted lint,
+  production build, and isolated browser rendering for the board and saved
+  manager pass; connected-account workflows still require live WebSocket
+  verification.
 
 ### Pushing-level progress presentation
 
@@ -408,6 +615,32 @@ completed extraction.
 - Browser coverage verifies runtime-setting persistence, nested dream settings,
   helper inputs, gift validation state, and the full group create/edit/member/
   delete lifecycle.
+
+### Batch recipient lookup
+
+- Extracted recipient ID validation, WebSocket lookup, response normalization,
+  error handling, and lookup state into `useBatchRecipientLookup`.
+- Initialized the composable after the page-owned `ensureConnection` function so
+  the existing setup order remains safe; legacy gift execution still receives
+  the same refs through `createTaskDeps`.
+- Released the connection slot and short-lived socket opened by a lookup, and
+  guarded against a selected account disappearing before the request starts.
+- Reduced `BatchDailyTasks.vue` from 1,998 to 1,834 lines. Type checking,
+  targeted lint, and production build pass.
+
+### Batch execution runtime
+
+- Split scheduler timing, countdowns, health checks, and lifecycle cleanup into
+  `useBatchScheduler`, while scheduled-task validation and dispatch live in
+  `useBatchScheduledTaskExecution`.
+- Reused the existing batch connection manager instead of maintaining a second
+  connection-pool implementation in the view.
+- Moved task-factory composition and function-panel action mapping into
+  `useBatchTaskModules`; normal daily execution and month-cheer lookup now live
+  in `useBatchDailyRunner` and `useBatchWarGuess`.
+- Reduced `BatchDailyTasks.vue` from 1,834 lines / 53 KiB to 973 lines / 28 KiB,
+  below the large-component review threshold. Type checking, targeted lint, and
+  production build pass.
 
 ## Non-Business Large Files
 

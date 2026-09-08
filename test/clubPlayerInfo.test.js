@@ -12,13 +12,13 @@ test("equipment statistics count sockets and red quenches", () => {
       weapon: {
         quenches: {
           first: { colorId: 6 },
-          second: { colorId: 4 },
+          second: { colorId: "6" },
         },
       },
       armor: { quenches: [{ colorId: 6 }] },
       empty: {},
     }),
-    { holeCount: 3, redCount: 2 },
+    { holeCount: 3, redCount: 3 },
   );
   assert.deepEqual(getEquipmentStats(), { holeCount: 0, redCount: 0 });
 });

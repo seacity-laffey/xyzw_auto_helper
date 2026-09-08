@@ -1,5 +1,5 @@
 <template>
-  <Dialog :open="open" @update:open="emit('update:open', $event)">
+  <Dialog :open="open && !showEditor && !showApplyDialog && !showReferencesDialog && !deleteTarget" @update:open="emit('update:open', $event)">
     <DialogContent class="max-h-[88vh] max-w-3xl overflow-hidden p-0">
       <DialogHeader class="border-b border-border px-5 py-4 pr-14">
         <DialogTitle>任务模板管理</DialogTitle>
@@ -14,7 +14,7 @@
           </Button>
           <Button size="sm" variant="outline" @click="openApplyDialog">
             <ListChecks :size="15"></ListChecks>
-            应用模板
+            绑定模板
           </Button>
           <Button size="sm" variant="outline" @click="openReferencesDialog">
             <Users :size="15"></Users>
@@ -31,12 +31,15 @@
         <article v-for="template in filteredTemplates" :key="template.id" class="template-item">
           <div class="template-copy">
             <h3>{{ template.name }}</h3>
+            <p>{{ template.id === SYSTEM_TEMPLATE_ID ? '系统预设 · 不可删除 · ' : '' }}已绑定 {{ bindingCount(template.id) }} 个账号</p>
             <p>
               创建于 {{ formatDate(template.createdAt) }}
               <span v-if="template.updatedAt"> · 更新于 {{ formatDate(template.updatedAt) }}</span>
             </p>
           </div>
           <div class="item-actions">
+            <Button size="icon" title="复制模板" variant="ghost" :aria-label="`复制模板${template.name}`" @click="copyTemplate(template)"><Copy :size="15"></Copy></Button>
+            <Button v-if="template.id === SYSTEM_TEMPLATE_ID" aria-label="恢复系统默认模板" size="icon" title="恢复默认" variant="ghost" @click="restoreDefault(template)"><RotateCcw :size="15"></RotateCcw></Button>
             <Button
               size="icon"
               variant="ghost"
@@ -47,9 +50,11 @@
               <Pencil :size="15"></Pencil>
             </Button>
             <Button
+              v-if="template.id !== SYSTEM_TEMPLATE_ID"
               size="icon"
               variant="ghost"
               :aria-label="`删除模板${template.name}`"
+              :disabled="bindingCount(template.id) > 0"
               :title="`删除模板${template.name}`"
               @click="deleteTarget = template"
             >
@@ -71,6 +76,7 @@
     v-model:open="showEditor"
     :boss-times-options="bossTimesOptions"
     :formation-options="formationOptions"
+    :impact-count="bindingCount(currentTemplateId || '')"
     :model-value="currentTemplate"
     :title="currentTemplateId ? '编辑任务模板' : '任务模板设置'"
     @save="saveTemplate"
@@ -80,7 +86,7 @@
   <Dialog v-model:open="showApplyDialog">
     <DialogContent class="max-h-[88vh] max-w-xl overflow-y-auto">
       <DialogHeader>
-        <DialogTitle>应用任务模板</DialogTitle>
+        <DialogTitle>绑定任务模板</DialogTitle>
         <DialogDescription>已选择 {{ selectedTokenIds.length }} 个账号</DialogDescription>
       </DialogHeader>
 
@@ -135,7 +141,7 @@
       <DialogFooter>
         <Button variant="outline" @click="showApplyDialog = false">取消</Button>
         <Button :disabled="!selectedTemplateId || !selectedTokenIds.length" @click="applyTemplate">
-          应用模板
+          绑定模板
         </Button>
       </DialogFooter>
     </DialogContent>
@@ -184,7 +190,9 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from "vue";
-import { ListChecks, Pencil, Plus, Search, Trash2, Users } from "@lucide/vue";
+import { Copy, ListChecks, Pencil, Plus, RotateCcw, Search, Trash2, Users } from "@lucide/vue";
+import { createDefaultTemplateSettings, loadAccountTaskBinding, loadTaskTemplates, migrateTaskAccounts, saveAccountTaskBinding, saveTaskTemplates, SYSTEM_TEMPLATE_ID } from "@/utils/taskTemplateConfig";
+import type { TaskTemplate } from "@/utils/taskTemplateConfig";
 import BatchTaskSettingsDialog from "@/components/Batch/BatchTaskSettingsDialog.vue";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -205,27 +213,7 @@ interface SelectOption {
   value: number;
 }
 
-interface TaskSettings {
-  arenaEnable: boolean;
-  arenaFormation: number;
-  blackMarketPurchase: boolean;
-  bossFormation: number;
-  bossTimes: number;
-  claimBottle: boolean;
-  claimEmail: boolean;
-  claimHangUp: boolean;
-  openBox: boolean;
-  payRecruit: boolean;
-  towerFormation: number;
-}
-
-interface TaskTemplate {
-  createdAt: string;
-  id: string;
-  name: string;
-  settings: TaskSettings;
-  updatedAt?: string;
-}
+type TaskSettings = ReturnType<typeof createDefaultTemplateSettings>;
 
 interface BatchToken {
   id: string;
@@ -259,19 +247,7 @@ const emit = defineEmits<{
   "update:open": [value: boolean];
 }>();
 
-const createDefaultSettings = (): TaskSettings => ({
-  arenaEnable: true,
-  arenaFormation: 1,
-  blackMarketPurchase: true,
-  bossFormation: 1,
-  bossTimes: 2,
-  claimBottle: true,
-  claimEmail: true,
-  claimHangUp: true,
-  openBox: true,
-  payRecruit: true,
-  towerFormation: 1,
-});
+const createDefaultSettings = createDefaultTemplateSettings;
 
 const templates = ref<TaskTemplate[]>([]);
 const searchQuery = ref("");
@@ -308,8 +284,8 @@ const filteredReferences = computed(() => {
 
 const loadTemplates = () => {
   try {
-    const value = localStorage.getItem("task-templates");
-    templates.value = value ? JSON.parse(value) : [];
+    migrateTaskAccounts(props.tokens);
+    templates.value = loadTaskTemplates();
   } catch (error) {
     console.error("Failed to load task templates:", error);
     templates.value = [];
@@ -318,7 +294,19 @@ const loadTemplates = () => {
 };
 
 const persistTemplates = () => {
-  localStorage.setItem("task-templates", JSON.stringify(templates.value));
+  saveTaskTemplates(templates.value);
+};
+
+const bindingCount = (id: string) => props.tokens.filter((token) => loadAccountTaskBinding(token.id).templateId === id).length;
+const copyTemplate = (template: TaskTemplate) => {
+  resetEditor();
+  currentTemplateName.value = `${template.name} · 副本`;
+  Object.assign(currentTemplate, JSON.parse(JSON.stringify(template.settings)));
+  showEditor.value = true;
+};
+const restoreDefault = (template: TaskTemplate) => {
+  openEditTemplate(template);
+  Object.assign(currentTemplate, createDefaultSettings());
 };
 
 const resetEditor = () => {
@@ -351,7 +339,7 @@ const saveTemplate = () => {
     templates.value[existingIndex] = {
       ...templates.value[existingIndex],
       name,
-      settings: { ...currentTemplate },
+      settings: JSON.parse(JSON.stringify(currentTemplate)),
       updatedAt: new Date().toISOString(),
     };
     emit("notify", { text: `已更新模板“${name}”`, type: "success" });
@@ -360,7 +348,7 @@ const saveTemplate = () => {
       createdAt: new Date().toISOString(),
       id: `${Date.now()}`,
       name,
-      settings: { ...currentTemplate },
+      settings: JSON.parse(JSON.stringify(currentTemplate)),
     });
     emit("notify", { text: `已保存模板“${name}”`, type: "success" });
   }
@@ -408,13 +396,11 @@ const applyTemplate = () => {
   }
 
   selectedTokenIds.value.forEach((tokenId) => {
-    localStorage.setItem(
-      `daily-settings:${tokenId}`,
-      JSON.stringify({ ...template.settings, templateId: template.id }),
-    );
+    const binding = loadAccountTaskBinding(tokenId);
+    saveAccountTaskBinding(tokenId, { ...binding, templateId: template.id });
   });
   emit("notify", {
-    text: `已成功应用模板到 ${selectedTokenIds.value.length} 个账号`,
+    text: `已绑定模板到 ${selectedTokenIds.value.length} 个账号，采购专属配置保留`,
     type: "success",
   });
   showApplyDialog.value = false;
@@ -425,13 +411,11 @@ const openReferencesDialog = () => {
   selectedTemplateForFilter.value = "";
   references.value = props.tokens.map((token) => {
     try {
-      const raw = localStorage.getItem(`daily-settings:${token.id}`);
-      const settings = raw ? JSON.parse(raw) : {};
-      const templateId = settings.templateId || null;
+      const templateId = loadAccountTaskBinding(token.id).templateId;
       const template = templates.value.find((item) => item.id === templateId);
       return {
         templateId,
-        templateName: template ? template.name : "未引用模板",
+        templateName: template ? template.name : "模板已缺失，需重新绑定",
         tokenId: token.id,
         tokenName: token.name || "未命名账号",
       };
@@ -451,6 +435,8 @@ const openReferencesDialog = () => {
 const confirmDelete = () => {
   if (!deleteTarget.value)
     return;
+  if (deleteTarget.value.id === SYSTEM_TEMPLATE_ID || bindingCount(deleteTarget.value.id) > 0)
+    return;
   const name = deleteTarget.value.name;
   templates.value = templates.value.filter((template) => template.id !== deleteTarget.value?.id);
   persistTemplates();
@@ -464,6 +450,12 @@ watch(() => props.open, (isOpen) => {
   if (isOpen)
     loadTemplates();
 });
+defineExpose({ editTemplate: (id: string) => {
+  loadTemplates();
+  const template = templates.value.find((item) => item.id === id);
+  if (template)
+    openEditTemplate(template);
+} });
 </script>
 
 <style scoped>

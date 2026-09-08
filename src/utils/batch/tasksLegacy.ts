@@ -1,5 +1,10 @@
 // @ts-nocheck
 import type { BatchTaskDeps } from "./types";
+import { createScheduledTaskParameters, validateScheduledTaskParameters } from "../scheduledTaskParameters";
+
+// ModuleConf 10139（功法）、10140（赠礼）的解锁条件相同。
+const isLegacyUnlocked = (role) =>
+  Number(role?.level) >= 6000 && Number(role?.levelId) >= 8001;
 /**
  * 功法类任务
  * 包含: batchLegacyClaim, batchLegacyGiftSendEnhanced
@@ -57,6 +62,15 @@ export function createTasksLegacy(deps: BatchTaskDeps) {
         });
         await ensureConnection(tokenId);
 
+        const roleInfo = await tokenStore.sendGetRoleInfo(tokenId);
+        if (shouldStop.value)
+          return;
+        if (!isLegacyUnlocked(roleInfo?.role)) {
+          tokenStatus.value[tokenId] = "skipped";
+          addLog({ time: new Date().toLocaleTimeString(), message: `${token.name} 功法残卷功能未解锁或状态不足，已跳过（需等级6000、关卡8001）`, type: "warning" });
+          return;
+        }
+
         const LegacyClaimHangUpResp = await tokenStore.sendMessageWithPromise(
           tokenId,
           "legacy_claimhangup",
@@ -98,28 +112,36 @@ export function createTasksLegacy(deps: BatchTaskDeps) {
   /**
    * 增强版批量赠送功法残卷（含完善的验证和错误处理）
    */
-  const batchLegacyGiftSendEnhanced = async (isScheduledTask = false) => {
+  const batchLegacyGiftSendEnhanced = async (isScheduledTask = false, parameters = createScheduledTaskParameters()) => {
+    if (isScheduledTask) {
+      const error = validateScheduledTaskParameters(["batchLegacyGiftSendEnhanced"], parameters);
+      if (error) {
+        message.error(error);
+        return;
+      }
+    }
     if (selectedTokens.value.length === 0) {
       message.warning("请先选择要操作的角色");
       return;
     }
 
     const recipientId = isScheduledTask
-      ? batchSettings.receiverId
+      ? parameters.receiverId
       : recipientIdInput.value;
     const password = isScheduledTask
-      ? batchSettings.password
+      ? parameters.password
       : securityPassword.value;
 
-    const giftConfig = {
+    const baseGiftConfig = {
       recipientId: Number(recipientId),
       itemId: 37007,
-      quantity: Math.min(giftQuantity.value, 9999) || 0,
+      quantity: isScheduledTask ? parameters.giftQuantity : Math.min(giftQuantity.value, 9999) || 0,
       serverName: recipientInfo.value?.serverName || "",
       name: recipientInfo.value?.name || "",
     };
 
     if (!isScheduledTask) {
+      const giftConfig = baseGiftConfig;
       if (!giftConfig.recipientId || giftConfig.recipientId <= 0) {
         message.error("请输入有效的接收者ID");
         return;
@@ -142,6 +164,7 @@ export function createTasksLegacy(deps: BatchTaskDeps) {
     let totalFailed = 0;
 
     const taskPromises = selectedTokens.value.map(async (tokenId) => {
+      const giftConfig = { ...baseGiftConfig };
       if (shouldStop.value) return;
       tokenStatus.value[tokenId] = "running";
 
@@ -160,6 +183,13 @@ export function createTasksLegacy(deps: BatchTaskDeps) {
           await ensureConnection(tokenId);
 
           const roleInfo = await tokenStore.sendGetRoleInfo(tokenId);
+          if (shouldStop.value)
+            break;
+          if (!isLegacyUnlocked(roleInfo?.role)) {
+            tokenStatus.value[tokenId] = "skipped";
+            addLog({ time: new Date().toLocaleTimeString(), message: `${token.name} 功法残卷赠送功能未解锁或状态不足，已跳过（需等级6000、关卡8001）`, type: "warning" });
+            break;
+          }
           const legacyFragmentCount =
             Math.min(
               roleInfo?.role?.items?.[giftConfig.itemId]?.quantity,
@@ -199,7 +229,8 @@ export function createTasksLegacy(deps: BatchTaskDeps) {
               totalFailed++;
               break;
             }
-            giftConfig.quantity = legacyFragmentCount;
+            if (parameters.giftQuantity === 0)
+              giftConfig.quantity = legacyFragmentCount;
           }
 
           if (legacyFragmentCount < giftConfig.quantity) {
@@ -288,7 +319,9 @@ export function createTasksLegacy(deps: BatchTaskDeps) {
           let errorType = "error";
 
           if (errorMsg.includes("200160")) {
-            errorMsg = "模块未开启";
+            tokenStatus.value[tokenId] = "skipped";
+            addLog({ time: new Date().toLocaleTimeString(), message: `${token.name} 服务器提示功法模块未开启，已跳过，不再重试`, type: "warning" });
+            break;
           } else if (errorMsg.includes("timeout")) {
             errorMsg = "请求超时";
             errorType = "warning";

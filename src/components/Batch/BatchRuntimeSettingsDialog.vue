@@ -1,100 +1,14 @@
 <template>
   <Dialog :open="open" @update:open="emit('update:open', $event)">
-    <DialogContent class="max-h-[88vh] max-w-3xl overflow-y-auto">
+    <DialogContent class="max-h-[88vh] max-w-xl overflow-y-auto">
       <DialogHeader>
-        <DialogTitle>任务设置</DialogTitle>
+        <DialogTitle>运行设置</DialogTitle>
         <DialogDescription class="sr-only">
-          配置批量任务数量、执行延迟和连接参数
+          执行延迟、连接参数与界面设置
         </DialogDescription>
       </DialogHeader>
 
       <div class="settings-columns">
-        <div class="settings-column">
-          <section class="settings-section">
-            <h3>批量操作</h3>
-            <div class="field-list">
-              <div
-                v-for="settingField in operationFields"
-                :key="settingField.key"
-                class="field-row"
-              >
-                <Label :for="`runtime-${settingField.key}`">
-                  {{ settingField.label }}
-                </Label>
-                <Input
-                  :id="`runtime-${settingField.key}`"
-                  class="field-control"
-                  type="number"
-                  :max="settingField.max"
-                  :min="settingField.min"
-                  :model-value="numberValue(settingField.key)"
-                  :step="settingField.step"
-                  @update:model-value="updateNumber(settingField.key, Number($event))"
-                ></Input>
-              </div>
-
-              <div
-                v-for="selectField in selectFields"
-                :key="selectField.key"
-                class="field-row"
-              >
-                <Label :for="`runtime-${selectField.key}`">
-                  {{ selectField.label }}
-                </Label>
-                <select
-                  :id="`runtime-${selectField.key}`"
-                  :value="modelValue[selectField.key]"
-                  @change="updateSelect(selectField.key, $event)"
-                >
-                  <option
-                    v-for="option in selectField.options"
-                    :key="option.value"
-                    :value="option.value"
-                  >
-                    {{ option.label }}
-                  </option>
-                </select>
-              </div>
-
-              <div class="field-row">
-                <span class="field-label">梦境商品</span>
-                <Button size="sm" variant="outline" @click="emit('configureDream')">
-                  配置<span v-if="modelValue.dreamPurchaseList.length">
-                    （{{ modelValue.dreamPurchaseList.length }} 项）</span>
-                </Button>
-              </div>
-            </div>
-          </section>
-
-          <section class="settings-section">
-            <h3>功法赠送</h3>
-            <div class="field-list">
-              <div class="field-row">
-                <Label for="runtime-receiver-id">接收者 ID</Label>
-                <Input
-                  id="runtime-receiver-id"
-                  class="field-control"
-                  inputmode="numeric"
-                  placeholder="ID"
-                  :model-value="modelValue.receiverId"
-                  @update:model-value="updateReceiverId"
-                ></Input>
-              </div>
-              <div class="field-row">
-                <Label for="runtime-password">密码</Label>
-                <Input
-                  id="runtime-password"
-                  class="field-control"
-                  placeholder="密码"
-                  type="password"
-                  :model-value="modelValue.password"
-                  @update:model-value="updateText('password', $event)"
-                ></Input>
-              </div>
-            </div>
-          </section>
-        </div>
-
         <div class="settings-column">
           <section class="settings-section">
             <h3>延迟（毫秒）</h3>
@@ -218,11 +132,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 
-interface SelectOption {
-  label: string;
-  value: number;
-}
-
 interface RuntimeSettings {
   actionDelay: number;
   battleDelay: number;
@@ -251,8 +160,6 @@ interface RuntimeSettings {
 type NumberKey = {
   [Key in keyof RuntimeSettings]: RuntimeSettings[Key] extends number ? Key : never;
 }[keyof RuntimeSettings];
-type SelectKey = "defaultBoxType" | "defaultFishType";
-type TextKey = "password";
 
 interface NumberFieldDefinition {
   key: NumberKey;
@@ -263,25 +170,16 @@ interface NumberFieldDefinition {
 }
 
 const props = defineProps<{
-  boxTypeOptions: SelectOption[];
-  fishTypeOptions: SelectOption[];
   modelValue: RuntimeSettings;
   open: boolean;
 }>();
 
 const emit = defineEmits<{
-  "configureDream": [];
   "save": [];
   "update:modelValue": [value: RuntimeSettings];
   "update:open": [value: boolean];
 }>();
 
-const operationFields: NumberFieldDefinition[] = [
-  { key: "boxCount", label: "开箱数量（10 倍）", min: 10, max: 10000, step: 10 },
-  { key: "fishCount", label: "钓鱼数量（10 倍）", min: 10, max: 10000, step: 10 },
-  { key: "recruitCount", label: "招募数量（10 倍）", min: 10, max: 10000, step: 10 },
-  { key: "targetBoxPoints", label: "按积分开箱目标", min: 1, max: 1000000, step: 100 },
-];
 const delayFields: NumberFieldDefinition[] = [
   { key: "commandDelay", label: "命令延迟", min: 100, max: 2000, step: 100 },
   { key: "taskDelay", label: "任务间延迟", min: 100, max: 2000, step: 100 },
@@ -307,15 +205,6 @@ const refreshIntervalField: NumberFieldDefinition = {
   step: 30,
 };
 
-const selectFields: Array<{
-  key: SelectKey;
-  label: string;
-  options: SelectOption[];
-}> = [
-  { key: "defaultBoxType", label: "默认宝箱类型", options: props.boxTypeOptions },
-  { key: "defaultFishType", label: "默认鱼竿类型", options: props.fishTypeOptions },
-];
-
 const updateModel = (patch: Partial<RuntimeSettings>) => {
   emit("update:modelValue", { ...props.modelValue, ...patch });
 };
@@ -325,16 +214,6 @@ const updateNumber = (key: NumberKey, value: number) => {
   if (Number.isFinite(value))
     updateModel({ [key]: value });
 };
-const updateSelect = (key: SelectKey, event: Event) => {
-  updateNumber(key, Number((event.target as HTMLSelectElement).value));
-};
-const updateText = (key: TextKey, value: string | number) => {
-  updateModel({ [key]: String(value) });
-};
-const updateReceiverId = (value: string | number) => {
-  const normalized = String(value).replace(/\D/g, "");
-  updateModel({ receiverId: normalized });
-};
 const updateBoolean = (key: "enableRefresh", value: boolean) => {
   updateModel({ [key]: value });
 };
@@ -343,7 +222,7 @@ const updateBoolean = (key: "enableRefresh", value: boolean) => {
 <style scoped>
 .settings-columns {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 24px;
 }
 

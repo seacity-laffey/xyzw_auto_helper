@@ -1,7 +1,9 @@
 // @ts-nocheck
 import type { BatchTaskDeps } from "./types";
 import { HERO_DICT } from "@/utils/heroList";
+import { createScheduledTaskParameters } from "@/utils/scheduledTaskParameters";
 import { PEACH_TASKS } from "@/utils/peachTaskIds";
+import { canDrawFreeGacha, canSweepDeepSea, isTimestampToday } from "../dailyRewardEligibility";
 
 /**
  * 开箱、钓鱼、招募类任务
@@ -589,7 +591,7 @@ export function createTasksItem(deps: BatchTaskDeps) {
   };
 
   /**
-   * 一键灯神扫荡
+   * 一键免费灯神扫荡
    */
   const batchGenieSweep = async () => {
     if (selectedTokens.value.length === 0) return;
@@ -610,7 +612,7 @@ export function createTasksItem(deps: BatchTaskDeps) {
       try {
         addLog({
           time: new Date().toLocaleTimeString(),
-          message: `=== 开始灯神扫荡: ${token.name} ===`,
+          message: `=== 开始免费灯神扫荡: ${token.name} ===`,
           type: "info",
         });
 
@@ -624,114 +626,38 @@ export function createTasksItem(deps: BatchTaskDeps) {
           5000
         );
         
-        // 解析灯神进度和扫荡券
-        const role = roleInfoRes?.role || roleInfoRes?.data?.role || {};
-        const genieData = role.genie || {};
-        // 扫荡券 ID 1021
-        const sweepTicketCount = role.items?.[1021]?.quantity || 0;
-
-        addLog({
-          time: new Date().toLocaleTimeString(),
-          message: `${token.name} 当前扫荡券数量: ${sweepTicketCount}`,
-          type: "info",
-        });
-
-        if (sweepTicketCount <= 0) {
-          addLog({
-            time: new Date().toLocaleTimeString(),
-            message: `${token.name} 扫荡券不足，停止扫荡`,
-            type: "warning",
-          });
-          tokenStatus.value[tokenId] = "completed";
+        const role = roleInfoRes?.role || roleInfoRes?.data?.role;
+        if (shouldStop.value)
           return;
-        }
-
-        // 计算最高层数
-        // 1-4: 魏蜀吴群 (0-16 -> 1-17层)
-        // 5: 深海 (0-9 -> 1-10层)
-        let maxLayer = -1;
-        let bestGenieId = -1;
-
-        // 检查魏蜀吴群 (1-4)
-        for (let i = 1; i <= 4; i++) {
-          if (genieData[i] !== undefined) {
-            // 数据值 0 代表 1 层? 用户说 0-16 代表 1-17 层
-            // 假设 genieData[i] 是已通过的层数索引
-            const currentLayer = genieData[i] + 1;
-            if (currentLayer > maxLayer) {
-              maxLayer = currentLayer;
-              bestGenieId = i;
+        const availableIds = [];
+        if (role?.statisticsTime && role?.genie) {
+          for (let id = 1; id <= 4; id++) {
+            if (Number(role.genie[id]) > 0
+              && !isTimestampToday(role.statisticsTime[`genie:daily:free:${id}`])) {
+              availableIds.push(id);
             }
           }
+          if (canSweepDeepSea(role.genie, role.statisticsTime))
+            availableIds.push(5);
         }
-
-        if (bestGenieId === -1) {
-          addLog({
-            time: new Date().toLocaleTimeString(),
-            message: `${token.name} 未找到可扫荡的灯神关卡`,
-            type: "warning",
-          });
-          tokenStatus.value[tokenId] = "completed";
+        if (availableIds.length === 0) {
+          tokenStatus.value[tokenId] = "skipped";
+          addLog({ time: new Date().toLocaleTimeString(), message: `${token.name} 今日无可用免费灯神扫荡，已跳过`, type: "info" });
           return;
         }
-
         const genieNames = { 1: "魏国", 2: "蜀国", 3: "吴国", 4: "群雄", 5: "深海" };
-        addLog({
-          time: new Date().toLocaleTimeString(),
-          message: `${token.name} 扫荡: ${genieNames[bestGenieId]}灯神 (第${maxLayer}层)`,
-          type: "info",
-        });
-
-        // 开始扫荡
-        let remainingTickets = sweepTicketCount;
-        
-        while (remainingTickets > 0 && !shouldStop.value) {
-          const sweepCnt = Math.min(remainingTickets, 20);
-          
-          try {
-            const res = await tokenStore.sendMessageWithPromise(
-              tokenId,
-              "genie_sweep",
-              { 
-                genieId: bestGenieId,
-                sweepCnt: sweepCnt 
-              },
-              5000
-            );
-
-            const ok = res && (res.role || res.role.items);
-            
-            if (ok) {
-               addLog({
-                time: new Date().toLocaleTimeString(),
-                message: `${token.name} 扫荡成功 ${sweepCnt} 次`,
-                type: "success",
-              });
-              remainingTickets = res.role.items?.[1021]?.quantity || 0;
-            } else {
-               addLog({
-                time: new Date().toLocaleTimeString(),
-                message: `${token.name} 扫荡失败: ${res.hint || "未知错误"}`,
-                type: "error",
-              });
-              break; // 失败则停止
-            }
-          } catch (err) {
-            addLog({
-              time: new Date().toLocaleTimeString(),
-              message: `${token.name} 扫荡请求异常: ${err.message}`,
-              type: "error",
-            });
-            break;
-          }
-
-          if (remainingTickets > 0) {
-             await new Promise((r) => setTimeout(r, delayConfig.action));
-          }
+        for (const genieId of availableIds) {
+          if (shouldStop.value)
+            return;
+          await tokenStore.sendMessageWithPromise(
+            tokenId,
+            "genie_sweep",
+            genieId === 5 ? { genieId, sweepCnt: 1 } : { genieId },
+            5000,
+          );
+          addLog({ time: new Date().toLocaleTimeString(), message: `${token.name} ${genieNames[genieId]}灯神免费扫荡完成`, type: "success" });
+          await new Promise((resolve) => setTimeout(resolve, delayConfig.action));
         }
-
-        // 刷新信息
-        await tokenStore.sendMessage(tokenId, "role_getroleinfo");
         tokenStatus.value[tokenId] = "completed";
         addLog({
           time: new Date().toLocaleTimeString(),
@@ -757,20 +683,192 @@ export function createTasksItem(deps: BatchTaskDeps) {
 
     isRunning.value = false;
     currentRunningTokenId.value = null;
-    message.success("一键灯神扫荡结束");
+    message.success("一键免费灯神扫荡结束");
   };
 
-  const batchOpenBox = async (isScheduledTask = false) => {
+  const batchUseGenieTickets = async () => {
+    if (selectedTokens.value.length === 0)
+      return;
+    isRunning.value = true;
+    shouldStop.value = false;
+    selectedTokens.value.forEach((id) => {
+      tokenStatus.value[id] = "waiting";
+    });
+    try {
+      await Promise.all(selectedTokens.value.map(async (tokenId) => {
+        if (shouldStop.value)
+          return;
+        const token = tokens.value.find((item) => item.id === tokenId);
+        const name = token?.name || tokenId;
+        let connected = false;
+        tokenStatus.value[tokenId] = "running";
+        try {
+          await ensureConnection(tokenId);
+          connected = true;
+          if (shouldStop.value)
+            return;
+          const response = await tokenStore.sendMessageWithPromise(tokenId, "role_getroleinfo", {}, 5000);
+          const role = response?.role || response?.data?.role;
+          if (!role?.items || !role?.genie)
+            throw new Error("灯神进度或库存数据缺失");
+          let remaining = Number(role.items[1021]?.quantity ?? 0);
+          if (!Number.isSafeInteger(remaining) || remaining < 0)
+            throw new Error("灯神券库存无效");
+          const targets = [1, 2, 3, 4].filter((id) => Number(role.genie[id]) > 0);
+          targets.sort((a, b) => Number(role.genie[b]) - Number(role.genie[a]));
+          const genieId = targets[0];
+          if (!remaining || !genieId) {
+            tokenStatus.value[tokenId] = "skipped";
+            addLog({ time: new Date().toLocaleTimeString(), message: `${name} 无灯神券或可扫荡关卡，已跳过`, type: "info" });
+            return;
+          }
+          const genieName = { 1: "魏国", 2: "蜀国", 3: "吴国", 4: "群雄" }[genieId];
+          addLog({ time: new Date().toLocaleTimeString(), message: `${name} 使用灯神券：${genieName}灯神，库存 ${remaining}`, type: "info" });
+          while (remaining > 0 && !shouldStop.value) {
+            const sweepCnt = Math.min(remaining, 99);
+            const result = await tokenStore.sendMessageWithPromise(tokenId, "genie_sweep", { genieId, sweepCnt }, 5000);
+            if (result?.error || result?.code)
+              throw new Error(result.error || result.hint || `扫荡失败: ${result.code}`);
+            let next = (result?.role || result?.data?.role)?.items?.[1021]?.quantity;
+            if (next === undefined) {
+              const refreshed = await tokenStore.sendMessageWithPromise(tokenId, "role_getroleinfo", {}, 5000);
+              const items = (refreshed?.role || refreshed?.data?.role)?.items;
+              if (!items)
+                throw new Error("无法确认剩余灯神券，已停止");
+              next = items[1021]?.quantity ?? 0;
+            }
+            next = Number(next);
+            if (!Number.isSafeInteger(next) || next < 0 || next >= remaining)
+              throw new Error("灯神券库存未减少或返回无效，已停止");
+            addLog({ time: new Date().toLocaleTimeString(), message: `${name} 消耗灯神券 ${remaining - next} 张，剩余 ${next}`, type: "success" });
+            remaining = next;
+            if (remaining > 0 && !shouldStop.value)
+              await new Promise((resolve) => setTimeout(resolve, delayConfig.action));
+          }
+          tokenStatus.value[tokenId] = shouldStop.value ? "skipped" : "completed";
+        } catch (error) {
+          tokenStatus.value[tokenId] = "failed";
+          addLog({ time: new Date().toLocaleTimeString(), message: `${name} 使用灯神券失败: ${error.message}`, type: "error" });
+        } finally {
+          if (connected) {
+            tokenStore.closeWebSocketConnection(tokenId);
+            releaseConnectionSlot();
+          }
+        }
+      }));
+    } finally {
+      isRunning.value = false;
+      currentRunningTokenId.value = null;
+    }
+    message.success("一键使用灯神券结束");
+  };
+
+  const runBatchGacha = async (useCoins: boolean) => {
+    if (!selectedTokens.value.length)
+      return;
+    const label = useCoins ? "使用扭蛋币" : "免费扭蛋";
+    isRunning.value = true;
+    shouldStop.value = false;
+    selectedTokens.value.forEach((id) => {
+      tokenStatus.value[id] = "waiting";
+    });
+    try {
+      await Promise.all(selectedTokens.value.map(async (tokenId) => {
+        if (shouldStop.value)
+          return;
+        const name = tokens.value.find((token) => token.id === tokenId)?.name || tokenId;
+        let connected = false;
+        tokenStatus.value[tokenId] = "running";
+        const readRole = async () => {
+          const response = await tokenStore.sendMessageWithPromise(tokenId, "role_getroleinfo", {}, 5000);
+          return response?.role || response?.data?.role;
+        };
+        const coinCount = (role) => {
+          if (!role?.items)
+            throw new Error("扭蛋币库存数据缺失");
+          const count = Number(role.items[5270]?.quantity ?? 0);
+          if (!Number.isSafeInteger(count) || count < 0)
+            throw new Error("扭蛋币库存无效");
+          return count;
+        };
+        try {
+          if (!useCoins && !canDrawFreeGacha({})) {
+            tokenStatus.value[tokenId] = "skipped";
+            addLog({ time: new Date().toLocaleTimeString(), message: `${name} 今日不开放免费扭蛋，已跳过`, type: "info" });
+            return;
+          }
+          await ensureConnection(tokenId);
+          connected = true;
+          if (shouldStop.value)
+            return;
+          let role = await readRole();
+          if (!role?.statistics)
+            throw new Error("扭蛋免费状态缺失，已停止");
+          let remaining = useCoins ? coinCount(role) : 0;
+          if (useCoins ? remaining === 0 : !canDrawFreeGacha(role.statistics)) {
+            tokenStatus.value[tokenId] = "skipped";
+            addLog({ time: new Date().toLocaleTimeString(), message: `${name} ${useCoins ? "无库存扭蛋币" : "今日免费次数已用或未开放"}，已跳过`, type: "info" });
+            return;
+          }
+          do {
+            if (shouldStop.value)
+              break;
+            const wasFree = canDrawFreeGacha(role.statistics);
+            if (!useCoins && !wasFree)
+              break;
+            const result = await tokenStore.sendMessageWithPromise(tokenId, "gacha_drawreward", { num: 1, isGroup: false }, 5000);
+            if (result?.error || result?.code)
+              throw new Error(result.error || result.hint || `扭蛋失败: ${result.code}`);
+            if (!useCoins) {
+              addLog({ time: new Date().toLocaleTimeString(), message: `${name} 免费扭蛋完成`, type: "success" });
+              break;
+            }
+            const updated = await readRole();
+            if (!updated?.statistics)
+              throw new Error("无法确认扭蛋免费状态，已停止");
+            const next = coinCount(updated);
+            // 同一请求可能先使用免费次数；只允许已确认的免费状态变化不扣币。
+            const usedFree = wasFree && isTimestampToday(updated.statistics["gacha:free"]);
+            if (next > remaining || (next === remaining && !usedFree))
+              throw new Error("扭蛋币库存和免费次数均无有效变化，已停止");
+            addLog({ time: new Date().toLocaleTimeString(), message: `${name} 扭蛋完成，消耗 ${remaining - next} 枚，剩余 ${next} 枚`, type: "success" });
+            role = updated;
+            remaining = next;
+            if (remaining > 0 && !shouldStop.value)
+              await new Promise((resolve) => setTimeout(resolve, delayConfig.action));
+          } while (remaining > 0);
+          tokenStatus.value[tokenId] = shouldStop.value ? "skipped" : "completed";
+        } catch (error) {
+          tokenStatus.value[tokenId] = "failed";
+          addLog({ time: new Date().toLocaleTimeString(), message: `${name} ${label}失败: ${error.message}`, type: "error" });
+        } finally {
+          if (connected) {
+            tokenStore.closeWebSocketConnection(tokenId);
+            releaseConnectionSlot();
+          }
+        }
+      }));
+    } finally {
+      isRunning.value = false;
+      currentRunningTokenId.value = null;
+    }
+    message.success(`一键${label}结束`);
+  };
+
+  const batchFreeGacha = () => runBatchGacha(false);
+  const batchUseGachaCoins = () => runBatchGacha(true);
+
+  const batchOpenBox = async (isScheduledTask = false, parameters = createScheduledTaskParameters()) => {
     if (selectedTokens.value.length === 0) return;
 
     isRunning.value = true;
     shouldStop.value = false;
 
     const boxType = isScheduledTask
-      ? batchSettings.defaultBoxType
+      ? parameters.defaultBoxType
       : helperSettings.boxType;
     const totalCount = isScheduledTask
-      ? batchSettings.boxCount
+      ? parameters.boxCount
       : helperSettings.count;
     const batches = Math.floor(totalCount / 10);
     const remainder = totalCount % 10;
@@ -869,17 +967,17 @@ export function createTasksItem(deps: BatchTaskDeps) {
   /**
    * 批量钓鱼
    */
-  const batchFish = async (isScheduledTask = false) => {
+  const batchFish = async (isScheduledTask = false, parameters = createScheduledTaskParameters()) => {
     if (selectedTokens.value.length === 0) return;
 
     isRunning.value = true;
     shouldStop.value = false;
 
     const fishType = isScheduledTask
-      ? batchSettings.defaultFishType
+      ? parameters.defaultFishType
       : helperSettings.fishType;
     const totalCount = isScheduledTask
-      ? batchSettings.fishCount
+      ? parameters.fishCount
       : helperSettings.count;
     const batches = Math.floor(totalCount / 10);
     const remainder = totalCount % 10;
@@ -1096,14 +1194,14 @@ export function createTasksItem(deps: BatchTaskDeps) {
   /**
    * 批量招募
    */
-  const batchRecruit = async (isScheduledTask = false) => {
+  const batchRecruit = async (isScheduledTask = false, parameters = createScheduledTaskParameters()) => {
     if (selectedTokens.value.length === 0) return;
 
     isRunning.value = true;
     shouldStop.value = false;
 
     const totalCount = isScheduledTask
-      ? batchSettings.recruitCount
+      ? parameters.recruitCount
       : helperSettings.count;
     const batches = Math.floor(totalCount / 10);
     const remainder = totalCount % 10;
@@ -1195,14 +1293,14 @@ export function createTasksItem(deps: BatchTaskDeps) {
     message.success("批量招募结束");
   };
 
-  const batchOpenBoxByPoints = async (isScheduledTask = false) => {
+  const batchOpenBoxByPoints = async (isScheduledTask = false, parameters = createScheduledTaskParameters()) => {
     if (selectedTokens.value.length === 0) return;
 
     isRunning.value = true;
     shouldStop.value = false;
 
     const targetPoints = isScheduledTask
-      ? batchSettings.targetBoxPoints
+      ? parameters.targetBoxPoints
       : helperSettings.targetPoints;
 
     const boxPriority = [
@@ -1470,5 +1568,8 @@ export function createTasksItem(deps: BatchTaskDeps) {
     batchClaimStarRewards,
     batchClaimPeachTasks,
     batchGenieSweep,
+    batchUseGenieTickets,
+    batchFreeGacha,
+    batchUseGachaCoins,
   };
 }

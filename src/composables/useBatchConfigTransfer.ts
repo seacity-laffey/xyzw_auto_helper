@@ -2,11 +2,12 @@ import type { Ref } from "vue";
 import type { BatchRuntimeSettings } from "@/composables/useBatchRuntimeSettings";
 import { useAppMessage } from "@/composables/useAppMessage";
 import { gameTokens } from "@/stores/tokenStore";
+import { loadTaskTemplates, migrateTaskAccounts, saveTaskTemplates } from "@/utils/taskTemplateConfig";
 
 interface TransferDependencies {
   batchSettings: BatchRuntimeSettings;
   persistBatchSettings: () => boolean;
-  sanitizeScheduledTask: (task: Record<string, unknown>) => Record<string, unknown>;
+  sanitizeScheduledTask: (task: Record<string, unknown>, parameters?: any) => Record<string, unknown>;
   saveScheduledTasks: () => void;
   scheduledTasks: Ref<Array<Record<string, any>>>;
   tokens: Ref<Array<Record<string, any>>>;
@@ -24,6 +25,7 @@ export const useBatchConfigTransfer = ({
 
   const exportConfig = () => {
     try {
+      migrateTaskAccounts(tokens.value as Array<{ id: string }>);
       const validTokenIds = new Set(tokens.value.map((token) => token.id));
       const filteredScheduledTasks = scheduledTasks.value
         .map((task) => ({
@@ -48,7 +50,8 @@ export const useBatchConfigTransfer = ({
       });
 
       const exportData = {
-        version: "1.1",
+        version: "1.2",
+        taskTemplates: loadTaskTemplates(),
         exportTime: new Date().toISOString(),
         tokens: tokens.value.map((token) => ({
           id: token.id,
@@ -65,11 +68,6 @@ export const useBatchConfigTransfer = ({
         })),
         scheduledTasks: filteredScheduledTasks,
         batchSettings: {
-          boxCount: batchSettings.boxCount,
-          fishCount: batchSettings.fishCount,
-          recruitCount: batchSettings.recruitCount,
-          defaultBoxType: batchSettings.defaultBoxType,
-          defaultFishType: batchSettings.defaultFishType,
           commandDelay: batchSettings.commandDelay,
           taskDelay: batchSettings.taskDelay,
           actionDelay: batchSettings.actionDelay,
@@ -152,7 +150,7 @@ export const useBatchConfigTransfer = ({
         );
         if (exists || !task.id)
           return;
-        scheduledTasks.value.push(sanitizeScheduledTask(task));
+        scheduledTasks.value.push(sanitizeScheduledTask(task, importData.batchSettings || {}));
         importedTasks++;
       });
       saveScheduledTasks();
@@ -162,12 +160,31 @@ export const useBatchConfigTransfer = ({
         persistBatchSettings();
       }
 
+      const importedTemplateIds = new Map<string, string>();
+      if (Array.isArray(importData.taskTemplates)) {
+        const templates = loadTaskTemplates();
+        for (const incoming of importData.taskTemplates) {
+          if (!incoming?.id || !incoming?.settings || !incoming?.name)
+            throw new Error("导入模板数据无效");
+          const existing = templates.find((template) => template.id === incoming.id);
+          if (existing && JSON.stringify(existing.settings) !== JSON.stringify(incoming.settings)) {
+            const id = crypto.randomUUID();
+            templates.push({ ...incoming, id, name: `${incoming.name} · 导入` });
+            importedTemplateIds.set(incoming.id, id);
+          } else {
+            if (!existing)
+              templates.push(incoming);
+            importedTemplateIds.set(incoming.id, incoming.id);
+          }
+        }
+        saveTaskTemplates(templates);
+      }
       if (Array.isArray(importData.tokenSettings)) {
         importData.tokenSettings.forEach((item: Record<string, any>) => {
           if (item.tokenId && item.settings) {
             localStorage.setItem(
               `daily-settings:${item.tokenId}`,
-              JSON.stringify(item.settings),
+              JSON.stringify({ ...item.settings, templateId: importedTemplateIds.get(item.settings.templateId) || item.settings.templateId }),
             );
           }
         });

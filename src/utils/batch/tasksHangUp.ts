@@ -4,6 +4,7 @@
  * 包含: claimHangUpRewards, batchAddHangUpTime, batchStudy, batchclubsign
  */
 import type { BatchTaskDeps } from "./types";
+import { canClaimClubSignIn } from "../dailyRewardEligibility";
 
 /**
  * 创建挂机、答题、签到类任务执行器
@@ -350,6 +351,15 @@ export function createTasksHangUp(deps: BatchTaskDeps) {
         });
         await ensureConnection(tokenId);
         if (shouldStop.value) return;
+        const roleInfo = await tokenStore.sendMessageWithPromise(tokenId, "role_getroleinfo", {}, 5000);
+        const role = roleInfo?.role || roleInfo?.data?.role;
+        if (shouldStop.value)
+          return;
+        if (!role?.statisticsTime || !role.legionId || !canClaimClubSignIn(role.statisticsTime)) {
+          tokenStatus.value[tokenId] = "skipped";
+          addLog({ time: new Date().toLocaleTimeString(), message: `${token.name} 今日已签到、未加入俱乐部或状态不足，已跳过`, type: "info" });
+          return;
+        }
         await tokenStore.sendMessageWithPromise(
           tokenId,
           "legion_signin",

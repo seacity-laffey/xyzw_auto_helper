@@ -20,12 +20,6 @@
     </header>
 
     <div class="function-section">
-      <NRadioGroup size="small" v-model:value="currentStyle">
-        <NRadioButton value="default">默认</NRadioButton>
-        <NRadioButton value="style1">样式一</NRadioButton>
-        <NRadioButton value="style2">样式二</NRadioButton>
-      </NRadioGroup>
-
       <div class="function-right">
         <ADatePicker
           format="YYYY/MM/DD"
@@ -35,13 +29,14 @@
           :disabled-date="disabledDate"
           @change="fetchBattleRecordsByDate"
         ></ADatePicker>
-        <NButton size="small" :disabled="loading" @click="handleRefresh">
+        <NButton class="action-btn refresh-btn" size="small" :disabled="loading" @click="handleRefresh">
           <template #icon>
             <NIcon><Refresh></Refresh></NIcon>
           </template>
           刷新
         </NButton>
         <NButton
+          class="action-btn export-btn"
           size="small"
           type="primary"
           :disabled="!hasBattleRecords || loading"
@@ -64,9 +59,9 @@
 
       <div ref="exportDom" v-else-if="hasBattleRecords" class="records-wrapper">
         <PeachBattleRecordsReport
+          variant="style1"
           :date="queryDate"
           :records="battleRecords"
-          :variant="currentStyle"
         ></PeachBattleRecordsReport>
       </div>
 
@@ -83,7 +78,7 @@
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { NRadioButton, NRadioGroup, useMessage } from "naive-ui";
+import { useMessage } from "naive-ui";
 import { Copy, DocumentText, Refresh } from "@vicons/ionicons5";
 import html2canvas from "html2canvas";
 import PeachBattleRecordsReport from "@/components/Club/PeachBattleRecordsReport.vue";
@@ -102,9 +97,6 @@ const exportDom = ref(null);
 const battleRecords = ref(null);
 const loading = ref(false);
 const queryDate = ref(getLastPeachBattleSunday());
-const currentStyle = ref(
-  localStorage.getItem("peach_battle_records_style") || "default",
-);
 const battleRequests = createLatestRequestController((isLoading) => {
   loading.value = isLoading;
 });
@@ -112,10 +104,6 @@ const battleRequests = createLatestRequestController((isLoading) => {
 const hasBattleRecords = computed(
   () => Boolean(battleRecords.value?.ownClub && battleRecords.value?.opponentClub),
 );
-
-watch(currentStyle, (newStyle) => {
-  localStorage.setItem("peach_battle_records_style", newStyle);
-});
 
 const disabledDate = (date) => date.getDay() !== 0 || date > Date.now();
 
@@ -272,9 +260,11 @@ watch(
 .header-title p { margin: var(--spacing-xs) 0 0; color: var(--text-secondary); font-size: var(--font-size-sm); }
 .stats-section { display: flex; align-items: center; gap: 8px; color: var(--text-secondary); font-size: var(--font-size-sm); }
 .stats-section strong { padding: 4px 8px; border: 1px solid var(--border-light); color: var(--text-primary); }
-.function-section { display: flex; min-width: 0; flex-shrink: 0; align-items: center; justify-content: space-between; gap: var(--spacing-md); padding: var(--spacing-md) var(--spacing-lg); border-bottom: 1px solid var(--border-light); background: var(--bg-secondary); }
+.function-section { display: flex; min-width: 0; flex-shrink: 0; align-items: center; justify-content: flex-end; gap: var(--spacing-md); padding: var(--spacing-md) var(--spacing-lg); border-bottom: 1px solid var(--border-light); background: var(--bg-secondary); }
 .function-right { display: flex; min-width: 0; align-items: center; gap: var(--spacing-sm); }
-.function-right :deep(.arco-picker) { width: 170px; }
+.function-right :deep(.arco-picker) { width: 200px; }
+.action-btn { padding: 6px 12px; border-radius: var(--border-radius-sm); font-size: var(--font-size-sm); transition: all var(--transition-fast); }
+.action-btn:hover { transform: translateY(-1px); }
 .battle-records-content { min-width: 0; box-sizing: border-box; flex: 1; overflow-y: auto; padding: var(--spacing-md); }
 .records-wrapper { width: 100%; min-width: 0; box-sizing: border-box; }
 .loading-state, .empty-state { display: flex; min-height: 200px; align-items: center; justify-content: center; }
@@ -283,8 +273,6 @@ watch(
   .header-section { align-items: flex-start; flex-direction: column; padding: var(--spacing-md); }
   .stats-section { width: 100%; justify-content: space-between; }
   .function-section { align-items: stretch; flex-direction: column; padding: var(--spacing-md); }
-  .function-section :deep(.n-radio-group) { display: flex; width: 100%; }
-  .function-section :deep(.n-radio-button) { flex: 1; }
   .function-right { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; }
   .function-right :deep(.arco-picker) { width: 100%; min-width: 0; }
   .battle-records-content { padding: var(--spacing-sm); }

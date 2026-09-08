@@ -11,11 +11,6 @@
         </div>
 
         <div class="header-actions">
-          <NRadioGroup size="small" v-model:value="currentStyle">
-            <NRadioButton value="default">默认</NRadioButton>
-            <NRadioButton value="style1">样式一</NRadioButton>
-            <NRadioButton value="style2">样式二</NRadioButton>
-          </NRadioGroup>
           <NButton size="small" :disabled="loading" @click="handleRefresh">
             <template #icon>
               <NIcon><Refresh></Refresh></NIcon>
@@ -45,13 +40,13 @@
 
         <div ref="exportDom" v-else-if="hasMonthlyRecords" class="records-list">
           <ClubMonthBattleRecordsReport
+            variant="style1"
             :battle-dates="battleDates"
             :club-name="clubName"
             :members="monthlySummary.members"
             :month="currentMonthDisplay"
             :report-records="monthlySummary.reportRecords"
             :stats="monthlySummary.stats"
-            :variant="currentStyle"
           ></ClubMonthBattleRecordsReport>
         </div>
 
@@ -69,7 +64,7 @@
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { NRadioButton, NRadioGroup, useMessage } from "naive-ui";
+import { useMessage } from "naive-ui";
 import { Copy, DocumentText, Refresh } from "@vicons/ionicons5";
 import html2canvas from "html2canvas";
 import ClubMonthBattleRecordsReport from "@/components/Club/ClubMonthBattleRecordsReport.vue";
@@ -89,9 +84,6 @@ const exportDom = ref(null);
 const monthlyBattleRecords = ref({});
 const battleDates = ref([]);
 const loading = ref(false);
-const currentStyle = ref(
-  localStorage.getItem("club_month_battle_records_style") || "default",
-);
 const monthlyRequests = createLatestRequestController((isLoading) => {
   loading.value = isLoading;
 });
@@ -106,10 +98,6 @@ const currentMonthDisplay = computed(() => formatClubBattleMonth());
 const clubName = computed(
   () => tokenStore.gameData?.legionInfo?.info?.name || "俱乐部",
 );
-
-watch(currentStyle, (newStyle) => {
-  localStorage.setItem("club_month_battle_records_style", newStyle);
-});
 
 const fetchBattleRecordsForDate = async (tokenId, date, isCurrentRequest) => {
   try {
@@ -236,8 +224,6 @@ watch(
 @media (max-width: 768px) {
   .header-section { align-items: flex-start; flex-direction: column; }
   .header-actions { display: grid; width: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .header-actions :deep(.n-radio-group) { display: flex; width: 100%; grid-column: 1 / -1; }
-  .header-actions :deep(.n-radio-button) { flex: 1; }
   .header-actions :deep(.n-button) { width: 100%; }
   .battle-records-content { padding: var(--spacing-sm); }
 }

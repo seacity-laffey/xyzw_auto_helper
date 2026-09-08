@@ -30,7 +30,7 @@ export const bossTimesOptions = [0, 1, 2, 3, 4].map((v) => ({
 
 // 可用的定时任务列表
 export const availableTasks = [
-  { label: "日常任务", value: "startBatch" },
+  { label: "执行账号日常模板", value: "startBatch" },
   { label: "领取挂机", value: "claimHangUpRewards" },
   { label: "一键加钟", value: "batchAddHangUpTime" },
   { label: "重置罐子", value: "resetBottles" },
@@ -58,7 +58,10 @@ export const availableTasks = [
   { label: "一键使用怪异塔道具", value: "batchUseItems" },
   { label: "一键怪异塔合成", value: "batchMergeItems" },
   { label: "一键领取蟠桃园任务", value: "batchClaimPeachTasks" },
-  { label: "一键扫荡灯神", value: "batchGenieSweep" },
+  { label: "一键免费灯神扫荡", value: "batchGenieSweep" },
+  { label: "一键使用灯神券", value: "batchUseGenieTickets" },
+  { label: "一键免费扭蛋", value: "batchFreeGacha" },
+  { label: "一键使用扭蛋币", value: "batchUseGachaCoins" },
   { label: "一键购买梦境商品", value: "batchBuyDreamItems" },
 ];
 

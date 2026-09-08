@@ -1,4 +1,5 @@
 import { ref } from "vue";
+import { createScheduledTaskParameters, readLegacyScheduledParameters } from "@/utils/scheduledTaskParameters";
 import { addTaskSaveLog } from "@/utils/batch";
 
 interface ScheduledTask extends Record<string, any> {
@@ -28,6 +29,7 @@ const retiredTaskNames = new Set([
 
 export const sanitizeScheduledTask = (
   task: Record<string, any>,
+  legacyParameters?: Record<string, any>,
 ): ScheduledTask => {
   const selectedTasks = Array.isArray(task?.selectedTasks)
     ? task.selectedTasks.filter(
@@ -37,6 +39,7 @@ export const sanitizeScheduledTask = (
 
   return {
     ...task,
+    parameters: createScheduledTaskParameters(task.parameters ?? legacyParameters ?? readLegacyScheduledParameters()),
     selectedTasks,
     enabled: selectedTasks.length > 0 ? Boolean(task.enabled) : false,
   } as ScheduledTask;
@@ -53,8 +56,14 @@ export const useScheduledTaskStorage = ({
       const saved = localStorage.getItem("scheduledTasks");
       const parsed = saved ? JSON.parse(saved) : [];
       scheduledTasks.value = Array.isArray(parsed)
-        ? parsed.map(sanitizeScheduledTask)
+        ? parsed.map((task) => sanitizeScheduledTask(task))
         : [];
+      if (Array.isArray(parsed) && parsed.some((task) => !task.parameters)) {
+        const backupKey = "scheduled-task-parameters-backup:v1";
+        if (!localStorage.getItem(backupKey))
+          localStorage.setItem(backupKey, JSON.stringify({ tasks: parsed, parameters: readLegacyScheduledParameters() }));
+        localStorage.setItem("scheduledTasks", JSON.stringify(scheduledTasks.value));
+      }
     } catch (error) {
       console.error("Failed to load scheduled tasks:", error);
       scheduledTasks.value = [];

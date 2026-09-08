@@ -1,5 +1,7 @@
 // @ts-nocheck
 import type { BatchTaskDeps } from "./types";
+import { canRunBlackMarketPurchase } from "../blackMarketPurchase";
+import { canClaimCollectionFreeReward } from "../dailyRewardEligibility";
 /**
  * 商店类任务
  * 包含: legion_storebuygoods, legionStoreBuySkinCoins, store_purchase, collection_claimfreereward
@@ -26,6 +28,7 @@ export function createTasksStore(deps: BatchTaskDeps) {
     message,
     currentRunningTokenId,
     delayConfig,
+    loadSettings,
   } = deps;
 
   /**
@@ -258,9 +261,17 @@ export function createTasksStore(deps: BatchTaskDeps) {
 
         addLog({
           time: new Date().toLocaleTimeString(),
-          message: `${token.name} 发送珍宝阁免费领取请求...`,
+          message: `${token.name} 读取珍宝阁免费奖励状态...`,
           type: "info",
         });
+        const collectionInfo = await tokenStore.sendMessageWithPromise(tokenId, "collection_goodslist", {}, 5000);
+        if (shouldStop.value)
+          return;
+        if (!canClaimCollectionFreeReward(collectionInfo)) {
+          tokenStatus.value[tokenId] = "skipped";
+          addLog({ time: new Date().toLocaleTimeString(), message: `${token.name} 珍宝阁今日已领取或状态不足，已跳过`, type: "info" });
+          return;
+        }
         const result = await tokenStore.sendMessageWithPromise(
           tokenId,
           "collection_claimfreereward",
@@ -315,15 +326,18 @@ export function createTasksStore(deps: BatchTaskDeps) {
    */
   const store_purchase = async () => {
     if (selectedTokens.value.length === 0) return;
+    const enabledAccounts = new Map(selectedTokens.value.map((id) => [id, loadSettings?.(id)?.blackMarketPurchase !== false]));
 
     isRunning.value = true;
     shouldStop.value = false;
 
     selectedTokens.value.forEach((id) => {
-      tokenStatus.value[id] = "waiting";
+      tokenStatus.value[id] = enabledAccounts.get(id) ? "waiting" : "skipped";
+      if (!enabledAccounts.get(id))
+        addLog({ time: new Date().toLocaleTimeString(), message: `${tokens.value.find((token) => token.id === id)?.name || id} 模板未启用黑市采购，已跳过`, type: "info" });
     });
 
-    const taskPromises = selectedTokens.value.map(async (tokenId) => {
+    const taskPromises = selectedTokens.value.filter((id) => enabledAccounts.get(id)).map(async (tokenId) => {
       if (shouldStop.value) return;
 
       tokenStatus.value[tokenId] = "running";
@@ -337,7 +351,28 @@ export function createTasksStore(deps: BatchTaskDeps) {
           type: "info",
         });
 
+        if (!enabledAccounts.get(tokenId)) {
+          tokenStatus.value[tokenId] = "skipped";
+          addLog({ time: new Date().toLocaleTimeString(), message: `${token.name} 执行模板未启用黑市采购，已跳过`, type: "info" });
+          return;
+        }
         await ensureConnection(tokenId);
+
+        const purchaseConfig = await tokenStore.sendMessageWithPromise(
+          tokenId,
+          "store_getpurchase",
+          {},
+          5000,
+        );
+        if (!canRunBlackMarketPurchase(purchaseConfig)) {
+          addLog({
+            time: new Date().toLocaleTimeString(),
+            message: `${token.name} 未配置黑市采购商品或采购次数，已跳过`,
+            type: "info",
+          });
+          tokenStatus.value[tokenId] = "completed";
+          return;
+        }
 
         addLog({
           time: new Date().toLocaleTimeString(),

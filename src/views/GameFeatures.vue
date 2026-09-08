@@ -69,7 +69,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useMessage } from "naive-ui";
 import { Gamepad2, LoaderCircle, Wifi, WifiOff } from "@lucide/vue";
@@ -86,6 +86,7 @@ const router = useRouter();
 const message = useMessage();
 const tokenStore = useTokenStore();
 const { getArrayBuffer } = useIndexedDB();
+const loginPending = ref(false);
 
 // 计算属性
 const connectionStatus = computed(() => {
@@ -97,9 +98,11 @@ const connectionStatus = computed(() => {
 const connectionStatusText = computed(() => {
   if (!tokenStore.selectedToken)
     return "未选择Token";
+  if (loginPending.value)
+    return "登录中";
   const labels = {
     connected: "已连接",
-    connecting: "连接中",
+    connecting: "登录中",
     disconnecting: "断开中",
     disconnected: "未连接",
     error: "连接失败",
@@ -112,46 +115,39 @@ const isConnected = computed(() => {
 });
 
 const isConnectionPending = computed(() => {
-  return ["connecting", "disconnecting"].includes(connectionStatus.value);
+  return loginPending.value || ["connecting", "disconnecting"].includes(connectionStatus.value);
 });
 
 const connectionActionText = computed(() => {
-  if (connectionStatus.value === "connecting")
-    return "上线中";
+  if (loginPending.value || connectionStatus.value === "connecting")
+    return "登录中";
   if (connectionStatus.value === "disconnecting")
     return "下线中";
   return isConnected.value ? "下线" : "上线";
 });
 
-const connectWebSocket = () => {
+const connectWebSocket = async () => {
   if (!tokenStore.selectedToken) {
     message.warning("请先选择一个Token");
     router.push("/tokens");
     return;
   }
 
+  loginPending.value = true;
   try {
     const tokenId = tokenStore.selectedToken.id;
     const token = tokenStore.selectedToken.token;
 
     // 使用 tokenStore 的 WebSocket 连接管理
-    tokenStore.createWebSocketConnection(
+    const client = await tokenStore.createWebSocketConnection(
       tokenId,
       token,
       tokenStore.selectedToken.wsUrl,
     );
-    message.info("正在建立 WebSocket 连接...");
-
-    // 等待连接建立
-    setTimeout(async () => {
-      const status = tokenStore.getWebSocketStatus(tokenId);
-      if (status === "connected") {
-        message.success("WebSocket 连接成功");
-        // 连接成功后自动初始化游戏数据
-        await initializeGameData();
-      }
-    }, 2000);
+    if (!client && !["connecting", "connected"].includes(connectionStatus.value))
+      loginPending.value = false;
   } catch (error) {
+    loginPending.value = false;
     console.error("WebSocket连接失败:", error);
     message.error("WebSocket连接失败");
   }
@@ -159,6 +155,7 @@ const connectWebSocket = () => {
 
 const disconnectWebSocket = () => {
   if (tokenStore.selectedToken) {
+    loginPending.value = false;
     const tokenId = tokenStore.selectedToken.id;
     tokenStore.closeWebSocketConnection(tokenId);
     message.info("WebSocket连接已断开");
@@ -256,6 +253,16 @@ const initializeGameData = async () => {
     // 静默处理初始化异常
   }
 };
+
+watch(connectionStatus, (status, previousStatus) => {
+  if (status === "connected" && previousStatus !== "connected") {
+    loginPending.value = false;
+    initializeGameData();
+    return;
+  }
+  if (["disconnected", "error"].includes(status))
+    loginPending.value = false;
+});
 </script>
 
 <style scoped lang="scss">

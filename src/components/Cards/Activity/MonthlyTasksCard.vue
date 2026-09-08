@@ -61,7 +61,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from "vue";
+import { ref, computed, watch } from "vue";
 import { useMessage } from "naive-ui";
 import { useTokenStore } from "@/stores/tokenStore";
 import { Button } from "@/components/ui/button";
@@ -126,6 +126,7 @@ const isArenaActivityOpen = computed(() => {
 });
 
 const fetchMonthlyActivity = async () => {
+  if (monthLoading.value) return;
   if (!tokenStore.selectedToken) return message.warning("请先选择Token");
   if (!isConnected.value) return;
   monthLoading.value = true;
@@ -316,24 +317,28 @@ const autoTopUpArena = async (need, shouldBe, target) => {
   }
 };
 
-const hasFetchedOnce = ref(false);
+const lastAutoFetchedTokenId = ref("");
 watch(
-  () =>
-    tokenStore.selectedToken
+  () => ({
+    status: tokenStore.selectedToken
       ? tokenStore.getWebSocketStatus(tokenStore.selectedToken.id)
       : "disconnected",
-  (status) => {
-    if (status === "connected" && !hasFetchedOnce.value) {
-      hasFetchedOnce.value = true;
-      fetchMonthlyActivity();
+    tokenId: tokenStore.selectedToken?.id || "",
+  }),
+  ({ status, tokenId }) => {
+    if (status !== "connected" || !tokenId) {
+      if (lastAutoFetchedTokenId.value === tokenId)
+        lastAutoFetchedTokenId.value = "";
+      return;
     }
+    if (lastAutoFetchedTokenId.value === tokenId)
+      return;
+
+    lastAutoFetchedTokenId.value = tokenId;
+    fetchMonthlyActivity();
   },
   { immediate: true },
 );
-
-onMounted(() => {
-  if (tokenStore.selectedToken && isConnected.value) fetchMonthlyActivity();
-});
 
 defineExpose({ fetchMonthlyActivity });
 </script>

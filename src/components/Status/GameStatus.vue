@@ -152,32 +152,15 @@
         </button>
       </nav>
 
-      <div v-if="peachSubTab === 'peach'" class="style-switch-bar">
-        <div aria-label="蟠桃园样式" class="segmented-control">
-          <button
-            v-for="item in styleOptions"
-            :key="item.value"
-            type="button"
-            :aria-pressed="peachStyle === item.value"
-            :class="{ active: peachStyle === item.value }"
-            @click="peachStyle = item.value"
-          >
-            {{ item.label }}
-          </button>
-        </div>
-      </div>
-
       <div v-if="peachSubTab === 'peachBattle'" class="warrank-full-container">
         <PeachBattleRecords></PeachBattleRecords>
       </div>
 
       <div
         v-if="peachSubTab === 'peach'"
-        class="warrank-full-container"
-        :class="{ 'style2-container': peachStyle === 'style2' }"
+        class="warrank-full-container style2-container"
       >
-        <PeachInfoV2 v-if="peachStyle === 'style2'"></PeachInfoV2>
-        <PeachInfo v-else></PeachInfo>
+        <PeachInfoV2></PeachInfoV2>
       </div>
     </div>
 
@@ -225,7 +208,7 @@
 </template>
 
 <script setup>
-import { computed, defineAsyncComponent, ref, watch } from "vue";
+import { computed, defineAsyncComponent, ref } from "vue";
 import { useTokenStore } from "@/stores/tokenStore";
 import IdentityCard from "../Common/IdentityCard.vue";
 
@@ -305,7 +288,6 @@ const LegionWarMap = defineAsyncComponent(
 const LegionWarStatistics = defineAsyncComponent(
   () => import("../Club/LegionWarStatistics.vue"),
 );
-const PeachInfo = defineAsyncComponent(() => import("../Club/PeachInfo.vue"));
 const PeachInfoV2 = defineAsyncComponent(
   () => import("../Club/PeachInfoV2.vue"),
 );
@@ -336,12 +318,8 @@ const activeSection = ref("daily");
 const saltFieldSubTab = ref("warrank");
 const peachSubTab = ref("peach");
 const rankSubTab = ref("serverrank");
-const peachStyle = ref(localStorage.getItem("peach_info_style") || "style1");
 
 localStorage.removeItem("club_warrank_style");
-watch(peachStyle, (style) => {
-  localStorage.setItem("peach_info_style", style);
-});
 
 const roleInfo = computed(() => {
   return tokenStore.gameData?.roleInfo || null;
@@ -384,10 +362,6 @@ const rankTabs = [
   { value: "topclubrank", label: "俱乐部榜" },
   { value: "goldclubrank", label: "黄金积分榜" },
   { value: "greatRouteRank", label: "伟大航路积分榜" },
-];
-const styleOptions = [
-  { value: "style1", label: "样式一" },
-  { value: "style2", label: "样式二" },
 ];
 </script>
 
@@ -496,13 +470,6 @@ const styleOptions = [
   }
 }
 
-.style-switch-bar {
-  display: flex;
-  justify-content: center;
-  padding: 0 8px 8px;
-  background: var(--bg-primary);
-}
-
 .sub-tabs {
   display: flex;
   justify-content: center;
@@ -517,8 +484,7 @@ const styleOptions = [
   display: none;
 }
 
-.sub-tabs button,
-.segmented-control button {
+.sub-tabs button {
   min-width: max-content;
   height: 32px;
   padding: 0 12px;
@@ -527,8 +493,7 @@ const styleOptions = [
   font-size: 13px;
 }
 
-.sub-tabs button:hover,
-.segmented-control button:hover {
+.sub-tabs button:hover {
   color: var(--foreground);
   background: var(--accent);
 }
@@ -536,19 +501,6 @@ const styleOptions = [
 .sub-tabs button.active {
   color: var(--foreground);
   border-bottom-color: var(--foreground);
-}
-
-.segmented-control {
-  display: inline-flex;
-  padding: 2px;
-  border: 1px solid var(--border-light);
-  background: var(--muted);
-}
-
-.segmented-control button.active {
-  border-color: var(--border-light);
-  background: var(--background);
-  color: var(--foreground);
 }
 
 .warrank-full-container.style2-container {

@@ -1,5 +1,4 @@
 import { reactive } from "vue";
-import { goldItemsConfig } from "@/utils/dreamConstants";
 
 export interface BatchRuntimeSettings {
   actionDelay: number;
@@ -26,11 +25,6 @@ export interface BatchRuntimeSettings {
   tokenListColumns: number;
 }
 
-const defaultDreamPurchaseList = () =>
-  Object.entries(goldItemsConfig).flatMap(([merchantId, indexes]) =>
-    indexes.map((itemIndex) => `${merchantId}-${itemIndex}`),
-  );
-
 const createDefaults = (): BatchRuntimeSettings => ({
   actionDelay: 300,
   battleDelay: 500,
@@ -39,7 +33,7 @@ const createDefaults = (): BatchRuntimeSettings => ({
   connectionTimeout: 10000,
   defaultBoxType: 2001,
   defaultFishType: 1,
-  dreamPurchaseList: defaultDreamPurchaseList(),
+  dreamPurchaseList: [],
   enableRefresh: false,
   fishCount: 100,
   longDelay: 3000,

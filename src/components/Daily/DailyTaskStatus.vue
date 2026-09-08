@@ -177,6 +177,10 @@
               <n-switch v-model:value="settings.claimEmail" />
             </div>
             <div class="switch-row">
+              <span class="switch-label">免费扭蛋</span>
+              <n-switch v-model:value="settings.freeGachaEnable" />
+            </div>
+            <div class="switch-row">
               <span class="switch-label">黑市购买物品</span>
               <n-switch v-model:value="settings.blackMarketPurchase" />
             </div>
@@ -317,6 +321,7 @@ const settings = reactive({
   arenaEnable: true,
   claimHangUp: true,
   claimEmail: true,
+  freeGachaEnable: true,
   blackMarketPurchase: true,
   commandDelay: 500,
   taskDelay: 500,
