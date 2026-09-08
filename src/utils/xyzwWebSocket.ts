@@ -387,6 +387,7 @@ export function registerDefaultCommands(reg: CommandRegistry) {
     // 俱乐部战
     .register("club_getinfo")
     .register("club_getdefenserecord")
+    .register("club_gettargetteam")
 
     // 珍宝阁相关
     .register("collection_claimfreereward")
@@ -1231,6 +1232,7 @@ export class XyzwWebSocketClient {
       // 俱乐部战
       club_getinforesp: "club_getinfo",
       club_getdefenserecordresp: "club_getdefenserecord",
+      club_gettargetteamresp: "club_gettargetteam",
       role_gettargetteamresp: "role_gettargetteam",
       activity_warorderclaimresp: "activity_recyclewarorderrewardclaim",
       // 功法相关响应映射

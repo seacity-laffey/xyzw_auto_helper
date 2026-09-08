@@ -17,7 +17,7 @@
     <template #default>
       <div v-if="!isConnected" class="battle-empty">当前账号未连接</div>
       <div v-else-if="errorText" class="battle-error">{{ errorText }}</div>
-      <div v-else class="battle-summary" :class="{ loading }">
+      <div v-else class="battle-summary" :class="{ 'battle-summary-loading': loading }">
         <div class="battle-total">
           <span>成功次数 / 总次数</span>
           <strong>
@@ -55,6 +55,45 @@
           </div>
         </dl>
       </div>
+      <section v-if="isConnected && !errorText" aria-label="俱乐部成员篝火次数" class="member-preview" :aria-busy="loading">
+        <p v-if="!loading && !exportRows.length">暂无俱乐部成员数据</p>
+        <section ref="exportDom" v-if="loading || exportRows.length" class="bonfire-export-sheet">
+          <header class="bonfire-export-header">
+            <div>
+              <span>CLUB BONFIRE</span>
+              <h2>{{ clubName }}篝火次数</h2>
+            </div>
+            <strong>{{ displayDate }}</strong>
+          </header>
+          <div class="bonfire-export-labels">
+            <span>成员</span>
+            <span>成功 / 总次数</span>
+          </div>
+          <div class="bonfire-export-grid">
+            <div
+              v-for="(member, index) in previewRows"
+              :key="member.roleId"
+              class="bonfire-member-row"
+              :class="{ unavailable: !loading && !member.available }"
+            >
+              <span class="bonfire-member-index">{{ index + 1 }}</span>
+              <strong :title="member.name"><span v-if="!member.name" aria-hidden="true" class="bonfire-skeleton skeleton-name"></span><template v-else>{{ member.name }}</template></strong>
+              <b><span v-if="loading" aria-hidden="true" class="bonfire-skeleton skeleton-count"></span><template v-else>{{ formatMemberCount(member) }}</template></b>
+            </div>
+          </div>
+          <footer>
+            <span>北京时间 {{ exportGeneratedTime }}</span>
+            <span v-if="loading" role="status">正在查询 {{ exportCompletedCount }}/{{ exportQueryCount }} 个据点</span>
+            <span v-else-if="failedTargetCount" role="status">{{ failedTargetCount }} 个据点查询失败，结果可能不完整</span>
+            <span v-else>全部据点查询完成</span>
+          </footer>
+        </section>
+      </section>
+      <ClubBonfireOpponents
+        v-if="isConnected && battleResponse"
+        :response="battleResponse"
+        :token-id="tokenId"
+      ></ClubBonfireOpponents>
     </template>
 
     <template #action>
@@ -68,7 +107,7 @@
       </Button>
       <Button
         size="sm"
-        :disabled="!isConnected || loading || exporting"
+        :disabled="!isConnected || loading || exporting || !exportRows.length"
         @click="exportMemberBattleCounts"
       >
         <Download></Download>
@@ -76,44 +115,6 @@
       </Button>
     </template>
   </MyCard>
-
-  <div ref="exportDom" aria-hidden="true" class="bonfire-export-host">
-    <section v-if="exportRows.length" class="bonfire-export-sheet">
-      <header class="bonfire-export-header">
-        <div>
-          <span>CLUB BONFIRE</span>
-          <h2>{{ clubName }}篝火次数</h2>
-        </div>
-        <strong>{{ displayDate }}</strong>
-      </header>
-
-      <div class="bonfire-export-labels">
-        <span>成员</span>
-        <span>成功 / 总次数</span>
-      </div>
-
-      <div class="bonfire-export-grid">
-        <div
-          v-for="(member, index) in exportRows"
-          :key="member.roleId"
-          class="bonfire-member-row"
-          :class="{ unavailable: !member.available }"
-        >
-          <span class="bonfire-member-index">{{ index + 1 }}</span>
-          <strong>{{ member.name }}</strong>
-          <b>{{ formatMemberCount(member) }}</b>
-        </div>
-      </div>
-
-      <footer>
-        <span>北京时间 {{ exportGeneratedTime }}</span>
-        <span v-if="failedTargetCount">
-          {{ failedTargetCount }} 个据点查询失败，结果可能不完整
-        </span>
-        <span v-else>全部据点查询完成</span>
-      </footer>
-    </section>
-  </div>
 </template>
 
 <script setup>
@@ -132,6 +133,7 @@ import {
 } from "@/utils/clubDailyBattle.js";
 import { downloadCanvasAsImage } from "@/utils/imageExport";
 import MyCard from "../Common/MyCard.vue";
+import ClubBonfireOpponents from "./ClubBonfireOpponents.vue";
 
 const tokenStore = useTokenStore();
 const message = useMessage();
@@ -140,6 +142,13 @@ const errorText = ref("");
 const loading = ref(false);
 const exporting = ref(false);
 const exportRows = ref([]);
+const previewRows = computed(() => {
+  if (!loading.value || exportRows.value.length)
+    return exportRows.value;
+  const body = battleResponse.value?.body || battleResponse.value;
+  const members = buildClubBattleExportRows(body || { club: { members: tokenStore.gameData?.legionInfo?.info?.members } });
+  return members.length ? members : Array.from({ length: 30 }, (_, index) => ({ roleId: `placeholder-${index}`, name: "" }));
+});
 const exportDom = ref(null);
 const exportCompletedCount = ref(0);
 const exportQueryCount = ref(0);
@@ -188,9 +197,7 @@ const exportGeneratedTime = computed(() =>
 const exportButtonText = computed(() => {
   if (!exporting.value)
     return "导出篝火次数";
-  if (exportQueryCount.value === 0)
-    return "正在准备";
-  return `查询中 ${exportCompletedCount.value}/${exportQueryCount.value}`;
+  return "正在导出";
 });
 const badgeText = computed(() => {
   if (!isConnected.value)
@@ -208,6 +215,9 @@ const fetchStats = async () => {
   const currentRequest = ++requestVersion;
   loading.value = true;
   errorText.value = "";
+  exportCompletedCount.value = 0;
+  exportQueryCount.value = 0;
+  failedTargetCount.value = 0;
   try {
     const response = await tokenStore.sendMessageWithPromise(
       currentTokenId,
@@ -217,6 +227,7 @@ const fetchStats = async () => {
     );
     if (currentRequest === requestVersion && currentTokenId === tokenId.value) {
       battleResponse.value = response;
+      await loadMemberBattleCounts(response, currentTokenId, currentRequest);
     }
     return response;
   } catch (error) {
@@ -231,11 +242,13 @@ const fetchStats = async () => {
   }
 };
 
-const queryTargetRecords = async (targetId) => {
+const queryTargetRecords = async (targetId, currentTokenId, currentRequest) => {
   for (let attempt = 0; attempt < 2; attempt++) {
+    if (currentRequest !== requestVersion)
+      return null;
     try {
       const response = await tokenStore.sendMessageWithPromise(
-        tokenId.value,
+        currentTokenId,
         "club_getdefenserecord",
         { targetId: Number(targetId) },
         10_000,
@@ -269,18 +282,12 @@ const runWithConcurrency = async (items, concurrency, worker) => {
 const formatMemberCount = (member) =>
   member.available ? `${member.successCount}/${member.attackCount}` : "--/--";
 
-const exportMemberBattleCounts = async () => {
-  if (!isConnected.value || exporting.value)
-    return;
-
-  exporting.value = true;
-  exportRows.value = [];
+const loadMemberBattleCounts = async (sourceResponse, currentTokenId, currentRequest) => {
   exportCompletedCount.value = 0;
   exportQueryCount.value = 0;
   failedTargetCount.value = 0;
 
   try {
-    const sourceResponse = battleResponse.value || (await fetchStats());
     const body = sourceResponse?.body || sourceResponse || {};
     const members = Object.values(body.club?.members || {});
     if (!members.length) {
@@ -291,13 +298,19 @@ const exportMemberBattleCounts = async () => {
     exportQueryCount.value = targetIds.length;
     const recordResponses = [];
     await runWithConcurrency(targetIds, 1, async (targetId) => {
-      const result = await queryTargetRecords(targetId);
+      if (currentRequest !== requestVersion)
+        return;
+      const result = await queryTargetRecords(targetId, currentTokenId, currentRequest);
+      if (currentRequest !== requestVersion)
+        return;
       if (result)
         recordResponses.push(result);
       else
         failedTargetCount.value++;
       exportCompletedCount.value++;
     });
+    if (currentRequest !== requestVersion)
+      return;
 
     const historyStats = aggregateClubBattleRecordStats(
       recordResponses,
@@ -321,12 +334,24 @@ const exportMemberBattleCounts = async () => {
 
     exportRows.value = buildClubBattleExportRows(sourceResponse, statsByRoleId);
     exportGeneratedAt.value = new Date();
+  } catch (error) {
+    if (currentRequest === requestVersion)
+      throw error;
+  }
+};
+
+const exportMemberBattleCounts = async () => {
+  if (!isConnected.value || loading.value || exporting.value || !exportRows.value.length)
+    return;
+  const currentRequest = requestVersion;
+  exporting.value = true;
+  try {
     await nextTick();
     await document.fonts?.ready;
 
     if (!exportDom.value)
       throw new Error("导出内容尚未渲染");
-    const sheet = exportDom.value.querySelector(".bonfire-export-sheet");
+    const sheet = exportDom.value;
     if (!sheet)
       throw new Error("导出内容尚未渲染");
     const canvas = await html2canvas(sheet, {
@@ -335,6 +360,8 @@ const exportMemberBattleCounts = async () => {
       backgroundColor: "#fff1f5",
       logging: false,
     });
+    if (currentRequest !== requestVersion)
+      return;
     const safeClubName = clubName.value.replace(/[\\/:*?"<>|]/g, "_");
     downloadCanvasAsImage(
       canvas,
@@ -349,9 +376,10 @@ const exportMemberBattleCounts = async () => {
       message.success("俱乐部篝火次数导出成功");
     }
   } catch (error) {
-    errorText.value = error instanceof Error ? error.message : "导出失败";
+    const exportError = error instanceof Error ? error.message : "导出失败";
     console.error("导出俱乐部篝火次数失败", error);
-    message.error(errorText.value);
+    if (currentRequest === requestVersion)
+      message.error(exportError);
   } finally {
     exporting.value = false;
   }
@@ -368,6 +396,10 @@ watch(
     ) {
       requestVersion++;
       battleResponse.value = null;
+      exportRows.value = [];
+      exportGeneratedAt.value = null;
+      failedTargetCount.value = 0;
+      loading.value = false;
       errorText.value = "";
     }
     if (nextTokenId && nextStatus === "connected")
@@ -383,22 +415,18 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped lang="scss">
+.member-preview {
+  margin-top: 24px;
+  min-width: 0;
+}
 .club-daily-battle {
   .status-icon :deep(svg) {
     color: var(--success-color);
   }
 }
 
-.bonfire-export-host {
-  position: fixed;
-  top: 0;
-  left: -10000px;
-  width: 760px;
-  pointer-events: none;
-}
-
 .bonfire-export-sheet {
-  width: 760px;
+  width: 100%;
   padding: 38px;
   border: 1px solid #f2becd;
   background: #fff1f5;
@@ -424,11 +452,13 @@ onBeforeUnmount(() => {
 .bonfire-export-header h2 {
   margin: 5px 0 0;
   color: #5d3642;
-  font-size: 28px;
+  font-size: 24px;
+  overflow-wrap: anywhere;
   letter-spacing: 0;
 }
 
 .bonfire-export-header > strong {
+  flex-shrink: 0;
   color: #8e5264;
   font-size: 18px;
 }
@@ -447,6 +477,19 @@ onBeforeUnmount(() => {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
+
+.bonfire-skeleton {
+  display: inline-block;
+  vertical-align: middle;
+  height: 18px;
+  border-radius: 3px;
+  background: #edc8d3;
+  animation: bonfire-pulse 1.4s ease-in-out infinite;
+}
+.skeleton-name { width: 80px; max-width: 100%; }
+.skeleton-count { width: 44px; }
+@keyframes bonfire-pulse { 50% { opacity: 0.45; } }
+@media (prefers-reduced-motion: reduce) { .bonfire-skeleton { animation: none; } }
 
 .bonfire-member-row {
   display: grid;
@@ -492,6 +535,7 @@ onBeforeUnmount(() => {
 
 .bonfire-export-sheet footer {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: 20px;
   margin-top: 20px;
@@ -520,7 +564,7 @@ onBeforeUnmount(() => {
   transition: opacity var(--transition-fast);
 }
 
-.battle-summary.loading {
+.battle-summary.battle-summary-loading {
   opacity: 0.55;
 }
 
@@ -644,6 +688,24 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 480px) {
+  .bonfire-export-sheet {
+    padding: 16px;
+  }
+
+  .bonfire-export-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .bonfire-export-header h2 {
+    font-size: 20px;
+  }
+
+  .bonfire-export-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .battle-total {
     align-items: flex-start;
     flex-direction: column;

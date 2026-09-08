@@ -1,5 +1,36 @@
 const GAME_TIME_ZONE = "Asia/Shanghai";
 
+// ClubWarSlotConf: each theater has ten positions; 3 is commander, 2/4/8 are generals.
+export function getTodayClubBattleOpponent(response, date = new Date()) {
+  const body = response?.body || response || {};
+  const day = getClubBattleDayKey(date);
+  const utcDay = Date.UTC(2000 + Number(day.slice(0, 2)), Number(day.slice(2, 4)) - 1, Number(day.slice(4, 6)));
+  const weekday = new Date(utcDay).getUTCDay();
+  if (![2, 3, 4].includes(weekday))
+    return null;
+  const monday = new Date(utcDay - (weekday - 1) * 86400000);
+  const phase = `${String(monday.getUTCFullYear()).slice(-2)}${String(monday.getUTCMonth() + 1).padStart(2, "0")}${String(monday.getUTCDate()).padStart(2, "0")}`;
+  if (String(body.club?.phase) !== phase)
+    return null;
+  const club = body.club?.oppoMap?.[weekday];
+  if (!club)
+    return null;
+  return {
+    ...club,
+    regions: Array.from({ length: 3 }, (_, region) => ({
+      id: region + 1,
+      slots: Array.from({ length: 10 }, (_, position) => {
+        const slot = region * 10 + position + 1;
+        return {
+          slot,
+          title: position === 2 ? "统帅" : [1, 3, 7].includes(position) ? "骁将" : "先锋",
+          member: club.defenders?.[slot] || null,
+        };
+      }),
+    })),
+  };
+}
+
 export function getClubBattleDayKey(date = new Date()) {
   const parts = new Intl.DateTimeFormat("en-GB", {
     timeZone: GAME_TIME_ZONE,

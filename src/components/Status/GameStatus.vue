@@ -438,10 +438,8 @@ const styleOptions = [
 }
 
 .game-status-container.club-mode {
-  @media (min-width: 1400px) {
-    grid-template-columns: repeat(2, 1fr);
-    max-width: 100% !important;
-  }
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 100% !important;
 }
 
 .section-tabs {
