@@ -1,4 +1,7 @@
 html {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
   -ms-touch-action: none;
 }
 
@@ -24,6 +27,7 @@ input::-webkit-inner-spin-button {
 }
 
 body {
+  overscroll-behavior: none;
   position: absolute;
   top: 0;
   left: 0;
@@ -121,4 +125,9 @@ p.footer {
 
 @keyframes animate-stripes {
     0% {background-position: 0 0;} 100% {background-position: 60px 0;}
+}
+
+/* 游戏浮窗到达滚动边界后，不把余下滚动传给外层多开列表。 */
+body div {
+  overscroll-behavior: contain;
 }

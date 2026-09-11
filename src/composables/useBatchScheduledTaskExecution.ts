@@ -1,7 +1,7 @@
 import type { Ref } from "vue";
 import { ref } from "vue";
 import { createScheduledTaskParameters, readLegacyScheduledParameters, validateScheduledTaskParameters } from "@/utils/scheduledTaskParameters";
-import { availableTasks } from "@/utils/batch";
+import { availableTasks, isInTaskBlackout } from "@/utils/batch";
 import type {
   BatchLogEntry,
   BatchMessageApi,
@@ -23,6 +23,7 @@ interface ScheduledTaskExecutionOptions {
   dreamActivityOpen: Ref<boolean>;
   getTaskFunction: (taskName: string) => ((...args: any[]) => any) | undefined;
   isRunning: Ref<boolean>;
+  scheduledRunning?: Ref<boolean>;
   message: BatchMessageApi;
   selectedTokens: Ref<string[]>;
   shouldStop: Ref<boolean>;
@@ -45,6 +46,7 @@ export const useBatchScheduledTaskExecution = ({
   dreamActivityOpen,
   getTaskFunction,
   isRunning,
+  scheduledRunning = ref(false),
   message,
   selectedTokens,
   shouldStop,
@@ -121,6 +123,12 @@ export const useBatchScheduledTaskExecution = ({
   };
 
   const executeScheduledTask = async (task: ScheduledTask) => {
+    if (scheduledRunning.value || isRunning.value)
+      return;
+    if (isInTaskBlackout(task))
+      throw new Error("当前处于本任务的禁止上线时段，已跳过执行");
+    scheduledRunning.value = true;
+    shouldStop.value = false;
     addLog({
       time: new Date().toLocaleTimeString(),
       message: `=== 开始执行定时任务: ${task.name} ===`,
@@ -167,9 +175,13 @@ export const useBatchScheduledTaskExecution = ({
       }
 
       selectedTokens.value = [...availableTokens];
-      await Promise.all(task.selectedTasks.map(async (taskName) => {
+      for (const taskName of task.selectedTasks) {
         if (shouldStop.value)
-          return;
+          continue;
+        if (isInTaskBlackout(task)) {
+          addLog({ time: new Date().toLocaleTimeString(), message: `定时任务 ${task.name} 已进入禁止上线时段，停止后续任务`, type: "warning" });
+          break;
+        }
 
         if (
           ["batchmengjing", "batchBuyDreamItems"].includes(taskName)
@@ -180,7 +192,7 @@ export const useBatchScheduledTaskExecution = ({
             message: `跳过任务: ${taskLabel(taskName)} (不在梦境开放时间)`,
             type: "warning",
           });
-          return;
+          continue;
         }
 
         if (
@@ -192,7 +204,7 @@ export const useBatchScheduledTaskExecution = ({
             message: `跳过任务: ${taskLabel(taskName)} (不在竞技场开放时间)`,
             type: "warning",
           });
-          return;
+          continue;
         }
 
         if (
@@ -209,7 +221,7 @@ export const useBatchScheduledTaskExecution = ({
             message: `跳过任务: ${taskLabel(taskName)} (不在怪异塔开放时间)`,
             type: "warning",
           });
-          return;
+          continue;
         }
 
         addLog({
@@ -225,14 +237,14 @@ export const useBatchScheduledTaskExecution = ({
             message: `任务函数不存在: ${taskName}`,
             type: "error",
           });
-          return;
+          continue;
         }
 
         if (scheduledArgumentTasks.has(taskName))
           await taskFunction(true, { ...parameters });
         else
           await taskFunction();
-      }));
+      }
 
       addLog({
         time: new Date().toLocaleTimeString(),
@@ -246,15 +258,15 @@ export const useBatchScheduledTaskExecution = ({
         message: `=== 定时任务执行失败: ${reason} ===`,
         type: "error",
       });
-      console.error(
-        `[${new Date().toISOString()}] Error executing scheduled task ${task.name}:`,
-        error,
-      );
+      throw error;
+    } finally {
+      scheduledRunning.value = false;
+      isRunning.value = false;
     }
   };
 
   const manualExecuteTask = async (task: ScheduledTask) => {
-    if (executingTaskIds.value.includes(task.id))
+    if (scheduledRunning.value || isRunning.value || executingTaskIds.value.includes(task.id))
       return;
 
     if (!isRunning.value && shouldStop.value)

@@ -80,6 +80,13 @@ After deployment:
    Worker proxy.
 4. Use the Pages **Deployments** screen to roll back if any check fails.
 
+## Windows Desktop
+
+The Electron application packages the helper and game assets as a Windows x64
+ZIP. Extract the entire archive and run `XYZWHelper.exe`; Node.js, Docker and
+Cloudflare Worker are not required at runtime. See the
+[desktop guide](desktop/README.md) for building, migration and scheduled tasks.
+
 ## Legacy Paths
 
 - `docker/` is a static Nginx compatibility deployment. It does not execute the

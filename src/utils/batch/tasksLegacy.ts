@@ -2,9 +2,7 @@
 import type { BatchTaskDeps } from "./types";
 import { createScheduledTaskParameters, validateScheduledTaskParameters } from "../scheduledTaskParameters";
 
-// ModuleConf 10139（功法）、10140（赠礼）的解锁条件相同。
-const isLegacyUnlocked = (role) =>
-  Number(role?.level) >= 6000 && Number(role?.levelId) >= 8001;
+import { isLegacyUnlocked } from "../dailyRewardEligibility";
 /**
  * 功法类任务
  * 包含: batchLegacyClaim, batchLegacyGiftSendEnhanced
@@ -41,7 +39,8 @@ export function createTasksLegacy(deps: BatchTaskDeps) {
    * 批量领取功法残卷
    */
   const batchLegacyClaim = async () => {
-    if (selectedTokens.value.length === 0) return;
+    if (selectedTokens.value.length === 0)
+      return;
     isRunning.value = true;
     shouldStop.value = false;
 
@@ -50,7 +49,8 @@ export function createTasksLegacy(deps: BatchTaskDeps) {
     });
 
     const taskPromises = selectedTokens.value.map(async (tokenId) => {
-      if (shouldStop.value) return;
+      if (shouldStop.value)
+        return;
       tokenStatus.value[tokenId] = "running";
 
       const token = tokens.value.find((t) => t.id === tokenId);
@@ -165,7 +165,8 @@ export function createTasksLegacy(deps: BatchTaskDeps) {
 
     const taskPromises = selectedTokens.value.map(async (tokenId) => {
       const giftConfig = { ...baseGiftConfig };
-      if (shouldStop.value) return;
+      if (shouldStop.value)
+        return;
       tokenStatus.value[tokenId] = "running";
 
       const token = tokens.value.find((t) => t.id === tokenId);
@@ -190,8 +191,8 @@ export function createTasksLegacy(deps: BatchTaskDeps) {
             addLog({ time: new Date().toLocaleTimeString(), message: `${token.name} 功法残卷赠送功能未解锁或状态不足，已跳过（需等级6000、关卡8001）`, type: "warning" });
             break;
           }
-          const legacyFragmentCount =
-            Math.min(
+          const legacyFragmentCount
+            = Math.min(
               roleInfo?.role?.items?.[giftConfig.itemId]?.quantity,
               9999,
             ) || 0;
@@ -254,7 +255,7 @@ export function createTasksLegacy(deps: BatchTaskDeps) {
             tokenId,
             "role_commitpassword",
             {
-              password: password,
+              password,
               passwordType: 1,
             },
             5000,

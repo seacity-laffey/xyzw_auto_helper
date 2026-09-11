@@ -89,3 +89,15 @@ test("batch execution snapshots all account templates before any account starts"
   assert.deepEqual(calls.sort(), ["a", "b"]);
   assert.equal(config.resolveAccountTaskSettings("a").shareEnable, false);
 });
+
+test("legacy claiming defaults on for existing templates while explicit opt-out survives normalization", t => {
+  const put = storage(t);
+  put("task-templates", [
+    { id: config.SYSTEM_TEMPLATE_ID, name: "Existing", settings: { openBox: false } },
+    { id: "opt-out", name: "Disabled", settings: { legacyClaimEnable: false } },
+  ]);
+  const templates = config.loadTaskTemplates();
+  assert.equal(templates[0].settings.legacyClaimEnable, true);
+  assert.equal(templates[0].settings.openBox, false);
+  assert.equal(templates[1].settings.legacyClaimEnable, false);
+});

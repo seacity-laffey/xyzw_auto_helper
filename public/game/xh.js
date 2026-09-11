@@ -2057,6 +2057,7 @@
         this.lastMoveTime = 0;
         this.moveThreshold = 5;
         this.hasMoved = false;
+        this.moveDistance = 0;
         
         this.init();
       }
@@ -2095,6 +2096,7 @@
       startDragging(clientX, clientY, originalEvent) {
         this.isDragging = true;
         this.hasMoved = false;
+        this.moveDistance = 0;
         this.startX = clientX;
         this.startY = clientY;
         
@@ -2121,14 +2123,12 @@
       
       handleMove(e) {
         if (!this.isDragging || this.isTouchDevice) return;
-        this.hasMoved = true;
         this.updatePosition(e.clientX, e.clientY);
         e.preventDefault();
       }
       
       handleTouchMove(e) {
         if (!this.isDragging || !this.isTouchDevice) return;
-        this.hasMoved = true;
         
         let touch = null;
         for (let i = 0; i < e.touches.length; i++) {
@@ -2144,6 +2144,10 @@
       }
       
       updatePosition(clientX, clientY) {
+        // 以指针位移区分点击和拖动，避免 right 定位、缩放或边界限制造成误判。
+        this.moveDistance = Math.max(this.moveDistance, Math.hypot(clientX - this.startX, clientY - this.startY));
+        if (this.moveDistance < this.moveThreshold) return;
+        this.hasMoved = true;
         const now = Date.now();
         
         if (this.isTouchDevice && now - this.lastMoveTime < 16) {
@@ -2207,14 +2211,16 @@
         const left = parseFloat(this.element.style.left) || 0;
         const top = parseFloat(this.element.style.top) || 0;
         
-        localStorage.setItem('scriptToolPosition', JSON.stringify({
-          left: left + 'px',
-          top: top + 'px'
-        }));
+        if (this.hasMoved) {
+          localStorage.setItem('scriptToolPosition', JSON.stringify({
+            left: left + 'px',
+            top: top + 'px'
+          }));
+        }
         
         const moveDistance = this.calculateMoveDistance();
         
-        if (this.onDragCallback && this.onDragCallback.onEnd) {
+        if (originalEvent.type !== 'touchcancel' && this.onDragCallback && this.onDragCallback.onEnd) {
           this.onDragCallback.onEnd(originalEvent, moveDistance);
         }
         
@@ -2222,12 +2228,7 @@
       }
       
       calculateMoveDistance() {
-        const currentLeft = parseFloat(this.element.style.left) || 0;
-        const currentTop = parseFloat(this.element.style.top) || 0;
-        
-        const deltaX = Math.abs(currentLeft - this.startLeft);
-        const deltaY = Math.abs(currentTop - this.startTop);
-        return Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        return this.moveDistance;
       }
       
       destroy() {
@@ -2636,6 +2637,9 @@
         toggleBtn.id = 'script-tool-toggle';
         toggleBtn.className = 'script-tool-toggle';
         toggleBtn.textContent = '❄️';
+        toggleBtn.title = '脚本管理';
+        toggleBtn.setAttribute('aria-label', '脚本管理');
+        toggleBtn.setAttribute('aria-expanded', 'false');
         document.body.appendChild(toggleBtn);
         
         // 创建工具容器
@@ -2737,6 +2741,10 @@
       
       bindEvents() {
         // 注意：点击事件由 DragManager 的 onEnd 回调处理，这里不再重复绑定
+        document.getElementById('script-tool-toggle').addEventListener('click', (event) => {
+          // 键盘或辅助技术触发的 click 没有对应的鼠标拖动事件。
+          if (event.detail === 0) this.togglePanel();
+        });
         
         document.getElementById('import-script-btn').addEventListener('click', () => {
           this.openFileSelect();
@@ -2895,6 +2903,7 @@
         
         panel.classList.add('show');
         toggleBtn.style.display = 'none';
+        toggleBtn.setAttribute('aria-expanded', 'true');
         
         this.bindPanelHeaderCloseEvent();
         
@@ -2912,6 +2921,7 @@
         
         panel.classList.remove('show');
         toggleBtn.style.display = 'flex';
+        toggleBtn.setAttribute('aria-expanded', 'false');
       }
       
       adjustMobilePanelPosition() {

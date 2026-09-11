@@ -48,7 +48,7 @@ function createManualChunks(id) {
   return undefined;
 }
 
-export default defineConfig(async ({ command }) => {
+export default defineConfig(async ({ command, mode }) => {
   const isServe = command === 'serve';
 
   const basicSslModule = isServe ? await safeImport('@vitejs/plugin-basic-ssl', 'dev HTTPS support') : null;
@@ -95,6 +95,7 @@ export default defineConfig(async ({ command }) => {
     {
       name: 'copy-worker',
       closeBundle() {
+        if (mode === 'desktop') return;
         try {
           const src = path.resolve(__dirname, 'worker.js');
           // Cloudflare Pages Advanced Mode expects _worker.js
@@ -188,6 +189,7 @@ export default defineConfig(async ({ command }) => {
     build: {
       chunkSizeWarningLimit: 5000,
       rollupOptions: {
+        input: { app: path.resolve(__dirname, "index.html"), migration: path.resolve(__dirname, "migration.html") },
         output: {
           manualChunks: createManualChunks,
         },

@@ -5,16 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>XYZW 助手</title>
     <link rel="icon" type="image/png" href="/icons/xiaoyugan.png" />
-    <script>
-      try {
-        const theme = localStorage.getItem("theme");
-        const prefersDark = window.matchMedia(
-          "(prefers-color-scheme: dark)",
-        ).matches;
-        if (theme === "dark" || (theme !== "light" && prefersDark))
-          document.documentElement.setAttribute("data-theme", "dark");
-      } catch {}
-    </script>
+    <script src="/theme-init.js"></script>
     <style>
       :root {
         color: #202020;

@@ -68,3 +68,30 @@ export const availableTasks = [
 // 月度任务目标
 export const FISH_TARGET = 320;
 export const ARENA_TARGET = 240;
+
+// 系统模板仅提供创建表单的默认值，不写入定时任务列表，也不默认选择账号。
+export const BUILTIN_SCHEDULE_TEMPLATES = Object.freeze([
+  Object.freeze({
+    id: "bottle-every-seven-hours",
+    name: "每 7 小时重置罐子",
+    intervalMinutes: 420,
+    selectedTasks: Object.freeze(["resetBottles"]),
+  }),
+  Object.freeze({
+    id: "hangup-every-eight-hours-five-minutes",
+    name: "每 8 小时 05 分领取挂机并加钟",
+    intervalMinutes: 485,
+    selectedTasks: Object.freeze(["claimHangUpRewards", "batchAddHangUpTime"]),
+  }),
+  Object.freeze({
+    id: "legacy-every-six-hours",
+    name: "每 6 小时领取功法残卷",
+    intervalMinutes: 360,
+    selectedTasks: Object.freeze(["batchLegacyClaim"]),
+  }),
+]);
+
+export const DEFAULT_SCHEDULE_BLACKOUTS = Object.freeze([
+  Object.freeze({ weekday: 6, start: "19:50", end: "21:00" }),
+  Object.freeze({ weekday: 0, start: "19:50", end: "20:30" }),
+]);

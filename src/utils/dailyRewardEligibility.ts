@@ -142,3 +142,69 @@ export const hasClaimableMailAttachment = (response: unknown) => {
       && Number(record.state) !== 3;
   });
 };
+
+// DailyTaskConf：进度按 completeCondition 保存，领取接口必须传配置 id。
+const DAILY_TASK_TARGETS = [
+  { taskId: 1, conditionId: 1, target: 1 },
+  { taskId: 2, conditionId: 2, target: 1 },
+  { taskId: 3, conditionId: 3, target: 3 },
+  { taskId: 4, conditionId: 4, target: 2 },
+  { taskId: 5, conditionId: 5, target: 5 },
+  { taskId: 6, conditionId: 6, target: 3 },
+  { taskId: 7, conditionId: 7, target: 3 },
+  { taskId: 8, conditionId: 13, target: 1 },
+  { taskId: 9, conditionId: 12, target: 1 },
+  { taskId: 10, conditionId: 14, target: 1 },
+];
+
+export const getClaimableDailyTaskIds = (complete: Record<string, unknown> | null | undefined) =>
+  DAILY_TASK_TARGETS
+    .filter(({ conditionId, target }) => {
+      const progress = Number(complete?.[conditionId]);
+      return Number.isFinite(progress) && progress >= target;
+    })
+    .map(({ taskId }) => taskId);
+
+export const canRecruitForFree = (statistics: NumericMap, now = new Date()) => {
+  if (!statistics || typeof statistics !== "object")
+    return false;
+  // RecruitModule 使用 Statistics.RecruitOneFree 的秒级时间戳，按游戏日期每日重置。
+  const timestamp = Number(statistics["recruit:one:free"] ?? 0);
+  if (!Number.isFinite(timestamp) || timestamp < 0 || timestamp * 1000 > now.getTime())
+    return false;
+  if (timestamp === 0)
+    return true;
+  const format = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai" });
+  return format.format(new Date(timestamp * 1000)) !== format.format(now);
+};
+
+export const canClaimArenaPassReward = (
+  role: { items?: Record<string, { quantity?: unknown }> } | null | undefined,
+  response: unknown,
+) => {
+  const activity = response && typeof response === "object"
+    ? (response as Record<string, any>).activity
+    : null;
+  const pass = activity?.warOrderActivityInfo?.[1];
+  if (!pass || !pass.rewardClaimed || typeof pass.rewardClaimed !== "object" || !role?.items)
+    return false;
+  // ActArenaBattlePassData：活动 1 使用道具 4203 的数量；每级 40 点，共 99 级。
+  // BattlePassConf：1～60 级有免费奖励，61～99 级只有付费奖励。
+  const points = Number(role.items[4203]?.quantity ?? 0);
+  if (!Number.isFinite(points) || points < 40)
+    return false;
+  const earnedLevel = Math.min(99, Math.floor(points / 40));
+  for (let level = 1; level <= earnedLevel; level++) {
+    // EMWarOrderRewardClaimedType：0 未领取，1 已领免费，2 已领付费。
+    const claimed = Number(pass.rewardClaimed[level] ?? 0);
+    if (![0, 1, 2].includes(claimed))
+      continue;
+    if ((level <= 60 && claimed === 0) || (pass.purchased === true && claimed < 2))
+      return true;
+  }
+  return false;
+};
+
+// ModuleConf 10139（功法）、10140（赠礼）的解锁条件相同。
+export const isLegacyUnlocked = (role: { level?: unknown; levelId?: unknown } | null | undefined) =>
+  Number(role?.level) >= 6000 && Number(role?.levelId) >= 8001;

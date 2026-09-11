@@ -3,22 +3,27 @@ import { canRunBlackMarketPurchase } from "./blackMarketPurchase";
 import { getTemplateTaskSummary, resolveAccountTaskSettings } from "./taskTemplateConfig";
 import { isDungeonOpen } from "./dreamConstants";
 import {
+  canClaimArenaPassReward,
   canClaimCardReward,
   canClaimClubSignIn,
   canClaimCollectionFreeReward,
   canClaimDailyDiscount,
   canClaimSystemSignIn,
   canDrawFreeGacha,
+  canRecruitForFree,
   canStartDailyDungeon,
   canSweepDeepSea,
+  getClaimableDailyTaskIds,
   getRemainingFreeSweepTickets,
   hasClaimableMailAttachment,
   hasClaimablePointReward,
+  isLegacyUnlocked,
 } from "./dailyRewardEligibility";
 
 // 辅助函数
 const pickArenaTargetId = (targets) => {
-  if (!targets) return null;
+  if (!targets)
+    return null;
 
   // Handle if targets is an array directly
   if (Array.isArray(targets)) {
@@ -34,16 +39,20 @@ const pickArenaTargetId = (targets) => {
       || targets?.list?.[0];
 
   if (candidate) {
-    if (candidate.roleId) return candidate.roleId;
-    if (candidate.id) return candidate.id;
-    if (candidate.targetId) return candidate.targetId;
+    if (candidate.roleId)
+      return candidate.roleId;
+    if (candidate.id)
+      return candidate.id;
+    if (candidate.targetId)
+      return candidate.targetId;
   }
 
   return targets?.roleId || targets?.id || targets?.targetId;
 };
 
 const isTodayAvailable = (statisticsTime) => {
-  if (!statisticsTime) return true;
+  if (!statisticsTime)
+    return true;
 
   // 如果有时间戳，检查是否为今天
   const today = new Date().toDateString();
@@ -72,7 +81,7 @@ export class DailyTaskRunner {
     if (this.callbacks?.onLog) {
       this.callbacks.onLog({
         time: new Date().toLocaleTimeString(),
-        message,
+        message: this.accountName ? `[${this.accountName}] ${message}` : message,
         type,
       });
     }
@@ -86,7 +95,8 @@ export class DailyTaskRunner {
     timeout = 8000,
   ) {
     try {
-      if (description) this.log(`执行: ${description}`);
+      if (description)
+        this.log(`执行: ${description}`);
       const result = await this.tokenStore.sendMessageWithPromise(
         tokenId,
         cmd,
@@ -94,13 +104,12 @@ export class DailyTaskRunner {
         timeout,
       );
       await new Promise((resolve) => setTimeout(resolve, this.delaySettings.commandDelay));
-      if (description) this.log(`${description} - 成功`, "success");
+      if (description)
+        this.log(`${description} - 成功`, "success");
       return result;
     } catch (error) {
       if (description) {
-        const token = this.tokenStore.gameTokens.find((t) => t.id === tokenId);
-        const tokenName = token?.name || tokenId;
-        this.log(`[${tokenName}] ${description} - 失败: ${error.message}`, "error");
+        this.log(`${description} - 失败: ${error.message}`, "error");
       }
       throw error;
     }
@@ -165,6 +174,57 @@ export class DailyTaskRunner {
     }
   }
 
+  async readDailyRewardState(tokenId) {
+    this.log("刷新每日任务和活跃积分状态...");
+    const response = await this.tokenStore.sendGetRoleInfo(tokenId);
+    const dailyTask = response?.role?.dailyTask;
+    if (!dailyTask || typeof dailyTask !== "object")
+      throw new Error("服务端未返回每日任务状态，停止本次奖励领取");
+    return dailyTask;
+  }
+
+  async claimTaskRewards(tokenId, settings) {
+    let dailyTask = await this.readDailyRewardState(tokenId);
+    if (settings.dailyPointEnable !== false) {
+      if (!dailyTask.complete || typeof dailyTask.complete !== "object")
+        throw new Error("服务端未返回单项任务进度，停止本次奖励领取");
+      const taskIds = getClaimableDailyTaskIds(dailyTask.complete);
+      if (!taskIds.length)
+        this.log("当前没有已完成且未领取的单项任务奖励");
+      for (const taskId of taskIds) {
+        try {
+          await this.executeGameCommand(tokenId, "task_claimdailypoint", { taskId }, `领取任务奖励${taskId}`);
+        } catch {
+          // executeGameCommand 已记录账号及错误；其他任务继续独立领取。
+        }
+      }
+    }
+
+    const claimDaily = settings.dailyRewardEnable !== false;
+    const claimWeekly = settings.weeklyRewardEnable !== false;
+    if (!claimDaily && !claimWeekly)
+      return;
+    if (settings.dailyPointEnable !== false)
+      dailyTask = await this.readDailyRewardState(tokenId);
+
+    for (const reward of [
+      { enabled: claimDaily, point: dailyTask.dailyPoint, claimed: dailyTask.dailyReward, step: 20, cmd: "task_claimdailyreward", name: "日常活跃奖励" },
+      { enabled: claimWeekly, point: dailyTask.weekPoint, claimed: dailyTask.weekReward, step: 100, cmd: "task_claimweekreward", name: "周常活跃奖励" },
+    ]) {
+      if (!reward.enabled)
+        continue;
+      if (!hasClaimablePointReward(reward.point, reward.claimed, reward.step)) {
+        this.log(`${reward.name}未达标或已领取，跳过`);
+        continue;
+      }
+      try {
+        await this.executeGameCommand(tokenId, reward.cmd, {}, `领取${reward.name}`);
+      } catch {
+        // 每日与每周奖励相互独立；单个失败不阻止另一项。
+      }
+    }
+  }
+
   loadSettings(roleId) {
     try {
       return resolveAccountTaskSettings(roleId);
@@ -176,6 +236,7 @@ export class DailyTaskRunner {
 
   async run(tokenId, callbacks = {}, customSettings = null) {
     this.callbacks = callbacks;
+    this.accountName = this.tokenStore.gameTokens?.find((token) => token.id === tokenId)?.name || tokenId;
     const settings = customSettings || this.loadSettings(tokenId); // 优先使用传入的设置
     const enabled = (key) => settings[key] !== false;
     if (settings.templateName)
@@ -249,32 +310,36 @@ export class DailyTaskRunner {
       });
     }
 
-    if (!isTaskCompleted(4)) {
-      if (enabled("freeRecruitEnable")) {
-        taskList.push({
-          name: "免费招募",
-          execute: () =>
-            this.executeGameCommand(
-              tokenId,
-              "hero_recruit",
-              { recruitType: 3, recruitNumber: 1 },
-              "免费招募",
-            ),
-        });
-      }
+    if (enabled("freeRecruitEnable")) {
+      taskList.push({
+        name: "免费招募",
+        execute: async () => {
+          const response = await this.tokenStore.sendGetRoleInfo(tokenId);
+          if (!canRecruitForFree(response?.role?.statistics)) {
+            this.log("免费招募今日已使用或状态不足，跳过");
+            return;
+          }
+          await this.executeGameCommand(
+            tokenId,
+            "hero_recruit",
+            { recruitType: 3, recruitNumber: 1 },
+            "免费招募",
+          );
+        },
+      });
+    }
 
-      if (settings.payRecruit) {
-        taskList.push({
-          name: "付费招募",
-          execute: () =>
-            this.executeGameCommand(
-              tokenId,
-              "hero_recruit",
-              { recruitType: 1, recruitNumber: 1 },
-              "付费招募",
-            ),
-        });
-      }
+    if (!isTaskCompleted(4) && settings.payRecruit) {
+      taskList.push({
+        name: "付费招募",
+        execute: () =>
+          this.executeGameCommand(
+            tokenId,
+            "hero_recruit",
+            { recruitType: 1, recruitNumber: 1 },
+            "付费招募",
+          ),
+      });
     }
 
     if (enabled("freeGoldEnable") && !isTaskCompleted(6) && isTodayAvailable(statisticsTime["buy:gold"])) {
@@ -724,7 +789,8 @@ export class DailyTaskRunner {
           }
           const selected = new Set(list);
           for (const [merchantId, items] of Object.entries(role.dungeon.merchant)) {
-            if (!Array.isArray(items)) continue;
+            if (!Array.isArray(items))
+              continue;
             for (let pos = items.length - 1; pos >= 0; pos--) {
               if (selected.has(`${merchantId}-${items[pos]}`))
                 await this.executeGameCommand(tokenId, "dungeon_buymerchant", { id: Number(merchantId), index: items[pos], pos }, "购买梦境商品");
@@ -747,66 +813,46 @@ export class DailyTaskRunner {
       });
     }
 
-    // 7. 任务奖励
-    for (let taskId = 1; enabled("dailyPointEnable") && taskId <= 10; taskId++) {
-      const taskRewardStatus = Number(completedTasks[taskId]);
-      if (!Number.isFinite(taskRewardStatus) || taskRewardStatus <= 0)
-        continue;
-      taskList.push({
-        name: `领取任务奖励${taskId}`,
-        execute: () =>
-          this.executeGameCommand(
-            tokenId,
-            "task_claimdailypoint",
-            { taskId },
-            `领取任务奖励${taskId}`,
-            5000,
-          ),
-      });
-    }
-
-    if (enabled("dailyRewardEnable") && hasClaimablePointReward(
-      roleData.dailyTask?.dailyPoint,
-      roleData.dailyTask?.dailyReward,
-      20,
-    )) {
-      taskList.push({
-        name: "领取日常任务奖励",
-        execute: () =>
-          this.executeGameCommand(
-            tokenId,
-            "task_claimdailyreward",
-            {},
-            "领取日常任务奖励",
-          ),
-      });
-    }
-    if (enabled("weeklyRewardEnable") && hasClaimablePointReward(
-      roleData.dailyTask?.weekPoint,
-      roleData.dailyTask?.weekReward,
-      100,
-    )) {
-      taskList.push({
-        name: "领取周常任务奖励",
-        execute: () =>
-          this.executeGameCommand(
-            tokenId,
-            "task_claimweekreward",
-            {},
-            "领取周常任务奖励",
-          ),
-      });
-    }
     if (enabled("battlePassEnable")) {
       taskList.push({
         name: "领取通行证奖励",
-        execute: () =>
-          this.executeGameCommand(
+        execute: async () => {
+          const roleResponse = await this.tokenStore.sendGetRoleInfo(tokenId);
+          const activityResponse = await this.tokenStore.sendMessageWithPromise(tokenId, "activity_get", {}, 10000);
+          if (!canClaimArenaPassReward(roleResponse?.role, activityResponse)) {
+            this.log("通行证没有可领取奖励或状态不足，跳过");
+            return;
+          }
+          await this.executeGameCommand(
             tokenId,
             "activity_recyclewarorderrewardclaim",
             { actId: 1 },
             "领取通行证奖励",
-          ),
+          );
+        },
+      });
+    }
+
+    if (enabled("legacyClaimEnable")) {
+      taskList.push({
+        name: "领取功法残卷",
+        execute: async () => {
+          // 与一键领取、定时领取一样，按领取前的服务端状态判断解锁条件。
+          const roleResponse = await this.tokenStore.sendGetRoleInfo(tokenId);
+          if (!isLegacyUnlocked(roleResponse?.role)) {
+            this.log("功法残卷未解锁或角色状态不足，跳过（需等级6000、关卡8001）", "info");
+            return;
+          }
+          await this.executeGameCommand(tokenId, "legacy_claimhangup", {}, "领取功法残卷");
+        },
+      });
+    }
+
+    // 必须在所有日常动作后刷新状态，不能按开跑时的旧进度预先筛选奖励。
+    if (["dailyPointEnable", "dailyRewardEnable", "weeklyRewardEnable"].some(enabled)) {
+      taskList.push({
+        name: "刷新并领取任务奖励",
+        execute: () => this.claimTaskRewards(tokenId, settings),
       });
     }
 
@@ -819,14 +865,16 @@ export class DailyTaskRunner {
       try {
         await task.execute();
         const progress = Math.floor(((i + 1) / totalTasks) * 100);
-        if (this.callbacks?.onProgress) this.callbacks.onProgress(progress);
+        if (this.callbacks?.onProgress)
+          this.callbacks.onProgress(progress);
         await new Promise((resolve) => setTimeout(resolve, this.delaySettings.taskDelay));
       } catch (error) {
         this.log(`任务执行失败: ${task.name} - ${error.message}`, "error");
       }
     }
 
-    if (this.callbacks?.onProgress) this.callbacks.onProgress(100);
+    if (this.callbacks?.onProgress)
+      this.callbacks.onProgress(100);
     this.log("所有任务执行完成", "success");
   }
 }

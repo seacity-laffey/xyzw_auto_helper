@@ -1,9 +1,9 @@
 {
   "name": "xyzw-token-manager",
-  "version": "2.0.0",
+  "version": "2.0.3",
   "type": "module",
   "description": "XYZW游戏Token管理器 - 支持Base64导入和WebSocket连接管理",
-  "main": "src/main.js",
+  "main": "desktop/main.cjs",
   "scripts": {
     "testr": "node ./test/roleToken.js",
     "testd": "node ./test/token.js",
@@ -15,7 +15,14 @@
     "lint": "eslint src --ext .vue,.js,.ts",
     "lint:baseline": "eslint src --ext .vue,.js,.ts --quiet --suppress-all --pass-on-unpruned-suppressions && eslint src --ext .vue,.js,.ts --quiet --prune-suppressions",
     "lint:fix": "eslint src --ext .vue,.js,.ts --fix",
-    "format": "prettier --write \"src/**/*.{js,vue,ts,css,scss}\""
+    "format": "prettier --write \"src/**/*.{js,vue,ts,css,scss}\"",
+    "test": "node --test test/*.test.js",
+    "desktop:build": "vite build --mode desktop",
+    "desktop:dev": "pnpm desktop:build && electron .",
+    "desktop:package": "pnpm desktop:build && electron-forge package",
+    "desktop:package:win": "pnpm desktop:build && electron-forge package --platform=win32 --arch=x64",
+    "desktop:make:win": "pnpm desktop:build && electron-forge make --platform=win32 --arch=x64",
+    "desktop:smoke": "pnpm desktop:build && electron test/desktop-smoke.cjs"
   },
   "dependencies": {
     "@arco-design/web-vue": "^2.57.0",
@@ -44,6 +51,8 @@
   },
   "devDependencies": {
     "@antfu/eslint-config": "^6.7.3",
+    "@electron-forge/cli": "7.11.2",
+    "@electron-forge/maker-zip": "7.11.2",
     "@iconify-json/mdi": "^1.2.3",
     "@intlify/unplugin-vue-i18n": "^6.0.8",
     "@types/crypto-js": "^4.2.2",
@@ -51,6 +60,7 @@
     "@vitejs/plugin-vue": "^5.2.4",
     "@vue/tsconfig": "^0.8.1",
     "autoprefixer": "^10.5.3",
+    "electron": "44.2.0",
     "eslint": "9.39.3",
     "jiti": "^2.6.1",
     "postcss": "^8.5.19",
@@ -73,5 +83,16 @@
   ],
   "author": "XYZW Team",
   "license": "CC-BY-NC-SA-4.0",
-  "packageManager": "pnpm@10.19.0"
+  "packageManager": "pnpm@10.19.0",
+  "config": {
+    "forge": "./forge.config.cjs"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "electron",
+      "esbuild",
+      "@parcel/watcher",
+      "vue-demi"
+    ]
+  }
 }

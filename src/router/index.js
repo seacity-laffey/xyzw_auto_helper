@@ -46,6 +46,12 @@ const routes = [
         },
       },
       {
+        path: "/about",
+        name: "About",
+        component: () => import("@/views/About.vue"),
+        meta: { title: "关于", description: "上游仓库" },
+      },
+      {
         path: "/pushing-levels",
         name: "PushingLevels",
         component: () => import("@/views/PushingLevels.vue"),
@@ -89,6 +95,13 @@ const router = createRouter({
   scrollBehavior(_to, _from, savedPosition) {
     return savedPosition || { top: 0 };
   },
+});
+
+router.beforeEach((to) => {
+  if (window.desktop?.isGameWindow && to.path !== "/game") {
+    window.close();
+    return false;
+  }
 });
 
 router.afterEach((to) => {

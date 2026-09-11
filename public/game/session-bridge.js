@@ -3,6 +3,7 @@
 
   var binId = new URLSearchParams(window.location.search).get("bin_id");
   if (!binId) return;
+  var helperOrigin = window.location.protocol === "xyzw:" ? "xyzw://app" : window.location.origin;
 
   var MESSAGE_SOURCE = "xyzw-embedded-game";
   var CONTROL_SOURCE = "xyzw-helper";
@@ -31,7 +32,7 @@
     if (window.parent === window) return;
     window.parent.postMessage(
       Object.assign({ source: MESSAGE_SOURCE, type: type, binId: binId }, data),
-      window.location.origin,
+      helperOrigin,
     );
   }
 
@@ -364,6 +365,18 @@
       activeTouchGesture = null;
   }
 
+  function dispatchCanvasInput(canvas, event) {
+    // Cocos 的鼠标/触摸处理器也会调用 canvas.focus()；只在同步派发期间抑制它。
+    var ownFocus = Object.getOwnPropertyDescriptor(canvas, "focus");
+    Object.defineProperty(canvas, "focus", { configurable: true, value: function () {} });
+    try {
+      canvas.dispatchEvent(event);
+    } finally {
+      if (ownFocus) Object.defineProperty(canvas, "focus", ownFocus);
+      else delete canvas.focus;
+    }
+  }
+
   function dispatchMouseInput(input) {
     if (!inputSyncEnabled || inputSyncMaster || !input) return;
     if (["mousedown", "mousemove", "mouseup"].indexOf(input.eventType) < 0)
@@ -386,8 +399,8 @@
     )
       return;
 
-    if (input.eventType === "mousedown") canvas.focus();
-    canvas.dispatchEvent(
+    // 同步事件直接派发到画布；从属窗口不能抢焦点，否则外层列表会滚到它。
+    dispatchCanvasInput(canvas,
       new MouseEvent(input.eventType, {
         bubbles: true,
         cancelable: true,
@@ -446,7 +459,7 @@
         input.eventType === "touchend" || input.eventType === "touchcancel"
           ? []
           : [touch];
-      canvas.dispatchEvent(
+      dispatchCanvasInput(canvas,
         new TouchEvent(input.eventType, {
           bubbles: true,
           cancelable: true,
@@ -510,7 +523,7 @@
 
   window.addEventListener("message", function (event) {
     if (
-      event.origin !== window.location.origin ||
+      event.origin !== helperOrigin ||
       event.source !== window.parent
     )
       return;

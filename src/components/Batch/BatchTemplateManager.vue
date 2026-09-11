@@ -132,7 +132,7 @@
                 :model-value="selectedTokenIds.includes(token.id)"
                 @update:model-value="toggleToken(token.id, $event === true)"
               ></Checkbox>
-              <span>{{ token.name || "未命名账号" }}</span>
+              <span>{{ getTokenDisplayName(token) }}</span>
             </label>
           </div>
         </div>
@@ -189,6 +189,7 @@
 </template>
 
 <script setup lang="ts">
+import { getTokenDisplayName } from "@/utils/roleTokenMetadata.js";
 import { computed, reactive, ref, watch } from "vue";
 import { Copy, ListChecks, Pencil, Plus, RotateCcw, Search, Trash2, Users } from "@lucide/vue";
 import { createDefaultTemplateSettings, loadAccountTaskBinding, loadTaskTemplates, migrateTaskAccounts, saveAccountTaskBinding, saveTaskTemplates, SYSTEM_TEMPLATE_ID } from "@/utils/taskTemplateConfig";
@@ -417,7 +418,7 @@ const openReferencesDialog = () => {
         templateId,
         templateName: template ? template.name : "模板已缺失，需重新绑定",
         tokenId: token.id,
-        tokenName: token.name || "未命名账号",
+        tokenName: getTokenDisplayName(token),
       };
     } catch (error) {
       console.error(`Failed to load settings for ${token.name}:`, error);
@@ -425,7 +426,7 @@ const openReferencesDialog = () => {
         templateId: null,
         templateName: "设置数据异常",
         tokenId: token.id,
-        tokenName: token.name || "未命名账号",
+        tokenName: getTokenDisplayName(token),
       };
     }
   });

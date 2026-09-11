@@ -94,15 +94,15 @@
               @update:model-value="(checked) => toggleToken(token.id, checked === true)"
             ></Checkbox>
             <span class="status-dot" :class="tokenStatus[token.id] || 'waiting'"></span>
-            <span class="token-name">{{ token.name || "未命名账号" }}<small v-if="templateNames?.[token.id]" class="block truncate" :title="templateNames[token.id]">模板：{{ templateNames[token.id] }}</small></span>
+            <span class="token-name">{{ getTokenDisplayName(token) }}<small v-if="templateNames?.[token.id]" class="block truncate" :title="templateNames[token.id]">模板：{{ templateNames[token.id] }}</small></span>
             <small>{{ getStatusText(token.id) }}</small>
           </label>
           <Button
             class="settings-button"
             size="icon"
             variant="ghost"
-            :aria-label="`设置${token.name || '未命名账号'}`"
-            :title="`设置${token.name || '未命名账号'}`"
+            :aria-label="`设置${getTokenDisplayName(token)}`"
+            :title="`设置${getTokenDisplayName(token)}`"
             @click="emit('openSettings', token)"
           >
             <Settings :size="15"></Settings>
@@ -114,6 +114,7 @@
 </template>
 
 <script setup lang="ts">
+import { getTokenDisplayName } from "@/utils/roleTokenMetadata.js";
 import { computed, ref } from "vue";
 import { ChevronDown, ChevronUp, Gamepad2, Settings, SlidersHorizontal, Users } from "@lucide/vue";
 import { Button } from "@/components/ui/button";

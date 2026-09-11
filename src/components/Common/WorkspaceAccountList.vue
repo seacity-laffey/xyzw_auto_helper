@@ -2,7 +2,7 @@
   <section aria-label="账号列表" class="account-directory">
     <div class="directory-heading">
       <span>账号</span>
-      <small>{{ gameTokens.length }}</small>
+      <small v-if="gameTokens.length" class="selection-summary" role="status">批量已选 {{ validSelectedCount }}/{{ gameTokens.length }}</small>
     </div>
 
     <div v-if="gameTokens.length" class="directory-tools">
@@ -82,7 +82,7 @@
         }"
       >
         <Checkbox
-          :aria-label="`批量选择${token.name || '未命名账号'}`"
+          :aria-label="`批量选择${getTokenDisplayName(token)}`"
           :model-value="batchSelectedTokenIds.includes(token.id)"
           @update:model-value="
             (value) => toggleBatchToken(token.id, value === true)
@@ -91,7 +91,7 @@
         <button class="account-open" type="button" @click="openRole(token.id)">
           <img alt="" :src="token.avatar || '/icons/xiaoyugan.png'">
           <span class="account-copy">
-            <strong>{{ token.name || "未命名账号" }}</strong>
+            <strong>{{ getTokenDisplayName(token) }}</strong>
             <small>{{ token.server || "未标注区服" }}</small>
           </span>
           <span
@@ -108,13 +108,11 @@
       <template v-else>尚未导入账号</template>
     </div>
 
-    <div v-if="gameTokens.length" class="selection-summary">
-      批量已选 {{ validSelectedCount }}/{{ gameTokens.length }}
-    </div>
   </section>
 </template>
 
 <script setup lang="ts">
+import { getTokenDisplayName } from "@/utils/roleTokenMetadata.js";
 import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
 import { LoaderCircle, Power, PowerOff, Search } from "@lucide/vue";
@@ -155,7 +153,7 @@ const filteredTokens = computed(() => {
       return false;
     if (!query)
       return true;
-    return [token.name, token.server].some((value) =>
+    return [getTokenDisplayName(token), token.name, token.server].some((value) =>
       String(value || "")
         .toLocaleLowerCase()
         .includes(query),
@@ -298,17 +296,10 @@ const connectionStatusLabel = (tokenId: string) => {
   font-weight: 600;
 }
 
-.directory-heading span {
-  text-transform: uppercase;
-}
-
-.directory-heading small {
-  min-width: 22px;
-  padding: 1px 6px;
-  color: var(--foreground);
-  text-align: center;
-  background: var(--muted);
-  border-radius: 999px;
+.selection-summary {
+  font-size: 11px;
+  font-weight: 400;
+  white-space: nowrap;
 }
 
 .directory-tools {
@@ -476,13 +467,5 @@ const connectionStatusLabel = (tokenId: string) => {
   color: var(--muted-foreground);
   font-size: 12px;
   text-align: center;
-}
-
-.selection-summary {
-  flex: 0 0 auto;
-  padding: 9px 12px;
-  border-top: 1px solid var(--border);
-  color: var(--muted-foreground);
-  font-size: 11px;
 }
 </style>

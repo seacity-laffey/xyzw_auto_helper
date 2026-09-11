@@ -1,21 +1,22 @@
 import axios from "axios";
-import { MD5, lib, enc } from "crypto-js";
+import { enc, lib, MD5 } from "crypto-js";
 import { g_utils } from "@/utils/bonProtocol";
 
 type TokenBinary = ArrayBuffer | Uint8Array;
 type AuthUserData = Record<string, unknown>;
-type ServerListData = {
+interface ServerListData {
   roles?: Record<string, unknown>;
-};
+}
 
 const toWordArrayInput = (token: TokenBinary) => {
-  if (token instanceof ArrayBuffer) return new Uint8Array(token);
+  if (token instanceof ArrayBuffer)
+    return new Uint8Array(token);
   return token;
 };
 
 export const getTokenId = (token: string | ArrayBuffer | Uint8Array) => {
-  const source =
-    typeof token === "string"
+  const source
+    = typeof token === "string"
       ? token
       : lib.WordArray.create(toWordArrayInput(token));
   const binHash = MD5(source).toString(enc.Hex);
@@ -55,7 +56,8 @@ class RateLimiter {
     }
 
     const oldestRequest = this.requests[0];
-    if (oldestRequest === undefined) return;
+    if (oldestRequest === undefined)
+      return;
     const waitTime = oldestRequest + this.windowMs - Date.now();
 
     if (waitTime > 0) {
@@ -116,7 +118,7 @@ export const scheduleAuthUserRequest = <T>(
 export const transformToken = async (arrayBuffer: ArrayBuffer) => {
   return authUserRateLimiter.schedule(async () => {
     const res = await axios.post(
-      "https://xxz-xyzw.hortorgames.com/login/authuser",
+      window.desktop?.isDesktop ? "/api/game-login/authuser" : "https://xxz-xyzw.hortorgames.com/login/authuser",
       arrayBuffer,
       {
         params: {
@@ -124,7 +126,7 @@ export const transformToken = async (arrayBuffer: ArrayBuffer) => {
         },
         headers: {
           "Content-Type": "application/octet-stream",
-          referrerPolicy: "no-referrer",
+          "referrerPolicy": "no-referrer",
         },
         responseType: "arraybuffer",
       },
@@ -147,7 +149,7 @@ export const transformToken = async (arrayBuffer: ArrayBuffer) => {
 export const getServerList = async (arrayBuffer: ArrayBuffer) => {
   // 如果是data URL格式，提取base64部分
   const res = await axios.post(
-    "https://xxz-xyzw.hortorgames.com/login/serverlist",
+    window.desktop?.isDesktop ? "/api/game-login/serverlist" : "https://xxz-xyzw.hortorgames.com/login/serverlist",
     arrayBuffer,
     {
       params: {
@@ -155,7 +157,7 @@ export const getServerList = async (arrayBuffer: ArrayBuffer) => {
       },
       headers: {
         "Content-Type": "application/octet-stream",
-        referrerPolicy: "no-referrer",
+        "referrerPolicy": "no-referrer",
       },
       responseType: "arraybuffer",
     },

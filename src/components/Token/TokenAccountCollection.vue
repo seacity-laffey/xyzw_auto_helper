@@ -12,10 +12,10 @@
     >
       <header class="flex items-center justify-between gap-4 border-b border-outline-variant px-5 py-4">
         <div class="flex min-w-0 items-center gap-3">
-          <img class="h-10 w-10 shrink-0 rounded-full border border-outline-variant object-cover" :alt="`${token.name}头像`" :src="token.avatar || '/icons/xiaoyugan.png'">
+          <img class="h-10 w-10 shrink-0 rounded-full border border-outline-variant object-cover" :alt="`${getTokenDisplayName(token)}头像`" :src="token.avatar || '/icons/xiaoyugan.png'">
           <div class="min-w-0">
             <div class="flex min-w-0 items-center gap-2">
-              <strong class="truncate text-base font-bold text-on-surface">{{ token.name }}</strong>
+              <strong class="truncate text-base font-bold text-on-surface">{{ getTokenDisplayName(token) }}</strong>
               <span v-if="token.server" class="shrink-0 rounded border border-outline-variant px-2 py-0.5 font-mono text-[11px] text-primary">{{ token.server }}</span>
             </div>
             <div class="mt-1 flex items-center gap-2 text-xs text-on-surface-variant">
@@ -89,9 +89,9 @@
         </div>
 
         <div class="flex min-w-[210px] items-center gap-4 max-md:min-w-0">
-          <img class="h-10 w-10 shrink-0 rounded-full border border-outline-variant object-cover" :alt="`${token.name}头像`" :src="token.avatar || '/icons/xiaoyugan.png'">
+          <img class="h-10 w-10 shrink-0 rounded-full border border-outline-variant object-cover" :alt="`${getTokenDisplayName(token)}头像`" :src="token.avatar || '/icons/xiaoyugan.png'">
           <div class="flex min-w-0 items-center gap-2">
-            <strong class="max-w-28 truncate text-[15px] font-bold text-on-surface">{{ token.name }}</strong>
+            <strong class="max-w-28 truncate text-[15px] font-bold text-on-surface">{{ getTokenDisplayName(token) }}</strong>
             <span v-if="token.server" class="shrink-0 rounded border px-2 py-0.5 font-mono text-[11px] leading-[1.4]" :class="status(token.id) === 'connected' ? connectedServerClass : disconnectedServerClass">{{ token.server }}</span>
           </div>
         </div>
@@ -126,6 +126,7 @@
 </template>
 
 <script setup>
+import { getTokenDisplayName } from "@/utils/roleTokenMetadata.js";
 import { FileText, Pencil, Star } from "@lucide/vue";
 import { ref } from "vue";
 import TokenAccountActions from "./TokenAccountActions.vue";

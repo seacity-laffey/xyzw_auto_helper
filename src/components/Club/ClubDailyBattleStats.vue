@@ -56,12 +56,16 @@
         </dl>
       </div>
       <section v-if="isConnected && !errorText" aria-label="俱乐部成员篝火次数" class="member-preview" :aria-busy="loading">
-        <p v-if="!loading && !exportRows.length">暂无俱乐部成员数据</p>
-        <section ref="exportDom" v-if="loading || exportRows.length" class="bonfire-export-sheet">
+        <div aria-label="篝火次数统计对象" class="count-side-selector" role="group">
+          <Button size="sm" :aria-pressed="!isOpponentView" :disabled="exporting" :variant="!isOpponentView ? 'default' : 'outline'" @click="countSide = 'own'">我方次数</Button>
+          <Button size="sm" :aria-pressed="isOpponentView" :disabled="!todayOpponent || exporting" :variant="isOpponentView ? 'default' : 'outline'" @click="countSide = 'opponent'">敌方次数</Button>
+        </div>
+        <p v-if="!loading && !displayedRows.length">暂无俱乐部成员数据</p>
+        <section ref="exportDom" v-if="loading || displayedRows.length" class="bonfire-export-sheet">
           <header class="bonfire-export-header">
             <div>
-              <span>CLUB BONFIRE</span>
-              <h2>{{ clubName }}篝火次数</h2>
+              <span>{{ isOpponentView ? "敌方进攻统计" : "我方进攻统计" }}</span>
+              <h2>{{ displayedClubName }}篝火次数</h2>
             </div>
             <strong>{{ displayDate }}</strong>
           </header>
@@ -72,7 +76,7 @@
           <div class="bonfire-export-grid">
             <div
               v-for="(member, index) in previewRows"
-              :key="member.roleId"
+              :key="member.key || member.roleId"
               class="bonfire-member-row"
               :class="{ unavailable: !loading && !member.available }"
             >
@@ -83,8 +87,8 @@
           </div>
           <footer>
             <span>北京时间 {{ exportGeneratedTime }}</span>
-            <span v-if="loading" role="status">正在查询 {{ exportCompletedCount }}/{{ exportQueryCount }} 个据点</span>
-            <span v-else-if="failedTargetCount" role="status">{{ failedTargetCount }} 个据点查询失败，结果可能不完整</span>
+            <span v-if="loading" role="status">正在查询 {{ displayedProgress.completed }}/{{ displayedProgress.total }} 个据点</span>
+            <span v-else-if="displayedProgress.failed" role="status">{{ displayedProgress.failed }} 个据点查询失败；≥ 为已查到次数，-- 为未知</span>
             <span v-else>全部据点查询完成</span>
           </footer>
         </section>
@@ -107,7 +111,7 @@
       </Button>
       <Button
         size="sm"
-        :disabled="!isConnected || loading || exporting || !exportRows.length"
+        :disabled="!isConnected || loading || exporting || !displayedRows.length"
         @click="exportMemberBattleCounts"
       >
         <Download></Download>
@@ -127,8 +131,10 @@ import { useTokenStore } from "@/stores/tokenStore";
 import {
   aggregateClubBattleRecordStats,
   buildClubBattleExportRows,
+  buildOpponentClubBattleRows,
   getClubBattleDayKey,
-  getClubBattleTargetIds,
+  getClubBattleRecordTargets,
+  getTodayClubBattleOpponent,
   getTodayClubBattleStats,
 } from "@/utils/clubDailyBattle.js";
 import { downloadCanvasAsImage } from "@/utils/imageExport";
@@ -142,11 +148,26 @@ const errorText = ref("");
 const loading = ref(false);
 const exporting = ref(false);
 const exportRows = ref([]);
+const countSide = ref("own");
+const opponentCounts = ref({ rows: [], completed: 0, total: 0, failed: 0 });
+const todayOpponent = computed(() => getTodayClubBattleOpponent(battleResponse.value, now.value));
+const isOpponentView = computed(() => countSide.value === "opponent" && Boolean(todayOpponent.value));
+const displayedRows = computed(() => isOpponentView.value ? opponentCounts.value.rows : exportRows.value);
+const displayedClubName = computed(() => isOpponentView.value ? (todayOpponent.value.name || "敌对俱乐部") : clubName.value);
+const displayedProgress = computed(() => isOpponentView.value
+  ? opponentCounts.value
+  : {
+      completed: exportCompletedCount.value,
+      total: exportQueryCount.value,
+      failed: failedTargetCount.value,
+    });
 const previewRows = computed(() => {
-  if (!loading.value || exportRows.value.length)
-    return exportRows.value;
+  if (!loading.value || displayedRows.value.length)
+    return displayedRows.value;
   const body = battleResponse.value?.body || battleResponse.value;
-  const members = buildClubBattleExportRows(body || { club: { members: tokenStore.gameData?.legionInfo?.info?.members } });
+  const members = isOpponentView.value
+    ? buildOpponentClubBattleRows(body, [], now.value)
+    : buildClubBattleExportRows(body || { club: { members: tokenStore.gameData?.legionInfo?.info?.members } });
   return members.length ? members : Array.from({ length: 30 }, (_, index) => ({ roleId: `placeholder-${index}`, name: "" }));
 });
 const exportDom = ref(null);
@@ -196,7 +217,7 @@ const exportGeneratedTime = computed(() =>
 );
 const exportButtonText = computed(() => {
   if (!exporting.value)
-    return "导出篝火次数";
+    return isOpponentView.value ? "导出敌方篝火次数" : "导出我方篝火次数";
   return "正在导出";
 });
 const badgeText = computed(() => {
@@ -218,6 +239,7 @@ const fetchStats = async () => {
   exportCompletedCount.value = 0;
   exportQueryCount.value = 0;
   failedTargetCount.value = 0;
+  opponentCounts.value = { rows: [], completed: 0, total: 0, failed: 0 };
   try {
     const response = await tokenStore.sendMessageWithPromise(
       currentTokenId,
@@ -242,7 +264,8 @@ const fetchStats = async () => {
   }
 };
 
-const queryTargetRecords = async (targetId, currentTokenId, currentRequest) => {
+const queryTargetRecords = async (target, currentTokenId, currentRequest) => {
+  const { targetId, targetIsMirror } = target;
   for (let attempt = 0; attempt < 2; attempt++) {
     if (currentRequest !== requestVersion)
       return null;
@@ -250,13 +273,13 @@ const queryTargetRecords = async (targetId, currentTokenId, currentRequest) => {
       const response = await tokenStore.sendMessageWithPromise(
         currentTokenId,
         "club_getdefenserecord",
-        { targetId: Number(targetId) },
+        { targetId: Number(targetId), targetIsMirror },
         10_000,
       );
-      return {
-        targetId,
-        records: response?.records || response?.body?.records || [],
-      };
+      const records = response?.records ?? response?.body?.records;
+      if (!Array.isArray(records))
+        throw new Error("未返回有效防守战报");
+      return { ...target, records };
     } catch (error) {
       if (attempt === 1)
         console.warn(`查询据点历史记录失败 [${targetId}]`, error);
@@ -280,7 +303,7 @@ const runWithConcurrency = async (items, concurrency, worker) => {
 };
 
 const formatMemberCount = (member) =>
-  member.available ? `${member.successCount}/${member.attackCount}` : "--/--";
+  member.available ? `${member.partial ? "≥" : ""}${member.successCount}/${member.partial ? "≥" : ""}${member.attackCount}` : "--/--";
 
 const loadMemberBattleCounts = async (sourceResponse, currentTokenId, currentRequest) => {
   exportCompletedCount.value = 0;
@@ -294,13 +317,15 @@ const loadMemberBattleCounts = async (sourceResponse, currentTokenId, currentReq
       throw new Error("未获取到俱乐部成员名单");
     }
 
-    const targetIds = getClubBattleTargetIds(sourceResponse);
-    exportQueryCount.value = targetIds.length;
+    const targets = getClubBattleRecordTargets(
+      Object.values(body.club?.oppoMap || {}).flatMap((opponent) => Object.values(opponent?.defenders || {})),
+    );
+    exportQueryCount.value = targets.length;
     const recordResponses = [];
-    await runWithConcurrency(targetIds, 1, async (targetId) => {
+    await runWithConcurrency(targets, 1, async (target) => {
       if (currentRequest !== requestVersion)
         return;
-      const result = await queryTargetRecords(targetId, currentTokenId, currentRequest);
+      const result = await queryTargetRecords(target, currentTokenId, currentRequest);
       if (currentRequest !== requestVersion)
         return;
       if (result)
@@ -319,10 +344,12 @@ const loadMemberBattleCounts = async (sourceResponse, currentTokenId, currentReq
     const statsByRoleId = new Map(
       members.map((member) => [
         String(member.roleId),
-        historyStats.get(String(member.roleId)) || {
-          successCount: 0,
-          attackCount: 0,
-        },
+        historyStats.get(String(member.roleId)) || (failedTargetCount.value
+          ? null
+          : {
+              successCount: 0,
+              attackCount: 0,
+            }),
       ]),
     );
     if (body.siege?.roleId) {
@@ -332,7 +359,34 @@ const loadMemberBattleCounts = async (sourceResponse, currentTokenId, currentReq
       );
     }
 
-    exportRows.value = buildClubBattleExportRows(sourceResponse, statsByRoleId);
+    exportRows.value = buildClubBattleExportRows(sourceResponse, statsByRoleId).map((member) => ({
+      ...member,
+      partial: failedTargetCount.value > 0 && member.roleId !== String(body.siege?.roleId),
+    }));
+
+    const opponent = getTodayClubBattleOpponent(sourceResponse, now.value);
+    if (opponent) {
+      const defenseTargets = getClubBattleRecordTargets(body.club.members);
+      opponentCounts.value.total = defenseTargets.length;
+      const defenseResponses = [];
+      await runWithConcurrency(defenseTargets, 1, async (target) => {
+        if (currentRequest !== requestVersion)
+          return;
+        const result = await queryTargetRecords(target, currentTokenId, currentRequest);
+        if (currentRequest !== requestVersion)
+          return;
+        if (result)
+          defenseResponses.push(result);
+        else
+          opponentCounts.value.failed++;
+        opponentCounts.value.completed++;
+      });
+      if (currentRequest !== requestVersion)
+        return;
+      opponentCounts.value.rows = buildOpponentClubBattleRows(sourceResponse, defenseResponses, now.value, {
+        complete: opponentCounts.value.failed === 0,
+      });
+    }
     exportGeneratedAt.value = new Date();
   } catch (error) {
     if (currentRequest === requestVersion)
@@ -341,9 +395,11 @@ const loadMemberBattleCounts = async (sourceResponse, currentTokenId, currentReq
 };
 
 const exportMemberBattleCounts = async () => {
-  if (!isConnected.value || loading.value || exporting.value || !exportRows.value.length)
+  if (!isConnected.value || loading.value || exporting.value || !displayedRows.value.length)
     return;
   const currentRequest = requestVersion;
+  const exportClubName = displayedClubName.value;
+  const exportFailures = displayedProgress.value.failed;
   exporting.value = true;
   try {
     await nextTick();
@@ -362,15 +418,15 @@ const exportMemberBattleCounts = async () => {
     });
     if (currentRequest !== requestVersion)
       return;
-    const safeClubName = clubName.value.replace(/[\\/:*?"<>|]/g, "_");
+    const safeClubName = exportClubName.replace(/[\\/:*?"<>|]/g, "_");
     downloadCanvasAsImage(
       canvas,
       `${displayDate.value.replace("/", "月")}日${safeClubName}篝火次数.png`,
     );
 
-    if (failedTargetCount.value > 0) {
+    if (exportFailures > 0) {
       message.warning(
-        `已导出，但有 ${failedTargetCount.value} 个据点查询失败，结果可能不完整`,
+        `已导出，但有 ${exportFailures} 个据点查询失败，结果可能不完整`,
       );
     } else {
       message.success("俱乐部篝火次数导出成功");
@@ -397,6 +453,7 @@ watch(
       requestVersion++;
       battleResponse.value = null;
       exportRows.value = [];
+      opponentCounts.value = { rows: [], completed: 0, total: 0, failed: 0 };
       exportGeneratedAt.value = null;
       failedTargetCount.value = 0;
       loading.value = false;
@@ -415,6 +472,12 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped lang="scss">
+.count-side-selector {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
 .member-preview {
   margin-top: 24px;
   min-width: 0;

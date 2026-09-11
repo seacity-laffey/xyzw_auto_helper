@@ -31,6 +31,7 @@ interface ScheduledTaskLogData {
   runType: "daily" | "cron" | string;
   runTime?: string;
   cronExpression?: string;
+  intervalMinutes?: number;
   selectedTokens: unknown[];
   selectedTasks: unknown[];
   enabled: boolean;
@@ -149,12 +150,12 @@ export const addTaskSaveLog = (
   });
   addLog({
     time: new Date().toLocaleTimeString(),
-    message: `运行类型: ${task.runType === "daily" ? "每天固定时间" : "Cron表达式"}`,
+    message: `运行类型: ${task.runType === "daily" ? "每天固定时间" : task.runType === "interval" ? "固定间隔" : "Cron表达式"}`,
     type: "info",
   });
   addLog({
     time: new Date().toLocaleTimeString(),
-    message: `运行时间: ${task.runType === "daily" ? task.runTime : task.cronExpression}`,
+    message: `运行时间: ${task.runType === "daily" ? task.runTime : task.runType === "interval" ? `每 ${task.intervalMinutes} 分钟` : task.cronExpression}`,
     type: "info",
   });
   addLog({

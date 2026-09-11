@@ -1,22 +1,33 @@
 <template>
-  <div class="app-shell">
-    <aside class="app-sider">
-      <router-link aria-label="XYZW 助手" class="brand" :to="homePath">
-        <span class="brand-mark"><Zap :size="17"></Zap></span>
-        <span class="brand-copy">
-          <strong>XYZW 助手</strong>
-          <small>本地控制台</small>
-        </span>
-      </router-link>
+  <div class="app-shell" :class="{ 'sidebar-collapsed': sidebarCollapsed }">
+    <aside id="desktop-sidebar" class="app-sider">
+      <div class="sider-heading">
+        <router-link aria-label="xyzw后台" class="brand" :to="homePath">
+          <span class="brand-mark"><Zap :size="17"></Zap></span>
+          <span class="brand-copy"><strong>xyzw后台</strong></span>
+        </router-link>
+        <button
+          aria-controls="desktop-sidebar"
+          class="sidebar-toggle"
+          type="button"
+          :aria-expanded="!sidebarCollapsed"
+          :aria-label="sidebarCollapsed ? '展开侧边栏' : '折叠侧边栏'"
+          :title="sidebarCollapsed ? '展开侧边栏' : '折叠侧边栏'"
+          @click="toggleSidebar"
+        >
+          <component :is="sidebarCollapsed ? PanelLeftOpen : PanelLeftClose" :size="18"></component>
+        </button>
+      </div>
 
-      <div class="nav-section-label">工作区</div>
-      <nav aria-label="工作区导航" class="primary-nav">
+      <nav aria-label="主导航" class="primary-nav">
         <router-link
           v-for="item in navigation"
           :key="item.path"
           class="nav-link"
           :aria-disabled="item.disabled"
+          :aria-label="item.label"
           :class="{ disabled: item.disabled }"
+          :title="item.label"
           :to="item.disabled ? route.fullPath : item.path"
           @click="handleNavigation(item, $event)"
         >
@@ -30,21 +41,12 @@
         </router-link>
       </nav>
 
-      <WorkspaceAccountList></WorkspaceAccountList>
+      <WorkspaceAccountList v-show="!sidebarCollapsed"></WorkspaceAccountList>
 
       <div class="sider-footer">
-        <Separator></Separator>
-        <router-link class="account-management-link" to="/tokens">
-          <Settings2 :size="16"></Settings2>
-          <span>账号管理</span>
+        <router-link aria-label="关于" class="footer-link" title="关于" to="/about">
+          <Info :size="16"></Info><span>关于</span>
         </router-link>
-        <div class="system-status">
-          <span
-            class="status-dot"
-            :class="{ active: tokenStore.hasTokens }"
-          ></span>
-          <span>{{ accountStatus }}</span>
-        </div>
       </div>
     </aside>
 
@@ -60,7 +62,7 @@
             @click="mobileMenuOpen = false"
           >
             <span class="brand-mark"><Zap :size="17"></Zap></span>
-            <span class="brand-copy"><strong>XYZW 助手</strong><small>本地控制台</small></span>
+            <span class="brand-copy"><strong>xyzw后台</strong></span>
           </router-link>
           <Button
             aria-label="关闭菜单"
@@ -71,8 +73,7 @@
             <X></X>
           </Button>
         </div>
-        <div class="nav-section-label">工作区</div>
-        <nav aria-label="移动端工作区导航" class="primary-nav mobile-nav">
+        <nav aria-label="移动端主导航" class="primary-nav">
           <router-link
             v-for="item in navigation"
             :key="item.path"
@@ -94,14 +95,11 @@
         <WorkspaceAccountList
           @navigate="mobileMenuOpen = false"
         ></WorkspaceAccountList>
-        <router-link
-          class="account-management-link mobile-account-management"
-          to="/tokens"
-          @click="mobileMenuOpen = false"
-        >
-          <Settings2 :size="16"></Settings2>
-          <span>账号管理</span>
-        </router-link>
+        <div class="sider-footer">
+          <router-link class="footer-link" to="/about" @click="mobileMenuOpen = false">
+            <Info :size="16"></Info><span>关于</span>
+          </router-link>
+        </div>
       </SheetContent>
     </Sheet>
 
@@ -145,34 +143,47 @@
         class="content-area"
         :class="{ 'immersive-content': route.meta.immersive }"
       >
-        <router-view></router-view>
+        <template v-if="isDesktop">
+          <div v-show="route.name === 'BatchTasks'">
+            <BatchDailyTasks></BatchDailyTasks>
+          </div>
+          <router-view v-if="route.name !== 'BatchTasks'"></router-view>
+        </template>
+        <router-view v-else></router-view>
       </main>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed, ref } from "vue";
+import { computed, defineAsyncComponent, ref } from "vue";
 import { useRoute } from "vue-router";
 import {
+  Info,
   LayoutGrid,
   LockKeyhole,
   Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
   Settings2,
-  TrendingUp,
   X,
   Zap,
 } from "@lucide/vue";
-import { selectedToken, useTokenStore } from "@/stores/tokenStore";
+import { selectedToken } from "@/stores/tokenStore";
 import ThemeToggle from "@/components/Common/ThemeToggle.vue";
 import WorkspaceAccountList from "@/components/Common/WorkspaceAccountList.vue";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 
+const isDesktop = window.desktop?.isDesktop === true;
+const BatchDailyTasks = defineAsyncComponent(() => import("@/views/BatchDailyTasks.vue"));
 const route = useRoute();
-const tokenStore = useTokenStore();
 const mobileMenuOpen = ref(false);
+const sidebarCollapsed = ref(localStorage.getItem("sidebarCollapsed") === "true");
+const toggleSidebar = () => {
+  sidebarCollapsed.value = !sidebarCollapsed.value;
+  localStorage.setItem("sidebarCollapsed", String(sidebarCollapsed.value));
+};
 
 const navigation = computed(() => [
   {
@@ -182,20 +193,14 @@ const navigation = computed(() => [
     disabled: false,
   },
   {
-    path: "/pushing-levels",
-    label: "主线推关",
-    icon: TrendingUp,
+    path: "/tokens",
+    label: "账号管理",
+    icon: Settings2,
     disabled: false,
   },
 ]);
 
 const homePath = "/batch-tasks";
-
-const accountStatus = computed(() =>
-  tokenStore.hasTokens
-    ? `${tokenStore.gameTokens.length} 个账号可用`
-    : "尚未导入 Token",
-);
 
 const handleNavigation = (item, event) => {
   if (item.disabled) {
@@ -224,14 +229,76 @@ const handleNavigation = (item, event) => {
   border-right: 1px solid var(--border);
 }
 
-.brand {
+.sidebar-toggle {
+  display: grid;
+  min-height: 36px;
+  width: 36px;
+  place-items: center;
+  flex: 0 0 auto;
+  color: var(--muted-foreground);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.sidebar-toggle:hover {
+  background: var(--muted);
+}
+
+.sidebar-collapsed .app-sider {
+  width: 64px;
+}
+
+.sidebar-collapsed .workspace {
+  margin-left: 64px;
+}
+
+.sidebar-collapsed .sider-heading {
+  justify-content: center;
+}
+
+.sidebar-collapsed .app-sider .brand,
+.sidebar-collapsed .app-sider .nav-link > span,
+.sidebar-collapsed .app-sider .nav-lock,
+.sidebar-collapsed .app-sider .footer-link > span {
+  display: none;
+}
+
+.sidebar-collapsed .app-sider .primary-nav {
+  padding: 12px 8px;
+}
+
+.sidebar-collapsed .app-sider .nav-link {
+  display: flex;
+  justify-content: center;
+}
+
+.sidebar-collapsed .sider-footer {
+  padding: 8px;
+}
+
+.sidebar-collapsed .app-sider .footer-link {
+  justify-content: center;
+  padding: 0;
+}
+
+.sider-heading,
+.mobile-drawer-head {
   display: flex;
   height: 64px;
-  padding: 0 20px;
+  flex: 0 0 auto;
+  padding: 0 12px;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.brand {
+  display: flex;
+  min-width: 0;
+  flex: 1;
   align-items: center;
   gap: 11px;
   color: var(--foreground);
-  border-bottom: 1px solid var(--border);
 }
 
 .brand:hover {
@@ -260,23 +327,11 @@ const handleNavigation = (item, event) => {
   font-weight: 650;
 }
 
-.brand-copy small {
-  color: var(--muted-foreground);
-  font-size: 11px;
-}
-
 .primary-nav {
   display: grid;
+  flex: 0 0 auto;
   gap: 2px;
-  padding: 0 12px 14px;
-}
-
-.nav-section-label {
-  padding: 14px 16px 8px;
-  color: var(--muted-foreground);
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
+  padding: 12px;
 }
 
 .nav-link {
@@ -327,11 +382,12 @@ const handleNavigation = (item, event) => {
 .sider-footer {
   flex: 0 0 auto;
   display: grid;
-  gap: 10px;
-  padding: 10px 14px 16px;
+  margin-top: auto;
+  padding: 8px 12px;
+  border-top: 1px solid var(--border);
 }
 
-.account-management-link {
+.footer-link {
   display: flex;
   min-height: 36px;
   padding: 0 9px;
@@ -343,30 +399,10 @@ const handleNavigation = (item, event) => {
   font-weight: 500;
 }
 
-.account-management-link:hover,
-.account-management-link.router-link-active {
+.footer-link:hover,
+.footer-link.router-link-active {
   background: var(--muted);
   color: var(--foreground);
-}
-
-.system-status {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--muted-foreground);
-  font-size: 12px;
-}
-
-.status-dot {
-  width: 7px;
-  height: 7px;
-  flex: 0 0 7px;
-  background: var(--outline);
-  border-radius: 50%;
-}
-
-.status-dot.active {
-  background: var(--success);
 }
 
 .workspace {
@@ -477,34 +513,13 @@ const handleNavigation = (item, event) => {
   background: var(--surface-container-low);
 }
 
-.mobile-drawer-head {
-  display: flex;
-  padding-right: 12px;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid var(--border);
-}
-
-.mobile-drawer-head .brand {
-  flex: 1;
-  border: 0;
-}
-
-.mobile-nav {
-  padding-bottom: 12px;
-}
-
-.mobile-account-management {
-  flex: 0 0 auto;
-  margin: 10px 12px;
-}
-
 @media (max-width: 900px) {
   .app-sider {
     display: none;
   }
 
-  .workspace {
+  .workspace,
+  .sidebar-collapsed .workspace {
     margin-left: 0;
   }
 

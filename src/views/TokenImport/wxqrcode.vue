@@ -150,6 +150,7 @@ const roleList = ref<
     roleId: string;
     token: string;
     server: string;
+    serverId?: string;
     roleIndex?: number;
     wsUrl: string;
     importMethod: string;
@@ -240,6 +241,7 @@ const addSelectedRole = async (roleInfo: any) => {
       token: roleToken,
       name: finalName,
       server: String(serverNum) + "服",
+      serverId: String(roleInfo.serverId),
       roleIndex: roleIndex,
       wsUrl: importForm.wsUrl || "",
       importMethod: "wxQrcode",
@@ -266,11 +268,7 @@ const generateQRCode = async () => {
     resetQRCode();
 
     // 调用获取二维码接口
-    const success = await tryGetWeixinQR();
-
-    if (!success) {
-      throw new Error("二维码获取失败");
-    }
+    await tryGetWeixinQR();
   } catch (error) {
     updateStatus("二维码获取失败：" + error.message, "error");
     console.error("获取二维码失败:", error);
@@ -309,7 +307,7 @@ const tryGetWeixinQR = async () => {
     const html = response.responseText;
     const doc = new DOMParser().parseFromString(html, "text/html");
 
-    let qrUrl = doc.querySelector("img.auth_qrcode")?.src;
+    let qrUrl = doc.querySelector("img.auth_qrcode")?.getAttribute("src");
 
     if (!qrUrl) {
       const m = html.match(/https:\/\/[^"']*qrcode[^"']*/i);
@@ -317,8 +315,12 @@ const tryGetWeixinQR = async () => {
     }
 
     if (!qrUrl) {
-      throw new Error("未找到二维码图片地址");
+      const reason = doc.querySelector(".weui_msg_desc, .weui-msg__desc")?.textContent?.trim();
+      throw new Error(reason || "微信响应中未找到二维码图片地址");
     }
+
+    // 相对图片地址必须以微信站点解析，不能指向本地桌面源。
+    qrUrl = new URL(qrUrl, "https://open.weixin.qq.com/").href;
 
     // 解析 uuid
     qrcodeUUID.value = qrUrl.split("/").pop().split("?")[0];
@@ -332,8 +334,7 @@ const tryGetWeixinQR = async () => {
     return true;
   } catch (err) {
     console.error("二维码解析失败:", err);
-    updateStatus("二维码获取失败：" + err.message, "error");
-    return false;
+    throw err;
   }
 };
 

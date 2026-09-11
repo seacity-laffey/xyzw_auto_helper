@@ -111,6 +111,7 @@ const roleList = ref<
     roleId: string;
     token: string;
     server: string;
+    serverId?: string;
     roleIndex?: number;
     wsUrl: string;
     importMethod: string;
@@ -232,6 +233,7 @@ const addSelectedRole = async (roleInfo: any) => {
       token: roleToken,
       name: finalName,
       server: String(serverNum) + "服",
+      serverId: String(roleInfo.serverId),
       roleIndex: roleIndex,
       wsUrl: importForm.wsUrl || "",
       importMethod: "bin",

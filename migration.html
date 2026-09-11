@@ -1,0 +1,5 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>数据备份与迁移 · XYZW</title>
+<style>body{font:16px/1.7 system-ui,sans-serif;max-width:720px;margin:60px auto;padding:24px;background:#f5f5f5;color:#222}main{background:white;padding:32px;border:1px solid #ddd;border-radius:8px}button,a,input{font:inherit}button{padding:8px 16px;margin:8px 12px 8px 0;cursor:pointer}#status{white-space:pre-wrap}a{color:#315f86}</style></head>
+<body><main><h1>数据备份与迁移</h1><p>完整备份包含账号、模板、定时任务、设置及二进制登录数据。可以在网页版导出，再在桌面版导入。</p><p>此页面不运行任务。操作前请关闭其他游戏窗口和助手标签页，避免数据被同时修改。备份含登录凭证，请妥善保存。</p><button id="export">导出完整备份</button><label>导入备份 <input id="import" type="file" accept=".json,application/json"></label><p id="status" role="status"></p><a href="/tokens">返回账号管理</a></main><script type="module" src="/src/migration.js"></script></body></html>

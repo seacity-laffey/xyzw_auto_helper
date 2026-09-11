@@ -3,6 +3,7 @@
     class="min-h-[calc(100vh-56px)] bg-background py-6 pb-10 max-md:py-3 max-md:pb-6"
   >
     <div class="mx-auto w-full max-w-[1480px] px-6 max-md:px-3">
+      <p class="mb-4"><a href="/migration.html" @click="confirmMigration">完整数据备份与迁移</a></p>
       <TokenImportDialog v-model:open="showImportForm"></TokenImportDialog>
 
       <!-- Token列表 -->
@@ -475,6 +476,13 @@ const handleBulkAction = (key) => {
       clearAllTokens();
       break;
   }
+};
+
+const confirmMigration = (event) => {
+  // 页面将整体跳转，需要先确认停止任务。
+  // eslint-disable-next-line no-alert
+  if (!window.confirm("进入备份页面将停止当前窗口的任务。请先停止任务并关闭其他游戏窗口。继续？"))
+    event.preventDefault();
 };
 
 const exportTokens = () => {

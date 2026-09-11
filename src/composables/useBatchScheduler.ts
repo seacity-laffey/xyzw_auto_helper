@@ -1,10 +1,11 @@
+import { createSchedulerTick } from "@/utils/schedulerTick.js";
 import type { Ref } from "vue";
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { $emit } from "@/stores/events/index";
 import {
-  calculateNextExecutionTime,
+  calculateNextScheduledRun,
   formatTimeDifference,
-  matchesCronExpression,
+  matchesScheduledTask,
 } from "@/utils/batch";
 import type { BatchLogEntry, BatchSettings } from "@/utils/batch/types";
 
@@ -36,12 +37,13 @@ export const useBatchScheduler = ({
     formatted: string;
     isNearExecution: boolean;
     remainingTime: number;
+    nextExecutionAt: number;
+    plannedAt: number;
   }>>({});
-  const nextExecutionTimes = ref<Record<string, number>>({});
+  const nextExecutionTimes = ref<Record<string, { executeAt: number; plannedAt: number }>>({});
   const intervalId = ref<ReturnType<typeof setInterval> | null>(null);
   let countdownInterval: ReturnType<typeof setInterval> | null = null;
   let healthCheckInterval: ReturnType<typeof setInterval> | null = null;
-  let lastTaskExecution: number | null = null;
   const pageLoadTime = Date.now();
 
   const updateCountdowns = () => {
@@ -55,16 +57,25 @@ export const useBatchScheduler = ({
 
       if (
         !nextExecutionTimes.value[task.id]
-        || nextExecutionTimes.value[task.id] <= now
+        || nextExecutionTimes.value[task.id].executeAt <= now
       ) {
-        nextExecutionTimes.value[task.id] = calculateNextExecutionTime(task);
+        const next = calculateNextScheduledRun(task, new Date(now));
+        if (!next) {
+          delete nextExecutionTimes.value[task.id];
+          delete taskCountdowns.value[task.id];
+          return;
+        }
+        nextExecutionTimes.value[task.id] = { executeAt: next.executeAt.getTime(), plannedAt: next.plannedAt.getTime() };
       }
 
       if (nextExecutionTimes.value[task.id]) {
-        const timeDiff = nextExecutionTimes.value[task.id] - now;
+        const next = nextExecutionTimes.value[task.id];
+        const timeDiff = next.executeAt - now;
         const remainingTime = Math.max(0, timeDiff);
         taskCountdowns.value[task.id] = {
           remainingTime,
+          nextExecutionAt: next.executeAt,
+          plannedAt: next.plannedAt,
           formatted: formatTimeDifference(remainingTime),
           isNearExecution: timeDiff < 5 * 60 * 1000,
         };
@@ -79,69 +90,24 @@ export const useBatchScheduler = ({
     countdownInterval = setInterval(updateCountdowns, 1000);
   };
 
+  const tick = createSchedulerTick({
+    tasks: () => scheduledTasks.value,
+    storage: localStorage,
+    busy: () => isRunning.value,
+    matches: matchesScheduledTask,
+    execute: executeScheduledTask,
+    onError: (error, task) => addLog({
+      time: new Date().toLocaleTimeString(),
+      message: `定时任务 ${task.name} 调度失败: ${String(error)}`,
+      type: "error",
+    }),
+  });
+
   const startScheduler = () => {
     if (intervalId.value)
       clearInterval(intervalId.value);
-
     intervalId.value = setInterval(() => {
-      try {
-        const now = new Date();
-        const currentTime = now.toLocaleTimeString("zh-CN", {
-          hour12: false,
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-        });
-        const tasksToRun = scheduledTasks.value.filter((task) => task.enabled);
-
-        tasksToRun.forEach((task) => {
-          let shouldRun = false;
-          if (task.runType === "daily") {
-            const nowTime = now.toLocaleTimeString("zh-CN", {
-              hour12: false,
-              hour: "2-digit",
-              minute: "2-digit",
-            });
-            shouldRun = nowTime === task.runTime;
-          } else if (task.runType === "cron") {
-            try {
-              shouldRun = matchesCronExpression(task.cronExpression, now);
-            } catch (error) {
-              const reason = error instanceof Error ? error.message : String(error);
-              console.error(
-                `[${new Date().toISOString()}] Error parsing cron expression ${task.cronExpression}:`,
-                error,
-              );
-              addLog({
-                time: currentTime,
-                message: `=== 解析定时任务 ${task.name} 的Cron表达式失败: ${reason} ===`,
-                type: "error",
-              });
-              return;
-            }
-          }
-
-          if (!shouldRun)
-            return;
-
-          const taskExecutionKey = `${task.id}_${now.getDate()}_${now.getHours()}_${now.getMinutes()}`;
-          const storageKey = `lastTaskExecution_${task.id}`;
-          if (localStorage.getItem(storageKey) === taskExecutionKey)
-            return;
-
-          localStorage.setItem(storageKey, taskExecutionKey);
-          lastTaskExecution = Date.now();
-          void executeScheduledTask(task);
-        });
-      } catch (error) {
-        const reason = error instanceof Error ? error.message : String(error);
-        console.error(`[${new Date().toISOString()}] Error in task scheduler:`, error);
-        addLog({
-          time: new Date().toLocaleTimeString(),
-          message: `=== 定时任务调度服务发生错误: ${reason} ===`,
-          type: "error",
-        });
-      }
+      void tick();
     }, 10000);
   };
 
@@ -151,21 +117,6 @@ export const useBatchScheduler = ({
         `[${new Date().toISOString()}] Task scheduler interval is not running, restarting...`,
       );
       startScheduler();
-    }
-
-    if (isRunning.value) {
-      const tenMinutesAgo = Date.now() - 10 * 60 * 1000;
-      if (lastTaskExecution && lastTaskExecution < tenMinutesAgo) {
-        console.error(
-          `[${new Date().toISOString()}] isRunning has been true for more than 10 minutes, resetting to false`,
-        );
-        isRunning.value = false;
-        addLog({
-          time: new Date().toLocaleTimeString(),
-          message: "=== 检测到任务执行超时，已重置isRunning状态 ===",
-          type: "warning",
-        });
-      }
     }
 
     if (batchSettings.enableRefresh && batchSettings.refreshInterval > 0) {

@@ -86,6 +86,8 @@ export const useScheduledTaskStorage = ({
     task: ScheduledTask;
   }) => {
     const index = scheduledTasks.value.findIndex((item) => item.id === task.id);
+    if (task.runType === "interval" && task.enabled && !task.intervalAnchor)
+      task.intervalAnchor = Math.floor(Date.now() / 60000) * 60000;
     if (index >= 0)
       scheduledTasks.value[index] = task;
     else scheduledTasks.value.push(task);
@@ -115,6 +117,8 @@ export const useScheduledTaskStorage = ({
     if (!task)
       return;
     task.enabled = enabled;
+    if (enabled && task.runType === "interval" && !task.intervalAnchor)
+      task.intervalAnchor = Math.floor(Date.now() / 60000) * 60000;
     saveScheduledTasks();
     notify("success", `定时任务已${enabled ? "启用" : "禁用"}`);
     addLog({

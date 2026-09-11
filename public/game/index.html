@@ -41,10 +41,9 @@
     <link rel="icon" href="favicon.8de18.ico" />
   </head>
   <body>
-    <script src="session-bridge.js" charset="utf-8"></script>
+    <script src="bootstrap.js" charset="utf-8"></script>
     <canvas
       id="GameCanvas"
-      oncontextmenu="event.preventDefault()"
       tabindex="0"
     ></canvas>
     <div id="splash">
@@ -53,21 +52,6 @@
       </div>
     </div>
 
-    <script src="patch.decrypted_readable.js" charset="utf-8"></script>
-    <script src="src/settings.da7ef.js" charset="utf-8"></script>
-    <script src="game-defines.a175e.js" charset="utf-8"></script>
-    <script src="main.2a00e.js" charset="utf-8"></script>
-    <script src="cocos2d-js-min.a5841.js" charset="utf-8"></script>
-    <script src="xh.js" charset="utf-8"></script>
-    <script src="sh1.js" charset="utf-8"></script>
-    <script src="diagnose_require.js" charset="utf-8"></script>
-    <script type="text/javascript">
-      (function () {
-        window.HtmlIsLoaded = true;
-        var splash = document.getElementById("splash");
-        splash.style.display = "none";
-        window.boot();
-      })();
-    </script>
+    <script src="loader.js" charset="utf-8"></script>
   </body>
 </html>

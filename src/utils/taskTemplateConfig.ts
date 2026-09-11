@@ -27,6 +27,7 @@ export const TEMPLATE_TASK_FIELDS = [
   { key: "blackMarketPurchase", label: "黑市采购（账号游戏内配置）" },
   { key: "dreamEnable", label: "咸王梦境" },
   { key: "deepSeaEnable", label: "深海免费扫荡" },
+  { key: "legacyClaimEnable", label: "领取功法残卷（解锁后）" },
   { key: "dailyPointEnable", label: "领取单项任务奖励" },
   { key: "dailyRewardEnable", label: "领取日常积分奖励" },
   { key: "weeklyRewardEnable", label: "领取周常积分奖励" },

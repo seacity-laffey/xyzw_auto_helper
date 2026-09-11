@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 import { createJiti } from "jiti";
-const { createTasksLegacy } = await createJiti(import.meta.url).import("../src/utils/batch/tasksLegacy.ts");
+const jiti = createJiti(import.meta.url, { alias: { "@": fileURLToPath(new URL("../src", import.meta.url)) } });
+const { createTasksLegacy } = await jiti.import("../src/utils/batch/tasksLegacy.ts");
+const { useBatchTaskModules } = await jiti.import("../src/composables/useBatchTaskModules.ts");
+const { useBatchScheduledTaskExecution } = await jiti.import("../src/composables/useBatchScheduledTaskExecution.ts");
+const { BUILTIN_SCHEDULE_TEMPLATES } = await jiti.import("../src/utils/batch/constants.ts");
 
 for (const quantity of [0, 3]) {
   test(`scheduled gifts use independent inventory with quantity ${quantity}`, async () => {
@@ -62,3 +67,47 @@ for (const action of ["batchLegacyClaim", "batchLegacyGiftSendEnhanced"]) {
     assert.equal(states.value.open, "completed");
   });
 }
+
+test("six-hour preset dispatches the one-click legacy action with identical server unlock checks", async (t) => {
+  const oldStorage = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
+  const data = new Map();
+  Object.defineProperty(globalThis, "localStorage", { configurable: true, value: {
+    getItem: key => data.get(key) ?? null, setItem: (key, value) => data.set(key, value), removeItem: key => data.delete(key),
+  } });
+  t.after(() => oldStorage ? Object.defineProperty(globalThis, "localStorage", oldStorage) : delete globalThis.localStorage);
+  const roles = { locked: { level: 5999, levelId: 8001 }, missing: {}, open: { level: 6000, levelId: 8001 } };
+  const calls = [], closed = [];
+  const tokens = { value: Object.keys(roles).map(id => ({ id, name: id })) };
+  const deps = {
+    tokens, selectedTokens: { value: Object.keys(roles) },
+    tokenStatus: { value: {} }, isRunning: { value: false }, shouldStop: { value: false }, currentRunningTokenId: { value: null },
+    batchSettings: { maxActive: 1 }, connectionQueue: { active: 0 },
+    ensureConnection: async () => {}, releaseConnectionSlot() {}, addLog() {}, message: { success() {}, warning() {}, error(text) { assert.fail(text); } },
+    tokenStore: {
+      gameTokens: tokens.value,
+      closeWebSocketConnection: id => closed.push(id),
+      sendGetRoleInfo: async id => { calls.push([id, "role_getroleinfo"]); return { role: roles[id] }; },
+      sendMessageWithPromise: async (id, cmd, params) => {
+        calls.push([id, cmd, params]);
+        return { reward: [{ value: 1 }], role: { items: { 37007: { quantity: 10 } } } };
+      },
+    },
+  };
+  const modules = useBatchTaskModules({ createTaskDeps: () => deps, openHelperModal() {}, openLegacyGift() {}, openWarGuessModal() {} });
+  assert.equal(modules.batchFunctionActions.claimLegacy, modules.batchLegacyClaim);
+  await modules.batchFunctionActions.claimLegacy();
+  const manualCalls = structuredClone(calls);
+  const manualStatuses = { ...deps.tokenStatus.value };
+  calls.length = 0; closed.length = 0; deps.selectedTokens.value = [];
+  const runner = useBatchScheduledTaskExecution({
+    ...deps, getTaskFunction: name => modules[name],
+    arenaActivityOpen: { value: false }, dreamActivityOpen: { value: false }, weirdTowerActivityOpen: { value: false },
+  });
+  const preset = BUILTIN_SCHEDULE_TEMPLATES.find(template => template.id === "legacy-every-six-hours");
+  await runner.executeScheduledTask({ ...preset, selectedTokens: Object.keys(roles) });
+  assert.deepEqual(calls, manualCalls);
+  assert.deepEqual(deps.tokenStatus.value, manualStatuses);
+  assert.deepEqual(calls.filter(([,cmd]) => cmd === "legacy_claimhangup"), [["open", "legacy_claimhangup", {}]]);
+  assert.deepEqual(new Set(closed), new Set(Object.keys(roles)));
+  assert.equal(deps.isRunning.value, false);
+});

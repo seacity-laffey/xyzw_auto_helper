@@ -1,6 +1,7 @@
 import { useLocalStorage } from "@vueuse/core";
 import { defineStore } from "pinia";
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
+import { GAME_WINDOW_ORDER_KEY, getGameWindowKey, reconcileGameWindowOrder } from "@/utils/embeddedGameOrder.js";
 
 import { g_utils } from "@/utils/bonProtocol";
 import { gameLogger, tokenLogger, wsLogger } from "@/utils/logger";
@@ -32,6 +33,7 @@ declare interface TokenData {
   token: string; // 原始Base64 token
   wsUrl: string | null; // 可选的自定义WebSocket URL
   server: string;
+  serverId?: string | number;
   remark?: string; // 备注信息
   level?: number;
   profession?: string;
@@ -128,6 +130,16 @@ interface StoreResult {
 type MessageListener = (message: GamePacket) => void;
 
 export const gameTokens = useLocalStorage<TokenData[]>("gameTokens", []);
+export const gameWindowOrder = useLocalStorage<string[]>(GAME_WINDOW_ORDER_KEY, []);
+watch(
+  () => gameTokens.value.map(({ id, name, server, serverId }) => ({ id, name, server, serverId })),
+  (tokens, previous) => {
+    const order = reconcileGameWindowOrder(gameWindowOrder.value, tokens, previous);
+    if (JSON.stringify(order) !== JSON.stringify(gameWindowOrder.value))
+      gameWindowOrder.value = order;
+  },
+  { immediate: true },
+);
 export const hasTokens = computed(() => gameTokens.value.length > 0);
 export const selectedTokenId = useLocalStorage("selectedTokenId", "");
 export const selectedToken = computed(() => {
@@ -285,6 +297,7 @@ export const useTokenStore = defineStore("tokens", () => {
       token: tokenData.token, // 保存原始Base64 token
       wsUrl: tokenData.wsUrl || null, // 可选的自定义WebSocket URL
       server: tokenData.server || "",
+      serverId: tokenData.serverId,
       remark: tokenData.remark || "", // 备注信息
       level: tokenData.level || 1,
       profession: tokenData.profession || "",
@@ -318,6 +331,13 @@ export const useTokenStore = defineStore("tokens", () => {
   };
 
   const removeToken = async (tokenId: string) => {
+    const removed = gameTokens.value.find((token) => token.id === tokenId);
+    if (removed) {
+      const key = getGameWindowKey(removed);
+      if (!gameTokens.value.some((token) => token.id !== tokenId && getGameWindowKey(token) === key)) {
+        gameWindowOrder.value = gameWindowOrder.value.filter((item) => item !== key);
+      }
+    }
     gameTokens.value = gameTokens.value.filter((token) => token.id !== tokenId);
     batchSelectedTokenIds.value = batchSelectedTokenIds.value.filter(
       (selectedId) => selectedId !== tokenId,
@@ -1301,6 +1321,7 @@ export const useTokenStore = defineStore("tokens", () => {
     });
 
     gameTokens.value = [];
+    gameWindowOrder.value = [];
     selectedTokenId.value = null;
     batchSelectedTokenIds.value = [];
 
@@ -1698,6 +1719,7 @@ export const useTokenStore = defineStore("tokens", () => {
   return {
     // 状态
     gameTokens,
+    gameWindowOrder,
     selectedTokenId,
     batchSelectedTokenIds,
     wsConnections,

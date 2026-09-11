@@ -17,10 +17,9 @@ build/
 
 # Environment variables
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
+!.env.example
+!.env.*.example
 
 # IDE
 # 同步vscode工作空间的配置
@@ -77,5 +76,14 @@ temp/
 node_modules/
 dist.zip
 *.bin
+*.dmp
 bin/
 server/config.json
+# Local account exports and protocol captures
+xyzw-backup-*.json
+tokens_backup_*.json
+xyzw_config_*.json
+xyzw-protocol-*.json
+# Desktop artifacts
+out/
+desktop/evidence/

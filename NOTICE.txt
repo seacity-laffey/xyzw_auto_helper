@@ -1,0 +1,24 @@
+XYZW Helper — modified distribution
+
+Upstream: https://github.com/w1249178256/xyzw_web_helper
+Original copyright: Copyright (c) 2024 XYZW Team
+Fork: https://github.com/seacity-laffey/xyzw_auto_helper
+
+This distribution modifies the upstream project with desktop packaging,
+isolated game windows, multi-account input synchronization, batch reward
+handling, scheduled tasks and interface changes.
+
+The project and these modifications are distributed under
+Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International.
+https://creativecommons.org/licenses/by-nc-sa/4.0/
+Retain the attribution, license, disclaimer and modification notices when
+redistributing. See LICENSE for the original project license and disclaimer.
+
+This fork is independently maintained. It is not an official game product
+and is not endorsed by the upstream authors or the game publisher.
+Third-party software, game assets and trademarks remain subject to their
+respective rights and licenses; the project license does not grant those rights.
+
+See THIRD_PARTY_NOTICES.txt for bundled JavaScript dependencies. The Electron
+runtime includes its own LICENSE and LICENSES.chromium.html in the application
+directory. The project LICENSE in resources/ is separate from Electron's license.

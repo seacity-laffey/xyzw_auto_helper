@@ -277,6 +277,7 @@
 </template>
 
 <script setup>
+import { getTokenDisplayName } from "@/utils/roleTokenMetadata.js";
 // Import required dependencies
 import {
   computed,
@@ -372,7 +373,14 @@ const { isOpeningGames, openSelectedGames } = useBatchGameLauncher(
   selectedTokens,
 );
 const tokenStatus = ref({}); // { tokenId: 'waiting' | 'running' | 'completed' | 'failed' }
-const isRunning = ref(false);
+const taskRunning = ref(false);
+const scheduledRunning = ref(false);
+const isRunning = computed({
+  get: () => taskRunning.value || scheduledRunning.value,
+  set: (value) => {
+    taskRunning.value = value;
+  },
+});
 const shouldStop = ref(false);
 
 watch(
@@ -618,7 +626,7 @@ const loadCurrentBlackMarketConfig = () => {
 
 const openSettings = (token) => {
   currentSettingsTokenId.value = token.id;
-  currentSettingsTokenName.value = token.name;
+  currentSettingsTokenName.value = getTokenDisplayName(token);
   refreshTemplateBindings();
   const saved = loadAccountTaskBinding(token.id);
   Object.assign(currentSettings, saved);
@@ -767,6 +775,7 @@ const {
   executingTaskIds,
   manualExecuteTask,
 } = useBatchScheduledTaskExecution({
+  scheduledRunning,
   addLog,
   arenaActivityOpen: isarenaActivityOpen,
   dreamActivityOpen: ismengjingActivityOpen,

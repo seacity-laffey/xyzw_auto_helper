@@ -113,7 +113,46 @@ export function getClubBattleTargetIds(response) {
   return [...targetIds];
 }
 
-export function aggregateClubBattleRecordStats(recordResponses, date = new Date()) {
+const memberKey = (member) => `${member.roleId}${member.mirror === true ? ":mirror" : ""}`;
+
+export function getClubBattleRecordTargets(members) {
+  const targets = new Map();
+  for (const member of Object.values(members || {})) {
+    if (!member?.roleId)
+      continue;
+    if (Number(member.challengeCnt) > 0 || Number(member.failCnt) > 0 || member.defeated === true) {
+      targets.set(memberKey(member), { targetId: String(member.roleId), targetIsMirror: member.mirror === true });
+    }
+  }
+  return [...targets.values()];
+}
+
+export function buildOpponentClubBattleRows(response, recordResponses, date = new Date(), { complete = true } = {}) {
+  const opponent = getTodayClubBattleOpponent(response, date);
+  if (!opponent)
+    return [];
+  const stats = aggregateClubBattleRecordStats(recordResponses, date, { separateMirrors: true });
+  const members = new Map();
+  for (const member of Object.values(opponent.defenders || {})) {
+    if (!member?.roleId)
+      continue;
+    const key = memberKey(member);
+    const count = stats.get(key) || (complete ? { successCount: 0, attackCount: 0 } : null);
+    members.set(key, {
+      key,
+      roleId: String(member.roleId),
+      name: `${member.mirror ? "[镜像] " : ""}${member.name || `成员 ${member.roleId}`}`,
+      headImg: member.headImg || "",
+      successCount: count?.successCount ?? null,
+      attackCount: count?.attackCount ?? null,
+      available: Boolean(count),
+      partial: !complete,
+    });
+  }
+  return [...members.values()];
+}
+
+export function aggregateClubBattleRecordStats(recordResponses, date = new Date(), { separateMirrors = false } = {}) {
   const dayKey = getClubBattleDayKey(date);
   const statsByRoleId = new Map();
   const seenRecords = new Set();
@@ -122,7 +161,7 @@ export function aggregateClubBattleRecordStats(recordResponses, date = new Date(
     const body = source?.body || source?.response?.body || source?.response || source || {};
     const targetId = String(source?.targetId || "");
 
-    (body.records || []).forEach((record, index) => {
+    (Array.isArray(body.records) ? body.records : []).forEach((record, index) => {
       if (!record?.roleId || !record.created)
         return;
 
@@ -137,12 +176,12 @@ export function aggregateClubBattleRecordStats(recordResponses, date = new Date(
 
       const recordKey
         = record.recordName
-          || `${targetId}:${record.roleId}:${record.created}:${index}`;
+          || `${targetId}:${Boolean(source.targetIsMirror)}:${memberKey(record)}:${record.created}:${index}`;
       if (seenRecords.has(recordKey))
         return;
       seenRecords.add(recordKey);
 
-      const roleId = String(record.roleId);
+      const roleId = separateMirrors ? memberKey(record) : String(record.roleId);
       const stats = statsByRoleId.get(roleId) || {
         successCount: 0,
         attackCount: 0,

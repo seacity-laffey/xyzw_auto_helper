@@ -5,7 +5,10 @@
         <n-notification-provider>
           <n-dialog-provider>
             <div class="app-root">
-              <router-view></router-view>
+              <router-view v-slot="{ Component }" v-if="isDesktop">
+                <keep-alive include="DefaultLayout"><component :is="Component" ></component></keep-alive>
+              </router-view>
+              <router-view v-else></router-view>
               <AppMessageHost></AppMessageHost>
             </div>
           </n-dialog-provider>
@@ -20,6 +23,8 @@ import { computed, onMounted, onUnmounted } from "vue";
 import { darkTheme } from "naive-ui";
 import { useTheme } from "@/composables/useTheme";
 import AppMessageHost from "@/components/Common/AppMessageHost.vue";
+
+const isDesktop = window.desktop?.isDesktop === true;
 
 const { isDark, initTheme, setupSystemThemeListener, updateReactiveState }
   = useTheme();

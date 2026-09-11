@@ -1,6 +1,8 @@
 .game-player {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
   flex-direction: column;
   overflow: hidden;
   color: #f5f5f5;
@@ -11,7 +13,7 @@
   z-index: 10;
   display: grid;
   min-height: 56px;
-  flex: 0 0 56px;
+  flex: 0 0 auto;
   grid-template-columns: minmax(84px, 1fr) auto minmax(84px, 1fr);
   align-items: center;
   gap: 12px;
@@ -71,6 +73,8 @@
 
 .toolbar-actions {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   min-width: 0;
   justify-self: end;
   gap: 6px;
@@ -98,6 +102,7 @@
   gap: 8px;
   padding: 8px;
   overflow: auto;
+  overscroll-behavior: contain;
 }
 
 .game-grid.focused-grid {
@@ -105,6 +110,7 @@
 }
 
 .game-window {
+  position: relative;
   display: flex;
   min-width: 0;
   min-height: 0;
@@ -114,6 +120,51 @@
   border: 1px solid #303338;
   border-radius: 6px;
 }
+
+.toolbar-button:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+.game-server {
+  flex-shrink: 0;
+  color: #a8adb5;
+  font-size: 10px;
+}
+
+.game-grid.editing-order {
+  grid-auto-rows: 280px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  align-content: start;
+}
+
+.editing-order .game-iframe {
+  pointer-events: none;
+}
+
+.order-mask {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 8px;
+  padding: 20px;
+  background: rgb(16 17 19 / 82%);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.order-mask svg { width: 28px; height: 28px; color: #9ce0b6; }
+.order-mask strong { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.order-mask small, .order-mask > span:last-child { color: #a8adb5; font-size: 12px; }
+.order-mask:focus-visible { outline: 2px solid #55c982; outline-offset: -3px; }
+.order-number { position: absolute; top: 12px; left: 14px; font-weight: 700; }
+.order-dragging .order-mask { cursor: grabbing; background: rgb(35 69 54 / 90%); }
+.order-target { border: 2px solid #9ce0b6; }
 
 .game-window-hidden {
   display: none;
@@ -196,10 +247,24 @@
   opacity: 1;
 }
 
-.game-iframe {
-  width: 100%;
-  min-height: 0;
+.game-viewport {
+  display: flex;
   flex: 1;
+  min-width: 0;
+  min-height: 0;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  container-type: size;
+  background: #000;
+}
+
+.game-iframe {
+  display: block;
+  width: min(100cqw, calc(100cqh * 9 / 16));
+  height: min(100cqh, calc(100cqw * 16 / 9));
+  flex: 0 0 auto;
+  min-height: 0;
   border: 0;
 }
 

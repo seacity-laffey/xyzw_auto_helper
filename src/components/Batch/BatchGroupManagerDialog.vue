@@ -45,7 +45,7 @@
                 :model-value="newGroupTokenIds.includes(token.id)"
                 @update:model-value="toggleNewGroupToken(token.id, $event === true)"
               ></Checkbox>
-              <span>{{ token.name || token.id }}</span>
+              <span>{{ getTokenDisplayName(token) }}</span>
             </label>
           </div>
           <p v-else class="empty-state">尚未导入账号</p>
@@ -149,7 +149,7 @@
                   :key="token.id"
                   :value="token.id"
                 >
-                  {{ token.name || token.id }}
+                  {{ getTokenDisplayName(token) }}
                 </option>
               </select>
             </template>
@@ -166,6 +166,7 @@
 </template>
 
 <script setup lang="ts">
+import { getTokenDisplayName } from "@/utils/roleTokenMetadata.js";
 import { ref } from "vue";
 import { Pencil, Trash2, X } from "@lucide/vue";
 import { Button } from "@/components/ui/button";
@@ -223,7 +224,7 @@ const validTokenIds = (groupId: string) =>
   tokenStore.getValidGroupTokenIds(groupId);
 
 const tokenName = (tokenId: string) =>
-  tokens.value.find((token) => token.id === tokenId)?.name || tokenId;
+  getTokenDisplayName(tokens.value.find((token) => token.id === tokenId) || { name: tokenId });
 
 const availableTokens = (groupId: string) => {
   const existingIds = new Set(validTokenIds(groupId));

@@ -7,10 +7,19 @@ interface CronValidationResult {
   message?: string;
 }
 
+export interface WeeklyBlackout {
+  weekday: number;
+  start: string;
+  end: string;
+}
+
 interface CronTask {
   runType: "daily" | "cron" | string;
   runTime?: string;
   cronExpression?: string;
+  intervalMinutes?: number;
+  intervalAnchor?: number;
+  blackoutWindows?: WeeklyBlackout[];
 }
 
 /**
@@ -582,10 +591,17 @@ export const calculateNextRuns = (
  * @param {object} task - 任务对象
  * @returns {Date|null} - 下次执行时间
  */
-export const calculateNextExecutionTime = (task: CronTask): Date | null => {
-  const now = new Date();
+const calculateNextPlannedTime = (task: CronTask, now: Date): Date | null => {
+  if (task.runType === "interval") {
+    const interval = Number(task.intervalMinutes) * 60000;
+    const anchor = Math.floor(Number(task.intervalAnchor) / 60000) * 60000;
+    if (!Number.isInteger(task.intervalMinutes) || interval < 60000 || !Number.isFinite(anchor) || anchor <= 0)
+      return null;
+    const slot = Math.max(1, Math.floor((now.getTime() - anchor) / interval) + 1);
+    return new Date(anchor + slot * interval);
+  }
 
-  if (task.runType === "daily" && task.runTime) {
+  if (task.runType === "daily" && validTime(task.runTime)) {
     // For daily tasks, parse the runTime and calculate next execution
     const [hours, minutes] = task.runTime.split(":").map(Number) as [
       number,
@@ -830,4 +846,135 @@ export const matchesCronExpression = (cronExpression: string, now = new Date()) 
   }
 
   return matchesMinute && matchesHour && matchesDay && matchesMonth;
+};
+
+const minuteMs = 60000;
+const validTime = (value: unknown): value is string => typeof value === "string" && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value);
+
+export const validateBlackoutWindows = (windows: unknown): string | null => {
+  if (windows === undefined)
+    return null;
+  if (!Array.isArray(windows))
+    return "禁止上线时段格式无效";
+  for (const window of windows) {
+    if (!window || !Number.isInteger(window.weekday) || window.weekday < 0 || window.weekday > 6
+      || !validTime(window.start) || !validTime(window.end) || window.start === window.end) {
+      return "请选择有效的星期、开始和结束时间，开始与结束时间不能相同";
+    }
+  }
+  return null;
+};
+
+// 用真实日期构造每周时段，兼容跨午夜；相邻/重叠时段合并为一次禁止上线。
+const blackoutRanges = (windows: WeeklyBlackout[] | undefined, around: Date) => {
+  const ranges: { start: number; end: number }[] = [];
+  if (!windows?.length)
+    return ranges;
+  for (let offset = -8; offset <= 8; offset++) {
+    const day = new Date(around);
+    day.setDate(day.getDate() + offset);
+    for (const window of windows) {
+      if (day.getDay() !== window.weekday)
+        continue;
+      const start = new Date(day);
+      const end = new Date(day);
+      const [startHour, startMinute] = window.start.split(":").map(Number);
+      const [endHour, endMinute] = window.end.split(":").map(Number);
+      start.setHours(startHour, startMinute, 0, 0);
+      end.setHours(endHour, endMinute, 0, 0);
+      if (end <= start)
+        end.setDate(end.getDate() + 1);
+      ranges.push({ start: start.getTime(), end: end.getTime() });
+    }
+  }
+  const merged: typeof ranges = [];
+  for (const range of ranges.sort((a, b) => a.start - b.start)) {
+    const last = merged[merged.length - 1];
+    if (last && range.start <= last.end)
+      last.end = Math.max(last.end, range.end);
+    else merged.push({ ...range });
+  }
+  return merged;
+};
+
+export const isInTaskBlackout = (task: Pick<CronTask, "blackoutWindows">, date = new Date()) => {
+  if (validateBlackoutWindows(task.blackoutWindows))
+    return true;
+  const timestamp = date.getTime();
+  return blackoutRanges(task.blackoutWindows, date).some((range) => timestamp >= range.start && timestamp < range.end);
+};
+
+const avoidBlackout = (task: CronTask, plannedAt: Date) => {
+  let timestamp = plannedAt.getTime();
+  let blockedUntil = timestamp;
+  // 若提前后的时间仍在另一个禁用时段内，继续提前；不在全周禁用配置上无限回退。
+  for (let attempts = 0; attempts < 32; attempts++) {
+    const range = blackoutRanges(task.blackoutWindows, new Date(timestamp))
+      .find((range) => timestamp >= range.start && timestamp < range.end);
+    if (!range)
+      return { executeAt: new Date(timestamp), blockedUntil };
+    blockedUntil = Math.max(blockedUntil, range.end);
+    timestamp = range.start - 5 * minuteMs;
+    if (plannedAt.getTime() - timestamp > 8 * 86400000)
+      return null;
+  }
+  return null;
+};
+
+export const calculateNextScheduledRun = (task: CronTask, after = new Date()): { plannedAt: Date; executeAt: Date } | null => {
+  if (validateBlackoutWindows(task.blackoutWindows))
+    return null;
+  let cursor = new Date(after);
+  for (let attempts = 0; attempts < 32; attempts++) {
+    const plannedAt = calculateNextPlannedTime(task, cursor);
+    if (!plannedAt)
+      return null;
+    const adjusted = avoidBlackout(task, plannedAt);
+    if (!adjusted)
+      return null;
+    if (adjusted.executeAt <= after) {
+      // 提前时间已错过，不能在原定时间补跑；直接跳过整个禁用时段。
+      cursor = new Date(Math.max(plannedAt.getTime(), adjusted.blockedUntil - 1));
+      continue;
+    }
+    let next = { plannedAt, executeAt: adjusted.executeAt };
+    // 时段内的后续计划可能提前到当前首个计划之前，例如 19:58 和 20:05。
+    for (const range of blackoutRanges(task.blackoutWindows, plannedAt)) {
+      const shifted = avoidBlackout(task, new Date(range.start));
+      if (!shifted || shifted.executeAt <= after || shifted.executeAt >= next.executeAt)
+        continue;
+      const upcoming = calculateNextPlannedTime(task, new Date(range.start - 1));
+      if (upcoming && upcoming.getTime() < range.end)
+        next = { plannedAt: upcoming, executeAt: shifted.executeAt };
+    }
+    return next;
+  }
+  return null;
+};
+
+export const calculateNextExecutionTime = (task: CronTask, now = new Date()): Date | null =>
+  calculateNextScheduledRun(task, now)?.executeAt ?? null;
+
+export const matchesScheduledTask = (task: CronTask, now = new Date()) => {
+  if (isInTaskBlackout(task, now))
+    return false;
+  const minute = Math.floor(now.getTime() / minuteMs) * minuteMs;
+  const time = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  if (task.runType === "daily" && time === task.runTime)
+    return true;
+  if (task.runType === "cron" && task.cronExpression && matchesCronExpression(task.cronExpression, now))
+    return true;
+  if (task.runType === "interval") {
+    const interval = Number(task.intervalMinutes) * minuteMs;
+    const elapsed = minute - Math.floor(Number(task.intervalAnchor) / minuteMs) * minuteMs;
+    if (Number(task.intervalAnchor) > 0 && Number.isInteger(task.intervalMinutes) && interval >= minuteMs && elapsed >= interval && elapsed % interval === 0)
+      return true;
+  }
+  return blackoutRanges(task.blackoutWindows, now).some((range) => {
+    const adjusted = avoidBlackout(task, new Date(range.start));
+    if (adjusted?.executeAt.getTime() !== minute)
+      return false;
+    const planned = calculateNextPlannedTime(task, new Date(range.start - 1));
+    return Boolean(planned && planned.getTime() < range.end);
+  });
 };
