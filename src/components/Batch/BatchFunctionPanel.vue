@@ -3,6 +3,16 @@
     <header class="panel-header">
       <span class="panel-icon"><LayoutGrid :size="18"></LayoutGrid></span>
       <h3>批量功能列表</h3>
+      <Button
+        class="ml-auto"
+        size="sm"
+        variant="outline"
+        title="重新检查活动开放状态"
+        @click="refreshAvailability"
+      >
+        <RefreshCw :size="14"></RefreshCw>
+        刷新
+      </Button>
     </header>
 
     <nav aria-label="批量功能分类" class="function-tabs" role="tablist">
@@ -55,9 +65,8 @@
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { useNow } from "@vueuse/core";
 import { canDrawFreeGacha } from "@/utils/dailyRewardEligibility";
-import { LayoutGrid } from "@lucide/vue";
+import { LayoutGrid, RefreshCw } from "@lucide/vue";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -89,6 +98,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   "action": [action: string];
+  "refresh": [];
   "update:weirdTowerMaxClimb": [value: number];
 }>();
 
@@ -102,7 +112,11 @@ const tabs: Array<{ label: string; value: FunctionTab }> = [
 ];
 
 const activeTab = ref<FunctionTab>("daily");
-const now = useNow({ interval: 1000 });
+const now = ref(new Date());
+const refreshAvailability = () => {
+  now.value = new Date();
+  emit("refresh");
+};
 const baseDisabled = computed(() => props.isRunning || props.selectedCount === 0);
 const activityDisabled = (open: boolean) => baseDisabled.value || !open;
 

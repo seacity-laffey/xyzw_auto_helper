@@ -1,18 +1,20 @@
-import { computed } from "vue";
-import { useNow } from "@vueuse/core";
+import { computed, ref } from "vue";
 import { isDungeonOpen } from "../utils/dreamConstants";
 
 export const useBatchActivityAvailability = () => {
-  const now = useNow({ interval: 1000 });
-  const dreamActivityOpen = computed(() => isDungeonOpen(now.value));
+  const clock = ref(new Date());
+  const refreshActivityAvailability = () => {
+    clock.value = new Date();
+  };
+  const dreamActivityOpen = computed(() => isDungeonOpen(clock.value));
 
   const arenaActivityOpen = computed(() => {
-    const hour = new Date().getHours();
+    const hour = clock.value.getHours();
     return hour >= 6 && hour < 22;
   });
 
   const currentActivityWeek = computed(() => {
-    const now = new Date();
+    const now = clock.value;
     const start = new Date("2025-12-12T12:00:00");
     const weekDuration = 7 * 24 * 60 * 60 * 1000;
     const elapsed = now.getTime() - start.getTime();
@@ -30,12 +32,12 @@ export const useBatchActivityAvailability = () => {
   const weirdTowerActivityOpen = computed(() => {
     if (currentActivityWeek.value !== "黑市周")
       return false;
-    const now = new Date();
+    const now = clock.value;
     return now.getDay() !== 5 || now.getHours() >= 12;
   });
 
   const fourthSundayOfCurrentMonth = () => {
-    const now = new Date();
+    const now = clock.value;
     const year = now.getFullYear();
     const month = now.getMonth();
     const firstDayOfWeek = new Date(year, month, 1).getDay();
@@ -49,7 +51,7 @@ export const useBatchActivityAvailability = () => {
   };
 
   const warGuessActivityOpen = computed(() => {
-    const now = new Date();
+    const now = clock.value;
     const beforeCutoff
       = now.getHours() < 19
         || (now.getHours() === 19 && now.getMinutes() <= 55);
@@ -74,6 +76,7 @@ export const useBatchActivityAvailability = () => {
   });
 
   return {
+    refreshActivityAvailability,
     arenaActivityOpen,
     dreamActivityOpen,
     warGuessActivityOpen,

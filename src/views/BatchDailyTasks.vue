@@ -166,6 +166,7 @@
           :war-guess-activity-tip="warGuessActivityTip"
           :weird-tower-activity-open="isWeirdTowerActivityOpen"
           @action="handleBatchFunctionAction"
+          @refresh="handleRefreshActivityAvailability"
         ></BatchFunctionPanel>
       </div>
 
@@ -360,12 +361,18 @@ const {
   toggleSort,
 } = useBatchTokenSort(tokens);
 const {
+  refreshActivityAvailability,
   arenaActivityOpen: isarenaActivityOpen,
   dreamActivityOpen: ismengjingActivityOpen,
   warGuessActivityOpen: isWarGuessActivityOpen,
   warGuessActivityTip,
   weirdTowerActivityOpen: isWeirdTowerActivityOpen,
 } = useBatchActivityAvailability();
+
+const handleRefreshActivityAvailability = () => {
+  refreshActivityAvailability();
+  message.success("活动开放状态已刷新");
+};
 
 const selectedTokens = batchSelectedTokenIds;
 const { isOpeningGames, openSelectedGames } = useBatchGameLauncher(
