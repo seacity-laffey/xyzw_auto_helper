@@ -62,6 +62,20 @@ app.whenReady().then(async () => {
     win.webContents.session.webRequest.onBeforeRequest((details, callback) => callback({ cancel: new URL(details.url).host.startsWith('game-') }));
     await evaluate('localStorage.setItem("gameTokens", JSON.stringify([{id:"layout-fixture",name:"布局测试",serverId:"3136",token:"fixture"}]))');
     await win.loadURL('xyzw://app/game?bin_id=layout-fixture');
+    await until(() => evaluate('Boolean(document.querySelector(".game-start-state button"))'));
+    assert.equal(await evaluate('document.querySelectorAll(".game-iframe").length'), 0);
+    for (const [width, height] of [[1440, 960], [1000, 800]]) {
+      win.setSize(width, height);
+      await wait(250);
+      assert.equal(await evaluate(`(() => {
+        const button = document.querySelector('.game-start-state button').getBoundingClientRect();
+        const view = document.querySelector('.game-viewport').getBoundingClientRect();
+        return button.width > 0 && button.height > 0 && button.left >= view.left && button.right <= view.right
+          && button.top >= view.top && button.bottom <= view.bottom;
+      })()`), true);
+      fs.writeFileSync(path.join(process.env.XYZW_SMOKE_USER_DATA, `game-start-${width}.png`), (await win.webContents.capturePage()).toPNG());
+    }
+    await evaluate('document.querySelector(".game-start-state button").click()');
     await until(() => evaluate('Boolean(document.querySelector(".game-iframe"))'));
     for (const [width, height] of [[1440, 960], [1000, 800]]) {
       win.setSize(width, height);

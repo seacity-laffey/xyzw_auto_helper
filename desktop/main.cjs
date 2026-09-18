@@ -29,6 +29,7 @@ function createWindow(url = `${ORIGIN}/`, game = false) {
   const win = new BrowserWindow({
     title: 'XYZW 游戏助手', width: 1440, height: 960, minWidth: 900, minHeight: 600,
     show: false, backgroundColor: '#f5f5f5',
+    icon: process.platform === 'win32' ? path.join(__dirname, 'assets', 'icon.ico') : undefined,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'), nodeIntegration: false,
       contextIsolation: true, sandbox: true, webSecurity: true,

@@ -704,8 +704,7 @@ const handleExport1 = async () => {
 const exportToImage = async () => {
   // 校验：确保DOM已正确绑�?
   if (!exportDom.value) {
-    message.error("未找到要导出的DOM元素");
-    return;
+    throw new Error("未找到要导出的DOM元素");
   }
 
   // 获取 table-container
@@ -786,7 +785,7 @@ const exportToImage = async () => {
     downloadCanvasAsImage(canvas, filename);
   } catch (err) {
     console.error("DOM转图片失败：", err);
-    message.error("导出图片失败，请重试");
+    throw err;
   } finally {
     exportDom.value.classList.remove("salt-image-exporting");
     originalNodeState.forEach(

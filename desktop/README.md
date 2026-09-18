@@ -41,7 +41,8 @@ pnpm desktop:make:win
 ```
 
 `desktop:package:win` assembles the application directory only. `desktop:make:win`
-also creates a ZIP under `out/make/zip/win32/x64/`. The directory is
+also creates `out/make/zip/win32/x64/xyzw.zip`. The version remains in the
+application metadata; rebuilding replaces this archive. The directory is
 `out/XYZWHelper-win32-x64/`, and its launcher is `XYZWHelper.exe`. Extract the
 **entire** ZIP before launching; the EXE depends on the other files alongside it.
 All desktop build commands rebuild local assets before assembly. Web commands
@@ -51,6 +52,11 @@ This is an unsigned x64 preview. Windows 11 x64 is the initial acceptance target
 minimum Windows version and ARM64 support are not yet certified. macOS can build
 a Windows package, but that is not evidence that it runs correctly on Windows.
 No installer, signing, updater, hosted CI or Android project is included.
+
+The Windows application and window icon use `desktop/assets/icon.ico`. Supply a
+valid ICO containing common sizes from 16 to 256 pixels and rebuild to apply it.
+For a macOS package, add `desktop/assets/icon.icns`; the packager selects the
+matching extension for its target. The browser favicon is configured separately.
 
 ## Isolated game windows and attribution
 

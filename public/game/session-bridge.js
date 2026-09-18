@@ -9,6 +9,14 @@
   var CONTROL_SOURCE = "xyzw-helper";
   var MAX_PAYLOAD_BYTES = 1024 * 1024;
   var observerActive = false;
+  var resolveObserverReady;
+  var observerReadyTimer;
+  window.xyzwObserverReady = window.parent === window ? Promise.resolve() : new Promise(function (resolve, reject) {
+    resolveObserverReady = resolve;
+    observerReadyTimer = setTimeout(function () {
+      reject(new Error("采集状态初始化超时，请刷新游戏窗口"));
+    }, 15000);
+  });
   var inputSyncEnabled = false;
   var inputSyncMaster = false;
   var lastTouchInputAt = 0;
@@ -531,7 +539,13 @@
     if (!message || message.source !== CONTROL_SOURCE) return;
 
     if (message.type === "protocol-observer-control") {
+      if (message.action !== "start" && message.action !== "stop") return;
       observerActive = message.action === "start";
+      if (resolveObserverReady) {
+        clearTimeout(observerReadyTimer);
+        resolveObserverReady();
+        resolveObserverReady = null;
+      }
       postToParent("protocol-observer-status", { active: observerActive });
       return;
     }

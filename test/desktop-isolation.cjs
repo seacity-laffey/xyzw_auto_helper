@@ -19,7 +19,7 @@ protocol.handle = (scheme, handler) => nativeHandle(scheme, async request => {
   const name = url.pathname.replace('/game/', '');
   let source;
   if (placeholderScripts.has(name)) source = '// local fixture';
-  if (name === 'main.2a00e.js') source = `window.boot = function () {
+  if (name === 'main.2a00e.js') source = `void fetch('bootstrap.js'); window.boot = function () {
     const canvas = document.getElementById('GameCanvas');
     canvas.style.cssText = 'width:100%;height:100%;background:#263d4b';
     window.fixtureInputs = [];
@@ -46,15 +46,25 @@ app.whenReady().then(async () => {
     const errors = [];
     win.webContents.on('console-message', event => { if (event.level === 'error') errors.push(event.message); });
     await until(() => js('Boolean(document.querySelector(".app-sider"))'), 'helper');
-    await js(`localStorage.setItem('gameTokens', JSON.stringify([{id:'a',name:'测试甲-0-123',serverId:'3136',token:'private-a'},{id:'b',name:'测试乙',serverId:'3137',token:'private-b'}]));
-      localStorage.setItem('bin_data_a', '01020304'); localStorage.setItem('bin_data_b', '05060708');
+    await js(`localStorage.setItem('gameTokens', JSON.stringify([{id:'a',name:'测试甲-0-123',serverId:'3136',token:'private-a'},{id:'b',name:'测试乙',serverId:'3137',token:'private-b'},{id:'c',name:'测试丙',serverId:'3138',token:'private-c'}]));
+      localStorage.setItem('bin_data_a', '01020304'); localStorage.setItem('bin_data_b', '05060708'); localStorage.setItem('bin_data_c', '090a0b0c');
       localStorage.setItem('bin_file_list', JSON.stringify([{id:'a',name:'测试甲'},{id:'b',name:'测试乙'}]));
       localStorage.setItem('isolation-secret', 'helper-only');`);
-    await win.loadURL('xyzw://app/game?bin_id=a&bin_id=b');
-    await until(() => win.webContents.mainFrame.frames.length === 2, 'two game frames');
+    await win.loadURL('xyzw://app/game?bin_id=a&bin_id=b&bin_id=c');
+    await until(() => js('document.querySelectorAll(".game-start-state button").length === 3'), 'three pending windows');
+    assert.equal(win.webContents.mainFrame.frames.length, 0, 'opening the page must not load games');
+    await js(`window.fixtureObserved = []; addEventListener('message', e => {
+      if (e.data?.type === 'protocol-observer-entry') window.fixtureObserved.push(e.data);
+    }); [...document.querySelectorAll('.toolbar-actions button')].find(b => b.textContent.includes('协议观察器')).click()`);
+    await until(() => js('Boolean(document.querySelector("button[title=开始记录]"))'), 'observer panel');
+    await js(`document.querySelector('button[title="开始记录"]').click(); document.querySelector('[data-game-id="a"] .game-start-state button').click()`);
+    await until(() => win.webContents.mainFrame.frames.length === 1, 'only selected account starts');
+    await until(() => js(`window.fixtureObserved.some(m => m.binId === 'a' && m.entry.direction === 'out' && m.entry.url.endsWith('/bootstrap.js'))`), 'first game script request captured');
+    await js(`document.querySelector('[data-game-id="b"] .game-start-state button').click(); document.querySelector('[data-game-id="c"] .game-start-state button').click()`);
+    await until(() => win.webContents.mainFrame.frames.length === 3, 'three game frames');
     const frames = () => win.webContents.mainFrame.frames;
     await until(async () => (await Promise.all(frames().map(frame => frame.executeJavaScript('window.fixtureReady === true')))).every(Boolean), 'game bootstrap');
-    let [a, b] = frames();
+    let [a, b, c] = frames();
     const origins = frames().map(frame => new URL(frame.url).host);
     assert.notEqual(origins[0], origins[1]);
     assert.ok(origins.every(host => host.startsWith('game-')));
@@ -104,6 +114,37 @@ app.whenReady().then(async () => {
     await until(() => b.executeJavaScript('window.fixtureInputs.includes("touchend")'), 'touch sync');
     console.log('PASS: mouse and touch sync across isolated windows without outer scrolling');
 
+    // 同步桥会忽略触摸后 800ms 内的合成鼠标事件。
+    await pause(850);
+    assert.equal(await js('document.querySelectorAll(".sync-selection input:checked").length'), 3);
+    const clickSelection = id => js(`document.querySelector('[data-game-id="${id}"] .sync-selection input').click()`);
+    const sendMouse = frame => frame.executeJavaScript(`(() => {const c=document.getElementById('GameCanvas'),r=c.getBoundingClientRect();for(const type of ['mousedown','mouseup'])c.dispatchEvent(new MouseEvent(type,{bubbles:true,clientX:r.left+20,clientY:r.top+20,button:0}));})()`);
+    await clickSelection('c');
+    await pause(150);
+    await b.executeJavaScript('window.fixtureInputs = []');
+    await c.executeJavaScript('window.fixtureInputs = []');
+    await sendMouse(a);
+    await until(() => b.executeJavaScript('window.fixtureInputs.includes("mouseup")'), 'selected follower receives sync');
+    assert.deepEqual(await c.executeJavaScript('window.fixtureInputs'), []);
+    assert.equal(await js('document.querySelectorAll(".game-iframe").length'), 3);
+    await clickSelection('c');
+    await clickSelection('a');
+    await pause(150);
+    assert.equal(await js('document.querySelector(".sync-master-window").dataset.gameId'), 'b');
+    await a.executeJavaScript('window.fixtureInputs = []');
+    await c.executeJavaScript('window.fixtureInputs = []');
+    await sendMouse(b);
+    await until(() => c.executeJavaScript('window.fixtureInputs.includes("mouseup")'), 'new master sync');
+    assert.deepEqual(await a.executeJavaScript('window.fixtureInputs'), []);
+    await clickSelection('c');
+    assert.equal(await js(`document.querySelector('button[aria-pressed]').getAttribute('aria-pressed')`), 'false');
+    assert.equal(await js(`document.querySelector('button[aria-pressed]').disabled`), true);
+    await clickSelection('a');
+    await clickSelection('c');
+    await js(`document.querySelector('button[aria-label="关闭测试丙"]').click()`);
+    await until(() => js('document.querySelectorAll(".game-iframe").length === 2'), 'close third game');
+    console.log('PASS: default all selected; excluded windows stay open without input; master follows selection; fewer than two disables sync');
+
     await a.executeJavaScript('location.reload()');
     await until(async () => {
       const next = frames().find(frame => new URL(frame.url).host === origins[0]);
@@ -132,6 +173,8 @@ app.whenReady().then(async () => {
     fs.writeFileSync(path.join(process.env.XYZW_SMOKE_USER_DATA, 'about.png'), (await win.webContents.capturePage()).toPNG());
     useGameFixture = false;
     await win.loadURL('xyzw://app/game?bin_id=a');
+    await until(() => js('Boolean(document.querySelector(".game-start-state button"))'), 'pending real game');
+    await js('document.querySelector(".game-start-state button").click()');
     await until(async () => {
       const frame = frames()[0];
       try { return frame && await frame.executeJavaScript('window.HtmlIsLoaded === true && typeof window.boot === "function" && Boolean(window.cc)'); } catch { return false; }

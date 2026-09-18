@@ -13,6 +13,7 @@
         script.onerror = function () { reject(new Error('游戏资源加载失败，请刷新窗口')); };
         document.body.appendChild(script);
       });
+      if (source === 'session-bridge.js') await window.xyzwObserverReady;
     }
     window.HtmlIsLoaded = true;
     document.getElementById('splash').style.display = 'none';

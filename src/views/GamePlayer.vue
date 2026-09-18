@@ -40,7 +40,7 @@
           type="button"
           :aria-pressed="syncEnabled"
           :class="{ 'toolbar-button-active': syncEnabled }"
-          :disabled="editingOrder"
+          :disabled="editingOrder || syncParticipantIds.length < 2"
           @click="toggleInputSync"
         >
           <SyncOutline></SyncOutline>
@@ -130,8 +130,17 @@
             >主控</span>
           </div>
           <div v-if="!editingOrder" class="game-window-actions">
+            <label v-if="gameIds.length > 1" class="sync-selection">
+              <input
+                type="checkbox"
+                :aria-label="`参与同步：${getGameName(tokenId)}`"
+                :checked="syncParticipantIds.includes(tokenId)"
+                @change="setSyncParticipation(tokenId, $event.target.checked)"
+              >
+              同步
+            </label>
             <button
-              v-if="syncEnabled && gameIds.length > 1"
+              v-if="syncEnabled && syncParticipantIds.includes(tokenId) && gameIds.length > 1"
               class="window-action"
               type="button"
               :aria-label="
@@ -174,7 +183,7 @@
         <div class="game-viewport" @wheel.prevent>
           <iframe
             :ref="(element) => setGameFrame(tokenId, element)"
-            v-if="!isDesktop || gameSessions.get(tokenId)?.url"
+            v-if="startedGameIds.has(tokenId) && (!isDesktop || gameSessions.get(tokenId)?.url)"
             allow="fullscreen; autoplay"
             class="game-iframe"
             :sandbox="isDesktop ? 'allow-scripts allow-same-origin allow-downloads' : undefined"
@@ -182,7 +191,21 @@
             :tabindex="editingOrder ? -1 : 0"
             :title="`${getGameName(tokenId)}游戏窗口`"
           ></iframe>
-          <p v-else role="status">{{ gameSessions.get(tokenId)?.error || '正在打开游戏…' }}</p>
+          <div v-else class="game-start-state">
+            <p v-if="gameSessions.get(tokenId)?.error" role="alert">{{ gameSessions.get(tokenId).error }}</p>
+            <button
+              v-if="!startedGameIds.has(tokenId) || gameSessions.get(tokenId)?.error"
+              class="toolbar-button"
+              type="button"
+              :aria-label="`进入游戏：${getGameName(tokenId)}`"
+              :disabled="editingOrder"
+              @click="enterGame(tokenId)"
+            >
+              <LogInOutline></LogInOutline>
+              <span>{{ gameSessions.get(tokenId)?.error ? '重试进入游戏' : '进入游戏' }}</span>
+            </button>
+            <p v-else role="status">正在打开游戏…</p>
+          </div>
         </div>
         <div
           v-if="editingOrder"
@@ -275,6 +298,7 @@ const binManagerStatus = ref("");
 const binEntries = ref([]);
 const syncEnabled = ref(false);
 const syncMasterId = ref(null);
+const excludedSyncIds = ref([]);
 const gameFrames = new Map();
 const gameGrid = ref(null);
 const mountedGameIds = ref([]);
@@ -287,6 +311,7 @@ let pointerDrag = null;
 let dragAnimationFrame = null;
 const isDesktop = window.desktop?.isDesktop === true;
 const gameSessions = ref(new Map());
+const startedGameIds = ref(new Set());
 const pendingSessions = new Set();
 let disposed = false;
 
@@ -305,7 +330,7 @@ const syncGameSessions = () => {
     }
   }
   for (const id of gameIds.value) {
-    if (gameSessions.value.has(id) || pendingSessions.has(id))
+    if (!startedGameIds.value.has(id) || gameSessions.value.has(id) || pendingSessions.has(id))
       continue;
     pendingSessions.add(id);
     window.desktop.createGameSession(id).then((session) => {
@@ -317,6 +342,15 @@ const syncGameSessions = () => {
         gameSessions.value.set(id, { error: "打开失败，请刷新窗口重试" });
     }).finally(() => pendingSessions.delete(id));
   }
+};
+
+const enterGame = (tokenId) => {
+  if (editingOrder.value || !gameIds.value.includes(tokenId) || pendingSessions.has(tokenId))
+    return;
+  if (gameSessions.value.get(tokenId)?.error)
+    gameSessions.value.delete(tokenId);
+  startedGameIds.value.add(tokenId);
+  syncGameSessions();
 };
 
 const observerFilters = [
@@ -341,6 +375,14 @@ const savedGameIds = computed(() => orderEmbeddedGameIds(requestedGameIds.value,
 const gameIds = computed(() => editingOrder.value
   ? [...draftOrder.value.filter((id) => requestedGameIds.value.includes(id)), ...savedGameIds.value.filter((id) => !draftOrder.value.includes(id))]
   : savedGameIds.value);
+
+const syncParticipantIds = computed(() => gameIds.value.filter((id) => startedGameIds.value.has(id) && !excludedSyncIds.value.includes(id)));
+
+const setSyncParticipation = (tokenId, selected) => {
+  excludedSyncIds.value = selected
+    ? excludedSyncIds.value.filter((id) => id !== tokenId)
+    : [...new Set([...excludedSyncIds.value, tokenId])];
+};
 
 const getGameServer = (tokenId) => {
   const token = tokenStore.gameTokens.find((item) => item.id === tokenId);
@@ -571,6 +613,10 @@ const runBinToolAction = (buttonId) => {
 };
 
 const reloadBinTarget = () => {
+  if (!startedGameIds.value.has(binManagerTargetId.value)) {
+    binManagerStatus.value = "请先进入目标窗口的游戏";
+    return;
+  }
   const frame = gameFrames.get(binManagerTargetId.value);
   if (isDesktop) {
     const session = gameSessions.value.get(binManagerTargetId.value);
@@ -636,20 +682,22 @@ const sendObserverControl = (action, targetFrame) => {
 };
 
 const sendInputSyncControl = (targetFrame) => {
-  const message = createGameInputControl(syncEnabled.value && !editingOrder.value, syncMasterId.value);
-  if (targetFrame) {
-    postToGame(targetFrame, message);
-    return;
-  }
-  gameFrames.forEach((frame) => {
-    postToGame(frame, message);
+  gameFrames.forEach((frame, tokenId) => {
+    if (targetFrame && frame !== targetFrame)
+      return;
+    postToGame(frame, createGameInputControl(
+      syncEnabled.value && !editingOrder.value && syncParticipantIds.value.includes(tokenId),
+      syncMasterId.value,
+    ));
   });
 };
 
 const toggleInputSync = () => {
+  if (!syncEnabled.value && syncParticipantIds.value.length < 2)
+    return;
   syncEnabled.value = !syncEnabled.value;
-  if (syncEnabled.value && !gameIds.value.includes(syncMasterId.value)) {
-    syncMasterId.value = gameIds.value[0] || null;
+  if (syncEnabled.value && !syncParticipantIds.value.includes(syncMasterId.value)) {
+    syncMasterId.value = syncParticipantIds.value[0] || null;
   }
   if (syncEnabled.value)
     focusedId.value = null;
@@ -657,7 +705,7 @@ const toggleInputSync = () => {
 };
 
 const setSyncMaster = (tokenId) => {
-  if (!gameIds.value.includes(tokenId))
+  if (!syncParticipantIds.value.includes(tokenId))
     return;
   syncMasterId.value = tokenId;
   if (binManagerOpen.value)
@@ -735,19 +783,18 @@ const handleGameMessage = (event) => {
     return;
   }
   if (message.type === "protocol-observer-ready") {
-    if (observing.value)
-      sendObserverControl("start", frame);
+    sendObserverControl(observing.value ? "start" : "stop", frame);
     sendInputSyncControl(frame);
     return;
   }
   if (message.type === GAME_INPUT_SYNC_EVENT_TYPE) {
-    if (editingOrder.value || !syncEnabled.value || messageTokenId !== syncMasterId.value)
+    if (editingOrder.value || !syncEnabled.value || messageTokenId !== syncMasterId.value || !syncParticipantIds.value.includes(messageTokenId))
       return;
     const dispatchMessage = createGameInputDispatch(message.input);
     if (!dispatchMessage)
       return;
     gameFrames.forEach((targetFrame, tokenId) => {
-      if (tokenId !== syncMasterId.value) {
+      if (tokenId !== syncMasterId.value && syncParticipantIds.value.includes(tokenId)) {
         postToGame(targetFrame, dispatchMessage);
       }
     });
@@ -789,7 +836,7 @@ const closeGame = (tokenId) => {
     focusedId.value = null;
   }
   if (syncMasterId.value === tokenId) {
-    syncMasterId.value = remainingIds[0] || null;
+    syncMasterId.value = remainingIds.find((id) => syncParticipantIds.value.includes(id)) || null;
     sendInputSyncControl();
   }
   if (binManagerTargetId.value === tokenId)
@@ -812,15 +859,18 @@ function goBack() {
 }
 
 watch(gameIds, (ids) => {
+  startedGameIds.value = new Set([...startedGameIds.value].filter((id) => ids.includes(id)));
   syncGameSessions();
-  if (ids.length < 2) {
-    syncEnabled.value = false;
-  }
-  if (!ids.includes(syncMasterId.value)) {
-    syncMasterId.value = ids[0] || null;
-  }
-  sendInputSyncControl();
+  excludedSyncIds.value = excludedSyncIds.value.filter((id) => ids.includes(id));
 }, { immediate: true });
+
+watch(syncParticipantIds, (ids) => {
+  if (ids.length < 2)
+    syncEnabled.value = false;
+  if (!ids.includes(syncMasterId.value))
+    syncMasterId.value = ids[0] || null;
+  sendInputSyncControl();
+}, { immediate: true, flush: "sync" });
 
 onMounted(() => {
   window.addEventListener("message", handleGameMessage);

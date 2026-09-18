@@ -75,6 +75,7 @@ const alliances = [
 }
 
 .alliance-tab {
+  --alliance-badge-background: rgba(23, 23, 23, 0.1);
   display: flex;
   min-width: 0;
   height: 32px;
@@ -104,18 +105,45 @@ const alliances = [
   min-width: 18px;
   padding: 1px 5px;
   border-radius: 3px;
-  background: color-mix(in srgb, currentColor 10%, transparent);
+  background: var(--alliance-badge-background);
   font-size: 10px;
   line-height: 16px;
 }
 
-.alliance-green { color: #237804; }
-.alliance-amber { color: #ad6800; }
-.alliance-red { color: #b91c1c; }
-.alliance-violet { color: #6d28d9; }
-.alliance-cyan { color: #0e7490; }
-.alliance-gray { color: #6b7280; }
-.alliance-black { color: #171717; }
+.alliance-green {
+  --alliance-badge-background: rgba(35, 120, 4, 0.1);
+  color: #237804;
+}
+
+.alliance-amber {
+  --alliance-badge-background: rgba(173, 104, 0, 0.1);
+  color: #ad6800;
+}
+
+.alliance-red {
+  --alliance-badge-background: rgba(185, 28, 28, 0.1);
+  color: #b91c1c;
+}
+
+.alliance-violet {
+  --alliance-badge-background: rgba(109, 40, 217, 0.1);
+  color: #6d28d9;
+}
+
+.alliance-cyan {
+  --alliance-badge-background: rgba(14, 116, 144, 0.1);
+  color: #0e7490;
+}
+
+.alliance-gray {
+  --alliance-badge-background: rgba(107, 114, 128, 0.1);
+  color: #6b7280;
+}
+
+.alliance-black {
+  --alliance-badge-background: rgba(23, 23, 23, 0.1);
+  color: #171717;
+}
 
 @media (max-width: 900px) {
   .alliance-tabs-section {

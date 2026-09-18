@@ -268,6 +268,21 @@
   border: 0;
 }
 
+.game-start-state {
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+  padding: 20px;
+  color: #d8dde5;
+  text-align: center;
+}
+
+.game-start-state .toolbar-button {
+  color: #f5f7fa;
+  background: #252a32;
+  border: 1px solid #626a76;
+}
+
 .empty-state {
   display: grid;
   flex: 1;
@@ -295,4 +310,18 @@
   .game-grid {
     grid-auto-rows: calc(100dvh - 72px);
   }
+}
+
+.sync-selection {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #a8adb5;
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.sync-selection input {
+  accent-color: #55c982;
 }
