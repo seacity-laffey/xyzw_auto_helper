@@ -1,5 +1,5 @@
 <template>
-  <div class="matchup">
+  <div class="matchup" :class="{ 'exporting-matchup': exporting }">
     <h2 v-if="battleInfo" class="main-title">{{ queryDate }} 蟠桃大会对战</h2>
     <div v-if="battleInfo" class="header-section">
       <div class="club-vs-container">
@@ -84,13 +84,13 @@
         </NTag>
       </div>
       <NDataTable
-        flex-height
         striped
         class="members-data-table"
         size="small"
         :bordered="false"
         :columns="columns"
         :data="members"
+        :flex-height="!exporting"
         :scroll-x="1400"
       ></NDataTable>
     </div>
@@ -107,6 +107,7 @@ import { NAvatar, NDataTable, NEmpty, NSpin, NTag } from "naive-ui";
 defineProps({
   battleInfo: { type: Object, default: null },
   columns: { type: Array, default: () => [] },
+  exporting: { type: Boolean, default: false },
   lineupStats: { type: Array, default: () => [] },
   loading: { type: Boolean, default: false },
   members: { type: Array, default: () => [] },
@@ -134,12 +135,14 @@ const formatPower = (power) => {
   overflow: hidden;
 }
 
-:global(.peach-info-card.exporting-image) .matchup {
+.matchup.exporting-matchup {
+  flex: none;
   height: auto;
   max-width: none;
   overflow: visible;
 
   .members-table {
+    flex: none;
     max-width: none;
     overflow: visible;
   }
@@ -149,6 +152,7 @@ const formatPower = (power) => {
   :deep(.members-data-table .n-data-table-base-table),
   :deep(.members-data-table .n-data-table-base-table-header),
   :deep(.members-data-table .n-data-table-base-table-body) {
+    flex: none !important;
     max-width: none !important;
     height: auto !important;
     max-height: none !important;
@@ -543,10 +547,10 @@ const formatPower = (power) => {
   gap: 2px;
 }
 
-/* 阵容卡片列：每个武将一张小卡片，卡内上下两行居中对齐 */
+/* 阵容卡片列：每个武将一张小卡片，卡内名称、等级和鱼灵技能分行居中对齐 */
 :deep(.lineup-card-list) {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   align-items: stretch;
   gap: 4px;
   padding: 2px 0;
@@ -557,7 +561,8 @@ const formatPower = (power) => {
   flex-direction: column;
   justify-content: center;
   gap: 2px;
-  min-width: 0;
+  flex: 0 0 auto;
+  min-width: 72px;
   padding: 3px 6px;
   border-radius: 5px;
   background-color: rgba(64, 169, 255, 0.07);
@@ -576,6 +581,11 @@ const formatPower = (power) => {
 :deep(.lineup-card-row-name) {
   font-size: 12px;
   font-weight: 600;
+}
+
+:deep(.lineup-card-row-stats) {
+  gap: 6px;
+  font-size: 11px;
 }
 
 :deep(.lineup-card-row-pearl) {

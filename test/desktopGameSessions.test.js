@@ -11,7 +11,9 @@ test('each game gets a separate origin and its lifetime belongs to the requestin
   const first = owner(1), second = owner(2);
   const a = sessions.create(first, 'a');
   const b = sessions.create(first, 'b');
-  const duplicate = sessions.create(second, 'a');
+  const duplicate = sessions.create(second, 'c');
+  assert.throws(() => sessions.create(second, 'a'), /其他窗口/);
+  assert.deepEqual(sessions.create(first, 'a'), a);
   assert.equal(new Set([a.origin, b.origin, duplicate.origin]).size, 3);
   assert.equal(sessions.has(a.url, 1), true);
   assert.equal(sessions.has(a.url, 2), false);
@@ -20,6 +22,11 @@ test('each game gets a separate origin and its lifetime belongs to the requestin
   assert.equal(sessions.has(a.url), false);
   assert.equal(sessions.has(duplicate.url, 2), true);
   assert.equal(sessions.release(second, duplicate.origin), true);
+  assert.deepEqual(sessions.list(first), []);
+  const reopened = sessions.create(second, 'a');
+  assert.notEqual(reopened.origin, a.origin);
+  assert.deepEqual(sessions.list(first), [{ tokenId: 'a', ownerId: 2, origin: reopened.origin, current: false }]);
+  assert.equal(sessions.list(second)[0].current, true);
 });
 test('child frames and external pages cannot create or revoke game sessions', () => {
   const sessions = createGameSessions();
@@ -28,6 +35,7 @@ test('child frames and external pages cannot create or revoke game sessions', ()
   for (const url of ['xyzw://app/game', session.url, 'https://example.com']) {
     const child = { ...event, senderFrame: { url } };
     assert.throws(() => sessions.create(child, 'other'), /Forbidden/);
+    assert.throws(() => sessions.list(child), /Forbidden/);
     assert.throws(() => sessions.release(child, session.origin), /Forbidden/);
   }
   event.senderFrame.url = 'https://example.com';

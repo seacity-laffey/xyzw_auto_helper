@@ -14,6 +14,7 @@
     <PeachOpponentMatchup
       :battle-info="battleInfo"
       :columns="columns"
+      :exporting="exportingImage"
       :lineup-stats="lineupStats"
       :loading="loading"
       :members="opponentMembers"
@@ -45,7 +46,7 @@
 </template>
 
 <script setup>
-import { computed, h, onMounted, ref, watch } from "vue";
+import { computed, h, nextTick, onMounted, ref, watch } from "vue";
 import { NTag, useMessage } from "naive-ui";
 import { useTokenStore } from "@/stores/tokenStore";
 import { usePeachDuel } from "@/composables/usePeachDuel";
@@ -70,6 +71,7 @@ const tokenStore = useTokenStore();
 const selectedTokenId = computed(() => tokenStore.selectedToken?.id || "");
 const currentClubInfo = ref(null);
 const exportDom = ref(null);
+const exportingImage = ref(false);
 
 const fetchCurrentClubInfo = async (tokenId = selectedTokenId.value) => {
   if (!tokenId)
@@ -365,7 +367,7 @@ const columns = [
     },
   },
   {
-    title: "阵容(红数)[四圣等级]",
+    title: "阵容（红数 / 四圣等级）",
     key: "lineup",
     width: null,
     align: "left",
@@ -374,15 +376,14 @@ const columns = [
       if (!heroes.length)
         return h("span", { class: "lineup-cell" }, "—");
 
-      // 每个武将一张小卡片：上行「武将名(红数)圣N」，下行「鱼灵|鱼珠技能」
+      // 武将名、红数/四圣、鱼灵/鱼珠分行，避免窄列中文字互相覆盖。
       const cards = heroes.map((hero) => {
-        const nameParts = [
-          h("span", { class: "lineup-hero-name" }, hero.heroName),
-          h("span", { class: "lineup-hero-red" }, `(${hero.red})`),
+        const statParts = [
+          h("span", { class: "lineup-hero-red" }, `红${hero.red}`),
         ];
 
         if (hero.HolyBeast) {
-          nameParts.push(
+          statParts.push(
             h(
               "span",
               { class: "hb-badge lineup-hero-hb" },
@@ -408,8 +409,9 @@ const columns = [
           h(
             "div",
             { class: "lineup-card-row lineup-card-row-name" },
-            nameParts,
+            h("span", { class: "lineup-hero-name" }, hero.heroName),
           ),
+          h("div", { class: "lineup-card-row lineup-card-row-stats" }, statParts),
           h(
             "div",
             { class: "lineup-card-row lineup-card-row-pearl" },
@@ -785,6 +787,8 @@ const fetchBattleInfo = async (_requestTokenId = selectedTokenId.value) => {
 };
 
 const handleExportImage = async () => {
+  if (exportingImage.value)
+    return;
   if (!exportDom.value) {
     message.error("未找到要导出的内容");
     return;
@@ -819,6 +823,7 @@ const handleExportImage = async () => {
     const exportWidth = Math.ceil(tableWidth) + 32;
 
     // 导出期间放开所有横向/纵向限制，让内容完整展开
+    exportingImage.value = true;
     root.classList.add("exporting-image");
     setStyle(root, {
       width: `${exportWidth}px`,
@@ -832,18 +837,20 @@ const handleExportImage = async () => {
       bodyEl.scrollTop = 0;
     }
 
-    // 等一帧让浏览器完成重排，再量高度
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    // 先切换为按内容展开的表格，再等待布局和字体完成，不能只修改 CSS 高度。
+    await nextTick();
+    await document.fonts.ready;
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
     const rect = root.getBoundingClientRect();
-    const exportHeight = Math.ceil(rect.height);
+    const exportHeight = Math.ceil(Math.max(rect.height, root.scrollHeight));
 
     const canvas = await html2canvas(root, {
       scale: 2,
       useCORS: true,
       backgroundColor: "#ffffff",
       logging: false,
-      allowTaint: true,
+      allowTaint: false,
       width: exportWidth,
       height: exportHeight,
       windowWidth: exportWidth,
@@ -860,10 +867,12 @@ const handleExportImage = async () => {
     console.error("DOM转图片失败：", err);
     message.error("导出图片失败，请重试");
   } finally {
+    exportingImage.value = false;
     root.classList.remove("exporting-image");
     for (const { el, cssText } of touched) el.style.cssText = cssText;
     if (toolbarEl)
       toolbarEl.style.display = toolbarOrigDisplay || "";
+    await nextTick();
     if (bodyEl) {
       bodyEl.scrollLeft = scrollLeft;
       bodyEl.scrollTop = scrollTop;

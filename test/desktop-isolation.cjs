@@ -53,6 +53,9 @@ app.whenReady().then(async () => {
     await win.loadURL('xyzw://app/game?bin_id=a&bin_id=b&bin_id=c');
     await until(() => js('document.querySelectorAll(".game-start-state button").length === 3'), 'three pending windows');
     assert.equal(win.webContents.mainFrame.frames.length, 0, 'opening the page must not load games');
+    assert.equal(await js(`document.querySelector('[aria-label="编辑排序"]') === null`), true);
+    await js(`document.querySelector('[aria-label="高级工具"]').click()`);
+    await until(() => js(`Boolean(document.querySelector('[aria-label="编辑排序"]'))`));
     await js(`window.fixtureObserved = []; addEventListener('message', e => {
       if (e.data?.type === 'protocol-observer-entry') window.fixtureObserved.push(e.data);
     }); [...document.querySelectorAll('.toolbar-actions button')].find(b => b.textContent.includes('协议观察器')).click()`);
@@ -137,8 +140,8 @@ app.whenReady().then(async () => {
     await until(() => c.executeJavaScript('window.fixtureInputs.includes("mouseup")'), 'new master sync');
     assert.deepEqual(await a.executeJavaScript('window.fixtureInputs'), []);
     await clickSelection('c');
-    assert.equal(await js(`document.querySelector('button[aria-pressed]').getAttribute('aria-pressed')`), 'false');
-    assert.equal(await js(`document.querySelector('button[aria-pressed]').disabled`), true);
+    assert.equal(await js(`[...document.querySelectorAll('button[aria-pressed]')].find(b=>b.textContent.includes('同步')).getAttribute('aria-pressed')`), 'false');
+    assert.equal(await js(`[...document.querySelectorAll('button[aria-pressed]')].find(b=>b.textContent.includes('同步')).disabled`), true);
     await clickSelection('a');
     await clickSelection('c');
     await js(`document.querySelector('button[aria-label="关闭测试丙"]').click()`);
@@ -159,6 +162,62 @@ app.whenReady().then(async () => {
     await until(async () => (await session.defaultSession.fetch(firstUrl)).status === 403, 'session revoked');
     assert.equal(await js('localStorage.getItem("isolation-secret")'), 'helper-only');
     console.log('PASS: reload restores only bound BIN; closing revokes origin and preserves helper data');
+
+    // 上号器转移必须先确认，关闭旧 iframe 后才在目标窗口新建游戏。
+    await js(`[...document.querySelectorAll('button')].find(b => b.textContent.trim() === '新建游戏窗口').click()`);
+    await until(() => BrowserWindow.getAllWindows().length === 2, 'second native window');
+    const target = BrowserWindow.getAllWindows().find(other => other !== win);
+    const targetJs = code => target.webContents.executeJavaScript(code);
+    await until(() => targetJs('Boolean(document.querySelector(".empty-state"))'), 'empty game window without fallback account');
+    const openManager = run => run(`[...document.querySelectorAll('.toolbar-actions button')].find(b => b.textContent.trim() === '上号器').click()`);
+    const chooseB = run => run(`(() => { const select = document.querySelector('.bin-target-field select'); select.value = 'b'; select.dispatchEvent(new Event('change', {bubbles:true})); })()`);
+    const openChosen = run => run(`document.querySelector('.bin-manager-actions button').click()`);
+    const confirmTransfer = run => run(`[...document.querySelectorAll('.n-dialog button')].find(b => b.textContent.includes('移除原窗口中的账号并打开')).click()`);
+    await openManager(targetJs);
+    await until(() => targetJs('document.querySelectorAll(".bin-target-field option").length === 3'), 'all saved accounts available');
+    assert.equal(await targetJs(`/导入 BIN|刷新窗口|清空 BIN/.test(document.querySelector('.bin-manager-panel').textContent)`), false);
+    await chooseB(targetJs);
+    await openChosen(targetJs);
+    await until(() => targetJs('Boolean(document.querySelector(".n-dialog"))'), 'transfer confirmation');
+    assert.equal(frames().length, 1, 'old game is still running before confirmation');
+    assert.equal(target.webContents.mainFrame.frames.length, 0);
+    await targetJs(`[...document.querySelectorAll('.n-dialog button')].find(b => b.textContent.trim() === '取消').click()`);
+    await until(() => targetJs('!document.querySelector(".n-dialog") && !document.querySelector(".bin-manager-actions button").disabled'), 'cancel transfer');
+    assert.equal(frames().length, 1, 'cancel preserves original game');
+    assert.equal(await targetJs('document.querySelectorAll("[data-game-id]").length'), 0, 'cancel does not add a target tile');
+    const oldB = frames()[0].url;
+    await openChosen(targetJs);
+    await until(() => targetJs('Boolean(document.querySelector(".n-dialog"))'), 'confirm transfer again');
+    await confirmTransfer(targetJs);
+    await until(() => target.webContents.mainFrame.frames.length === 1, 'new target game');
+    await until(async () => {
+      try { return await target.webContents.mainFrame.frames[0].executeJavaScript('window.fixtureReady === true'); } catch { return false; }
+    }, 'transferred game bootstrap');
+    assert.equal(frames().length, 0);
+    assert.equal(await js('document.querySelectorAll("[data-game-id]").length'), 0, 'source account removed');
+    assert.notEqual(target.webContents.mainFrame.frames[0].url, oldB, 'transfer creates a fresh game');
+    assert.equal((await session.defaultSession.fetch(oldB)).status, 403, 'old origin revoked');
+    assert.equal(await target.webContents.mainFrame.frames[0].executeJavaScript('window.__binHex'), '05060708');
+    await until(() => targetJs('!document.querySelector(".bin-manager-actions button").disabled'), 'target ready');
+    await openChosen(targetJs);
+    assert.equal(target.webContents.mainFrame.frames.length, 1, 'opening current account does not duplicate');
+    await openManager(js);
+    await chooseB(js);
+    await openChosen(js);
+    await until(() => js('Boolean(document.querySelector(".n-dialog"))'), 'return transfer confirmation');
+    await confirmTransfer(js);
+    await until(() => frames().length === 1 && target.webContents.mainFrame.frames.length === 0, 'move back');
+    await until(() => targetJs('Boolean(document.querySelector(".empty-state"))'), 'source stays open when its last account moves');
+    await targetJs(`(() => { const select = document.querySelector('.bin-target-field select'); select.value = 'c'; select.dispatchEvent(new Event('change', {bubbles:true})); localStorage.removeItem('bin_data_c'); })()`);
+    await openChosen(targetJs);
+    await until(() => targetJs('document.querySelector(".bin-manager-status")?.textContent.includes("缺少本机 BIN")'), 'missing BIN is reported');
+    assert.equal(target.webContents.mainFrame.frames.length, 0);
+    await targetJs("localStorage.setItem('bin_data_c', '090a0b0c')");
+    await openChosen(targetJs);
+    await until(() => target.webContents.mainFrame.frames.length === 1, 'open saved account without existing game');
+    target.close();
+    assert.equal(frames().length, 1, 'closing old window leaves new game intact');
+    console.log('PASS: native multi-window, saved-account picker, cancel, confirmed transfer, fresh origin, move back, last-account removal');
 
     await win.loadURL('xyzw://app/about');
     await until(() => js('document.querySelector(".about-page")?.textContent.includes("w1249178256 / xyzw_web_helper")'), 'about route');
@@ -181,6 +240,10 @@ app.whenReady().then(async () => {
     }, 'unmodified local game runtime');
     assert.equal(await frames()[0].executeJavaScript('window.__binHex'), '01020304');
     console.log('PASS: all original local game scripts load under the isolated game CSP (external requests blocked)');
+    assert.equal(await frames()[0].executeJavaScript(`getComputedStyle(document.getElementById('script-tool-toggle')).display`), 'none');
+    await js(`document.querySelector('[aria-label="高级工具"]').click()`);
+    await until(async () => (await frames()[0].executeJavaScript(`getComputedStyle(document.getElementById('script-tool-toggle')).display`)) !== 'none');
+
     const snowflake = await frames()[0].executeJavaScript(`(() => {
       const button = document.getElementById('script-tool-toggle');
       const rect = button.getBoundingClientRect();
@@ -193,6 +256,11 @@ app.whenReady().then(async () => {
     })()`);
     assert.deepEqual(snowflake, { opened: true, expanded: 'true', positionUnchanged: true });
     console.log('PASS: first snowflake click opens the panel inside the isolated game without moving its icon');
+    await js(`document.querySelector('[aria-label="高级工具"]').click()`);
+    await until(async () => (await frames()[0].executeJavaScript(`getComputedStyle(document.getElementById('script-tool-toggle')).display`)) === 'none');
+    assert.equal(await frames()[0].executeJavaScript(`getComputedStyle(document.getElementById('script-tool-container')).display`), 'none');
+    console.log('PASS: advanced-tools switch hides both snowflake and its open panel');
+
     // 攻击探测产生的 CSP/导航错误是预期结果；助手启动和游戏加载阶段不得出现 CSP 拒绝。
     console.log(JSON.stringify({ result:'PASS', evidence:process.env.XYZW_SMOKE_USER_DATA, consoleErrors:errors.length }));
     clearTimeout(timeout); app.exit(0);

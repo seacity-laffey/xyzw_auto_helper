@@ -32,7 +32,7 @@
   if (window.parent !== window) {
     var embeddedToolStyle = document.createElement("style");
     embeddedToolStyle.id = "embedded-bin-tool-style";
-    embeddedToolStyle.textContent = "#binTool{display:none!important}";
+    embeddedToolStyle.textContent = "#binTool{display:none!important}#script-tool-toggle,#script-tool-container{display:none!important}";
     document.head.appendChild(embeddedToolStyle);
   }
 
@@ -537,6 +537,14 @@
       return;
     var message = event.data;
     if (!message || message.source !== CONTROL_SOURCE) return;
+
+    if (message.type === "game-advanced-tools-control") {
+      if (embeddedToolStyle) {
+        embeddedToolStyle.textContent = "#binTool{display:none!important}" +
+          (message.enabled === true ? "" : "#script-tool-toggle,#script-tool-container{display:none!important}");
+      }
+      return;
+    }
 
     if (message.type === "protocol-observer-control") {
       if (message.action !== "start" && message.action !== "stop") return;

@@ -55,8 +55,9 @@ No installer, signing, updater, hosted CI or Android project is included.
 
 The Windows application and window icon use `desktop/assets/icon.ico`. Supply a
 valid ICO containing common sizes from 16 to 256 pixels and rebuild to apply it.
-For a macOS package, add `desktop/assets/icon.icns`; the packager selects the
-matching extension for its target. The browser favicon is configured separately.
+The macOS package uses `desktop/assets/icon.icns`, generated from the same Windows
+artwork. Update both files when changing the desktop icon; the packager selects
+the matching extension for its target. The browser favicon is configured separately.
 
 ## Isolated game windows and attribution
 
@@ -78,9 +79,15 @@ Closing a frame revokes its origin and clears its local storage; closing or
 reloading its helper window revokes all origins it owns. Reopening a game creates
 a fresh origin, so game-local cache and script-tool preferences are temporary.
 The helper's accounts, schedules and configuration retain their existing storage.
-The desktop BIN manager imports a BIN matching the target account's BIN hash;
-refresh transfers the selected BIN again. Clearing the loader's BIN cache requires
-confirmation and does not delete accounts from Account Management.
+The game account picker opens accounts already saved in Account Management; it
+does not import, refresh, or clear BIN files. Opening games from the helper creates
+a separate window, and the game toolbar can create additional empty windows.
+Each picker lists saved accounts and their running window. Selecting an account
+running elsewhere requires confirmation before removing its old frame and opening
+a fresh game in the destination. Cancellation leaves the original game untouched.
+Transfers reload the game and log in again; they do not preserve the game scene.
+The main process waits for the source to detach and release the old session before
+creating the replacement. Moving the last account leaves an empty source window.
 
 The helper CSP allows packaged scripts only and prevents embedding helper pages.
 Game frames are sandboxed against popups/top-level navigation, cannot embed other

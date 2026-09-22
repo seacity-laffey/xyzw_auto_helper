@@ -14,6 +14,46 @@ protocol.registerSchemesAsPrivileged([{ scheme: 'xyzw', privileges: {
   standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true,
 } }]);
 let mainWindow;
+const openingAccounts = new Set();
+
+async function openGameSession(event, tokenId, confirmedOrigin) {
+  const accounts = gameSessions.list(event);
+  const existing = accounts.find(account => account.tokenId === tokenId);
+  if (!existing?.current && accounts.filter(account => account.current).length >= 100) throw new Error('当前窗口账号数量已达上限');
+  if (openingAccounts.has(tokenId)) throw new Error('该账号正在其他窗口处理中，请稍后重试');
+  if (existing && !existing.current && existing.origin !== confirmedOrigin) return { conflict: existing };
+  openingAccounts.add(tokenId);
+  try {
+    if (existing && !existing.current) {
+      const source = BrowserWindow.getAllWindows().find(win => win.webContents.id === existing.ownerId);
+      if (source && !source.isDestroyed()) {
+        await new Promise((resolve, reject) => {
+          const cleanup = () => {
+            clearTimeout(timer);
+            ipcMain.removeListener('game-session:detached', acknowledge);
+            source.webContents.removeListener('destroyed', destroyed);
+          };
+          const acknowledge = (reply, origin) => {
+            if (reply.sender !== source.webContents || reply.senderFrame !== reply.sender.mainFrame || origin !== existing.origin) return;
+            cleanup();
+            resolve();
+          };
+          const destroyed = () => { cleanup(); resolve(); };
+          const timer = setTimeout(() => { cleanup(); reject(new Error('原窗口未响应，未在当前窗口打开，请重试')); }, 5000);
+          ipcMain.on('game-session:detached', acknowledge);
+          source.webContents.once('destroyed', destroyed);
+          source.webContents.send('game-session:detach', { tokenId, origin: existing.origin });
+        });
+      }
+      // 只有原窗口完成移除后才创建新会话，防止两个游戏同时登录。
+      if (gameSessions.has(existing.origin)) throw new Error('原窗口尚未释放账号，请重试');
+    }
+    if (event.sender.isDestroyed()) throw new Error('目标窗口已关闭');
+    return gameSessions.create(event, tokenId);
+  } finally {
+    openingAccounts.delete(tokenId);
+  }
+}
 function clearGameStorage(origin) {
   return session.defaultSession.clearStorageData({ origin }).catch(() => {});
 }
@@ -55,6 +95,10 @@ function createWindow(url = `${ORIGIN}/`, game = false) {
     else if (isGame(event.frame.url) && new URL(event.frame.url).host !== new URL(event.url).host) event.preventDefault();
   });
   const ownerId = win.webContents.id;
+  win.webContents.on('page-title-updated', (event, title) => {
+    event.preventDefault();
+    win.setTitle(`${title} · 窗口 ${ownerId}`);
+  });
   const releaseGames = () => gameSessions.releaseOwner(ownerId).forEach(clearGameStorage);
   win.webContents.on('destroyed', releaseGames);
   win.webContents.on('did-start-navigation', (_event, _url, sameDocument, isMainFrame) => {
@@ -122,7 +166,8 @@ else {
   app.whenReady().then(() => {
     fs.mkdirSync(app.getPath('userData'), { recursive: true });
     protocol.handle('xyzw', handleRequest);
-    ipcMain.handle('game-session:create', (event, tokenId) => gameSessions.create(event, tokenId));
+    ipcMain.handle('game-session:list', event => gameSessions.list(event));
+    ipcMain.handle('game-session:create', openGameSession);
     ipcMain.handle('game-session:release', async (event, origin) => {
       if (gameSessions.release(event, origin)) await clearGameStorage(origin);
     });
@@ -133,9 +178,18 @@ else {
     session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => callback(false));
     session.defaultSession.setPermissionCheckHandler(() => false);
     session.defaultSession.on('will-download', (_event, item) => {
-      item.setSaveDialogOptions({ title: '保存导出文件', defaultPath: path.basename(item.getFilename()) });
+      item.setSaveDialogOptions({ title: '保存导出文件', defaultPath: path.join(app.getPath('downloads'), path.basename(item.getFilename())) });
       item.once('done', (_event, state) => {
         log('download', { state });
+        if (state === 'completed') {
+          const savedPath = item.getSavePath();
+          void dialog.showMessageBox({
+            type: 'info', title: '导出完成', message: '文件已保存', detail: savedPath,
+            buttons: ['在文件夹中显示', '完成'], defaultId: 1, cancelId: 1,
+          }).then(({ response }) => {
+            if (response === 0) shell.showItemInFolder(savedPath);
+          }).catch(() => {});
+        }
         if (state !== 'completed' && state !== 'cancelled') dialog.showErrorBox('导出失败', '文件未保存，请重试。');
       });
     });

@@ -1,6 +1,17 @@
 <template>
-  <div class="game-player">
-    <header class="game-toolbar">
+  <div class="game-player" :class="{ 'toolbar-collapsed': toolbarCollapsed, 'game-size-small': gameSizeMode === 'small' }">
+    <button
+      v-if="toolbarCollapsed"
+      aria-expanded="false"
+      aria-label="展开顶部工具栏"
+      class="toolbar-button toolbar-expand"
+      title="展开顶部工具栏"
+      type="button"
+      @click="toolbarCollapsed = false"
+    >
+      <ChevronDownOutline></ChevronDownOutline>
+    </button>
+    <header v-show="!toolbarCollapsed" class="game-toolbar">
       <button class="toolbar-button" type="button" :disabled="editingOrder" @click="goBack">
         <ArrowBackOutline></ArrowBackOutline>
         <span>返回</span>
@@ -12,6 +23,15 @@
       </div>
 
       <div class="toolbar-actions">
+        <button aria-expanded="true" aria-label="隐藏顶部工具栏" class="toolbar-button" title="隐藏顶部工具栏" type="button" :disabled="editingOrder" @click="collapseToolbar">
+          <ChevronUpOutline></ChevronUpOutline>
+        </button>
+        <button v-if="isDesktop" class="toolbar-button" type="button" @click="openEmptyGameWindow">新建游戏窗口</button>
+        <select aria-label="游戏窗口尺寸" class="toolbar-button" v-model="gameSizeMode" :disabled="editingOrder">
+          <option value="default">默认 · 750px</option>
+          <option value="small">Small · 500px</option>
+        </select>
+        <button aria-label="高级工具" class="toolbar-button" type="button" :aria-pressed="advancedToolsVisible" @click="toggleAdvancedTools">高级工具</button>
         <template v-if="editingOrder">
           <button aria-label="保存排序" class="toolbar-button toolbar-button-active" type="button" @click="saveOrder">
             <CheckmarkOutline></CheckmarkOutline><span>保存</span>
@@ -20,7 +40,7 @@
             <CloseOutline></CloseOutline><span>取消</span>
           </button>
         </template>
-        <button v-else-if="gameIds.length > 1" aria-label="编辑排序" class="toolbar-button" type="button" @click="editOrder">
+        <button v-else-if="advancedToolsVisible && gameIds.length > 1" aria-label="编辑排序" class="toolbar-button" type="button" @click="editOrder">
           <MoveOutline></MoveOutline><span>编辑排序</span>
         </button>
         <button
@@ -47,6 +67,7 @@
           <span>{{ syncEnabled ? "同步已开启" : "同步操作" }}</span>
         </button>
         <button
+          v-if="advancedToolsVisible"
           class="toolbar-button"
           type="button"
           :class="{ 'toolbar-button-active': observerOpen }"
@@ -89,14 +110,13 @@
 
     <GameBinManager
       v-if="binManagerOpen"
-      :entries="binEntries"
+      :busy="openingSavedAccount"
       :game-options="gameOptions"
       :status="binManagerStatus"
       :target-id="binManagerTargetId"
-      @clear="runBinToolAction('clearBtn')"
       @close="binManagerOpen = false"
-      @import="runBinToolAction('loadBtn')"
-      @reload="reloadBinTarget"
+      @open="openSavedAccount"
+      @refresh-accounts="refreshAccountLocations"
       @update:target-id="binManagerTargetId = $event"
     ></GameBinManager>
 
@@ -240,12 +260,14 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useDialog } from "naive-ui";
 import { useRoute, useRouter } from "vue-router";
 import {
   ArrowBackOutline,
   CheckmarkOutline,
+  ChevronDownOutline,
+  ChevronUpOutline,
   CloseOutline,
   ExpandOutline,
   LogInOutline,
@@ -260,7 +282,8 @@ import { g_utils } from "@/utils/bonProtocol";
 import { getTokenId } from "@/utils/token";
 import { prepareEmbeddedGameSession } from "@/utils/gameLauncher";
 import { getTokenDisplayName } from "@/utils/roleTokenMetadata.js";
-import { findPreparedEmbeddedGameBin } from "@/utils/embeddedGameStorage.js";
+import useIndexedDB from "@/hooks/useIndexedDB";
+import { findPreparedEmbeddedGameBin, resolveEmbeddedGameBinData } from "@/utils/embeddedGameStorage.js";
 import { GAME_WINDOW_ORDER_KEY, moveEmbeddedGameId, orderEmbeddedGameIds, saveEmbeddedGameOrder } from "@/utils/embeddedGameOrder.js";
 import {
   buildEmbeddedGameLocation,
@@ -285,6 +308,7 @@ const route = useRoute();
 const router = useRouter();
 const tokenStore = useTokenStore();
 const dialog = useDialog();
+const { getArrayBuffer } = useIndexedDB();
 const focusedId = ref(null);
 const observerOpen = ref(false);
 const observing = ref(false);
@@ -293,9 +317,19 @@ const protocolEntries = ref([]);
 const selectedEntryId = ref(null);
 const captureStartedAt = ref(null);
 const binManagerOpen = ref(false);
+const toolbarCollapsed = ref(false);
+const gameSizeMode = ref("default");
+const advancedToolsVisible = ref(false);
+const collapseToolbar = () => {
+  binManagerOpen.value = false;
+  observerOpen.value = false;
+  toolbarCollapsed.value = true;
+};
 const binManagerTargetId = ref(null);
 const binManagerStatus = ref("");
-const binEntries = ref([]);
+const accountLocations = ref([]);
+const openingSavedAccount = ref(false);
+let removeDetachListener;
 const syncEnabled = ref(false);
 const syncMasterId = ref(null);
 const excludedSyncIds = ref([]);
@@ -333,13 +367,17 @@ const syncGameSessions = () => {
     if (!startedGameIds.value.has(id) || gameSessions.value.has(id) || pendingSessions.has(id))
       continue;
     pendingSessions.add(id);
-    window.desktop.createGameSession(id).then((session) => {
+    requestGameSession(id).then((session) => {
+      if (!session) {
+        startedGameIds.value.delete(id);
+        return;
+      }
       if (disposed || !gameIds.value.includes(id))
         releaseGameSession(session);
       else gameSessions.value.set(id, session);
-    }).catch(() => {
+    }).catch((error) => {
       if (!disposed && gameIds.value.includes(id))
-        gameSessions.value.set(id, { error: "打开失败，请刷新窗口重试" });
+        gameSessions.value.set(id, { error: error.message || "打开失败，请重试进入游戏" });
     }).finally(() => pendingSessions.delete(id));
   }
 };
@@ -367,7 +405,7 @@ const sourcePage = computed(() => {
 const requestedGameIds = computed(() =>
   normalizeEmbeddedGameIds(
     route.query.bin_id,
-    tokenStore.selectedToken?.id || localStorage.getItem("current_bin_id"),
+    Object.hasOwn(route.query, "bin_id") ? "" : tokenStore.selectedToken?.id || localStorage.getItem("current_bin_id"),
   ).filter((id) => tokenStore.gameTokens.some((token) => token.id === id)),
 );
 
@@ -514,8 +552,120 @@ const getGameName = (tokenId) => {
 };
 
 const gameOptions = computed(() =>
-  gameIds.value.map((value) => ({ label: getGameName(value), value })),
+  tokenStore.gameTokens.map((token) => {
+    const location = accountLocations.value.find((item) => item.tokenId === token.id);
+    const state = location
+      ? (location.current ? "当前窗口已打开" : `窗口 ${location.ownerId} 已打开`)
+      : gameIds.value.includes(token.id) ? "当前窗口待进入" : "未打开";
+    return { label: `${getGameName(token.id)} · ${state}`, value: token.id };
+  }),
 );
+
+const refreshAccountLocations = async () => {
+  if (isDesktop) {
+    try {
+      accountLocations.value = await window.desktop.listGameAccounts();
+    } catch {
+      binManagerStatus.value = "读取窗口状态失败，请重试";
+    }
+  }
+};
+
+const requestGameSession = async (tokenId, allowNew = false) => {
+  let result = await window.desktop.createGameSession(tokenId);
+  while (result.conflict) {
+    const confirmed = await new Promise((resolve) => {
+      dialog.warning({
+        title: "在当前窗口重新打开？",
+        content: `“${getGameName(tokenId)}”已在窗口 ${result.conflict.ownerId} 打开。继续将从原窗口移除，并在当前窗口重新加载、登录游戏，原游戏现场不会保留。`,
+        positiveText: "移除原窗口中的账号并打开",
+        negativeText: "取消",
+        onPositiveClick: () => resolve(true),
+        onNegativeClick: () => resolve(false),
+        onClose: () => resolve(false),
+        onEsc: () => resolve(false),
+        onMaskClick: () => resolve(false),
+      });
+    });
+    if (!confirmed || disposed || (!allowNew && !gameIds.value.includes(tokenId)))
+      return null;
+    result = await window.desktop.createGameSession(tokenId, result.conflict.origin);
+  }
+  void refreshAccountLocations();
+  return result;
+};
+
+const openEmptyGameWindow = () => {
+  window.open(router.resolve({ path: "/game", query: { bin_id: "", from: sourcePage.value || "batch" } }).href, "_blank");
+};
+
+const openSavedAccount = async () => {
+  const token = tokenStore.gameTokens.find((item) => item.id === binManagerTargetId.value);
+  if (!token || openingSavedAccount.value || pendingSessions.has(token.id))
+    return;
+  if (startedGameIds.value.has(token.id) && !gameSessions.value.get(token.id)?.error) {
+    if (!syncEnabled.value)
+      focusedId.value = token.id;
+    binManagerStatus.value = "该账号已在当前窗口打开";
+    return;
+  }
+  openingSavedAccount.value = true;
+  binManagerStatus.value = "";
+  try {
+    const buffer = await resolveEmbeddedGameBinData(token, getArrayBuffer, { identifyBuffer: getTokenId });
+    if (!buffer)
+      throw new Error("该账号缺少本机 BIN 数据，请先到账号管理重新导入");
+    if (disposed)
+      return;
+    prepareEmbeddedGameSession(token, buffer);
+    let session;
+    if (isDesktop) {
+      pendingSessions.add(token.id);
+      session = await requestGameSession(token.id, true);
+      if (!session)
+        return;
+      if (disposed) {
+        releaseGameSession(session);
+        return;
+      }
+    }
+    try {
+      if (!gameIds.value.includes(token.id)) {
+        await router.replace(buildEmbeddedGameLocation([...gameIds.value, token.id], sourcePage.value));
+      }
+      if (session)
+        gameSessions.value.set(token.id, session);
+      startedGameIds.value.add(token.id);
+      focusedId.value = null;
+    } catch (error) {
+      releaseGameSession(session);
+      throw error;
+    }
+  } catch (error) {
+    binManagerStatus.value = error.message || "打开账号失败";
+  } finally {
+    pendingSessions.delete(token.id);
+    openingSavedAccount.value = false;
+  }
+};
+
+// 等待 iframe 卸载并释放会话后才通知主进程，目标窗口才能重新登录。
+const detachGame = async ({ tokenId, origin }) => {
+  const session = gameSessions.value.get(tokenId);
+  if (session?.origin !== origin)
+    throw new Error("账号会话已变化");
+  startedGameIds.value.delete(tokenId);
+  gameSessions.value.delete(tokenId);
+  if (editingOrder.value)
+    cancelOrder();
+  if (focusedId.value === tokenId)
+    focusedId.value = null;
+  const remainingIds = gameIds.value.filter((id) => id !== tokenId);
+  await router.replace({ path: "/game", query: { bin_id: remainingIds.length ? remainingIds : "", from: sourcePage.value } });
+  await nextTick();
+  await window.desktop.releaseGameSession(origin);
+  await refreshAccountLocations();
+};
 
 const getGameSource = (tokenId) =>
   isDesktop ? gameSessions.value.get(tokenId)?.url : buildEmbeddedGameSource(import.meta.env.BASE_URL, tokenId);
@@ -527,119 +677,22 @@ const postToGame = (frame, message) => {
     frame.contentWindow?.postMessage(message, origin);
 };
 
-const loadBinEntries = () => {
-  try {
-    const value = JSON.parse(localStorage.getItem("bin_file_list") || "[]");
-    binEntries.value = Array.isArray(value) ? value : [];
-  } catch {
-    binEntries.value = [];
-  }
-};
-
 const toggleBinManager = () => {
   binManagerOpen.value = !binManagerOpen.value;
   if (!binManagerOpen.value)
     return;
   observerOpen.value = false;
-  if (!gameIds.value.includes(binManagerTargetId.value)) {
-    binManagerTargetId.value
-      = syncMasterId.value || focusedId.value || gameIds.value[0] || null;
+  if (!tokenStore.gameTokens.some((token) => token.id === binManagerTargetId.value)) {
+    binManagerTargetId.value = gameIds.value[0] || tokenStore.gameTokens[0]?.id || null;
   }
   binManagerStatus.value = "";
-  loadBinEntries();
+  void refreshAccountLocations();
 };
 
 const toggleObserver = () => {
   observerOpen.value = !observerOpen.value;
   if (observerOpen.value)
     binManagerOpen.value = false;
-};
-
-const runBinToolAction = (buttonId) => {
-  if (isDesktop) {
-    if (buttonId === "loadBtn") {
-      const targetId = binManagerTargetId.value;
-      const input = document.createElement("input");
-      input.type = "file";
-      input.accept = ".bin";
-      input.onchange = async () => {
-        const file = input.files?.[0];
-        if (!file)
-          return;
-        try {
-          if (file.size > 1024 * 1024)
-            throw new Error("BIN 文件过大");
-          const buffer = await file.arrayBuffer();
-          if (getTokenId(buffer) !== targetId)
-            throw new Error("BIN 与目标窗口账号不一致，请选择对应账号的 BIN");
-          prepareEmbeddedGameSession({ id: targetId, name: getGameName(targetId) }, buffer);
-          loadBinEntries();
-          binManagerStatus.value = "BIN 已导入，请刷新目标窗口";
-        } catch (error) {
-          binManagerStatus.value = error.message || "BIN 导入失败";
-        }
-      };
-      input.click();
-    } else if (buttonId === "clearBtn") {
-      dialog.warning({
-        title: "清空上号器 BIN",
-        content: "确定清空所有上号器 BIN 吗？账号管理中保存的账号不会被删除。",
-        positiveText: "清空",
-        negativeText: "取消",
-        onPositiveClick: () => {
-          for (const key of Object.keys(localStorage)) {
-            if (key.startsWith("bin_data_"))
-              localStorage.removeItem(key);
-          }
-          localStorage.removeItem("bin_file_list");
-          localStorage.removeItem("current_bin_id");
-          loadBinEntries();
-          binManagerStatus.value = "上号器 BIN 已清空，已打开的游戏在刷新后生效";
-        },
-      });
-    }
-    return;
-  }
-  const frame = gameFrames.get(binManagerTargetId.value);
-  const button = frame?.contentDocument?.getElementById(buttonId);
-  if (!button) {
-    binManagerStatus.value = "目标窗口的上号器尚未加载";
-    return;
-  }
-  button.click();
-  binManagerStatus.value
-    = buttonId === "loadBtn" ? "已打开文件选择" : "已提交清空操作";
-  window.setTimeout(loadBinEntries, 500);
-};
-
-const reloadBinTarget = () => {
-  if (!startedGameIds.value.has(binManagerTargetId.value)) {
-    binManagerStatus.value = "请先进入目标窗口的游戏";
-    return;
-  }
-  const frame = gameFrames.get(binManagerTargetId.value);
-  if (isDesktop) {
-    const session = gameSessions.value.get(binManagerTargetId.value);
-    if (frame && session?.url) {
-      frame.src = session.url;
-    } else {
-      gameSessions.value.delete(binManagerTargetId.value);
-      syncGameSessions();
-    }
-    binManagerStatus.value = "目标窗口正在刷新";
-    return;
-  }
-  if (!frame?.contentWindow) {
-    binManagerStatus.value = "目标窗口尚未加载";
-    return;
-  }
-  frame.contentWindow.location.reload();
-  binManagerStatus.value = "目标窗口正在刷新";
-};
-
-const handleBinStorageChange = (event) => {
-  if (event.key === "bin_file_list" || event.key?.startsWith("bin_data_"))
-    loadBinEntries();
 };
 
 const filteredProtocolEntries = computed(() => {
@@ -679,6 +732,29 @@ const sendObserverControl = (action, targetFrame) => {
   gameFrames.forEach((frame) => {
     postToGame(frame, message);
   });
+};
+
+const sendAdvancedToolsControl = (targetFrame) => {
+  gameFrames.forEach((frame) => {
+    if (!targetFrame || frame === targetFrame) {
+      postToGame(frame, {
+        source: PROTOCOL_OBSERVER_CONTROL_SOURCE,
+        type: "game-advanced-tools-control",
+        enabled: advancedToolsVisible.value,
+      });
+    }
+  });
+};
+
+const toggleAdvancedTools = () => {
+  advancedToolsVisible.value = !advancedToolsVisible.value;
+  if (!advancedToolsVisible.value) {
+    if (editingOrder.value)
+      cancelOrder();
+    observerOpen.value = false;
+    stopObservation();
+  }
+  sendAdvancedToolsControl();
 };
 
 const sendInputSyncControl = (targetFrame) => {
@@ -783,6 +859,7 @@ const handleGameMessage = (event) => {
     return;
   }
   if (message.type === "protocol-observer-ready") {
+    sendAdvancedToolsControl(frame);
     sendObserverControl(observing.value ? "start" : "stop", frame);
     sendInputSyncControl(frame);
     return;
@@ -874,7 +951,9 @@ watch(syncParticipantIds, (ids) => {
 
 onMounted(() => {
   window.addEventListener("message", handleGameMessage);
-  window.addEventListener("storage", handleBinStorageChange);
+  window.addEventListener("focus", refreshAccountLocations);
+  if (isDesktop)
+    removeDetachListener = window.desktop.onGameDetach(detachGame);
 });
 onBeforeUnmount(() => {
   clearOrderDrag();
@@ -883,7 +962,8 @@ onBeforeUnmount(() => {
   syncEnabled.value = false;
   sendInputSyncControl();
   window.removeEventListener("message", handleGameMessage);
-  window.removeEventListener("storage", handleBinStorageChange);
+  window.removeEventListener("focus", refreshAccountLocations);
+  removeDetachListener?.();
   gameSessions.value.forEach(releaseGameSession);
   gameSessions.value.clear();
 });

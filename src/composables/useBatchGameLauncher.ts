@@ -60,7 +60,12 @@ export const useBatchGameLauncher = (
         message.warning(`已跳过缺少 BIN 数据的账号：${names}${remaining}`);
       }
 
-      await router.push(buildEmbeddedGameLocation(readyIds, "batch"));
+      const location = buildEmbeddedGameLocation(readyIds, "batch");
+      if (window.desktop?.isDesktop) {
+        window.open(router.resolve(location).href, "_blank");
+      } else {
+        await router.push(location);
+      }
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
       message.error(`打开游戏失败：${reason}`);

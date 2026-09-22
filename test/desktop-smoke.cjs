@@ -85,13 +85,46 @@ app.whenReady().then(async () => {
         const view = document.querySelector('.game-viewport').getBoundingClientRect();
         return {width:frame.width,height:frame.height,viewWidth:view.width,viewHeight:view.height,left:frame.left-view.left};
       })()`);
-      assert.ok(bounds.width > 0 && bounds.height > 0);
+      assert.equal(bounds.height, 750);
+      assert.equal(bounds.width, 421.875);
       assert.ok(bounds.width <= bounds.viewWidth + 1);
       assert.ok(bounds.width <= bounds.height * 9 / 16 + 1);
       assert.ok(Math.abs(bounds.left - (bounds.viewWidth - bounds.width) / 2) < 1);
     }
+    assert.equal(await evaluate(`document.querySelector('[aria-label="游戏窗口尺寸"]').value`), 'default');
+    assert.equal(await evaluate(`document.querySelector('[aria-label="编辑排序"]') === null && ![...document.querySelectorAll('.toolbar-actions button')].some(b=>b.textContent.includes('协议观察器'))`), true);
+    await evaluate(`(() => { window.__sizeFrame = document.querySelector('.game-iframe'); const select = document.querySelector('[aria-label="游戏窗口尺寸"]'); select.value='small'; select.dispatchEvent(new Event('change',{bubbles:true})); })()`);
+    for (const [width,height] of [[1440,960],[1000,800]]) {
+      win.setSize(width,height); await wait(250);
+      assert.deepEqual(await evaluate(`({width:document.querySelector('.game-iframe').getBoundingClientRect().width,height:document.querySelector('.game-iframe').getBoundingClientRect().height})`), {width:281.25,height:500});
+    }
+    await evaluate(`(() => { const select = document.querySelector('[aria-label="游戏窗口尺寸"]'); select.value='default'; select.dispatchEvent(new Event('change',{bubbles:true})); })()`);
+    await until(() => evaluate(`document.querySelector('.game-iframe').getBoundingClientRect().height === 750`));
+    assert.equal(await evaluate(`window.__sizeFrame === document.querySelector('.game-iframe')`), true);
+    console.log('PASS: default and Small sizes remain fixed across resizes without replacing iframe; advanced tools hidden by default');
+    const beforeCollapse = await evaluate(`({
+      frame: document.querySelector('.game-iframe').src,
+      height: document.querySelector('.game-grid').getBoundingClientRect().height
+    })`);
+    await evaluate(`window.__toolbarTestFrame = document.querySelector('.game-iframe'); document.querySelector('[aria-label="隐藏顶部工具栏"]').click()`);
+    await until(() => evaluate(`Boolean(document.querySelector('[aria-label="展开顶部工具栏"]'))`));
+    assert.equal(await evaluate(`getComputedStyle(document.querySelector('.game-toolbar')).display`), 'none');
+    assert.equal(await evaluate(`(() => {
+      const expand = document.querySelector('.toolbar-expand').getBoundingClientRect();
+      const close = document.querySelector('.game-window-actions button[title="关闭此窗口"]').getBoundingClientRect();
+      return Math.abs((expand.left + expand.right) / 2 - innerWidth / 2) < 1
+        && (expand.right <= close.left || expand.bottom <= close.top || expand.left >= close.right);
+    })()`), true, 'expand button is centered and does not overlap the game close button');
+    assert.equal(await evaluate(`window.__toolbarTestFrame === document.querySelector('.game-iframe')`), true);
+    assert.equal(await evaluate(`document.querySelector('.game-iframe').src`), beforeCollapse.frame);
+    assert.ok(await evaluate(`document.querySelector('.game-grid').getBoundingClientRect().height > ${beforeCollapse.height}`));
+    await evaluate(`document.querySelector('[aria-label="展开顶部工具栏"]').click()`);
+    await until(() => evaluate(`getComputedStyle(document.querySelector('.game-toolbar')).display !== 'none'`));
+    assert.equal(await evaluate(`window.__toolbarTestFrame === document.querySelector('.game-iframe')`), true);
+    console.log('PASS: toolbar collapses and expands, adds game space, and preserves the existing iframe');
     win.webContents.session.webRequest.onBeforeRequest(null);
-    console.log('PASS: portrait game viewport clips horizontal overflow at two window sizes');
+    assert.equal(await evaluate(`document.querySelector('.game-iframe').getBoundingClientRect().height`), 750);
+    console.log('PASS: fixed 750px game height and 9:16 width survive window resize and toolbar toggle');
 
     await win.loadURL('xyzw://app/migration.html');
     assert.equal(await evaluate('Boolean(document.querySelector("#export"))'), true);

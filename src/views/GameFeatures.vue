@@ -186,7 +186,12 @@ const openGame = async () => {
   }
 
   prepareEmbeddedGameSession(token, binData);
-  await router.push(buildEmbeddedGameLocation([token.id], "role"));
+  const location = buildEmbeddedGameLocation([token.id], "role");
+  if (window.desktop?.isDesktop) {
+    window.open(router.resolve(location).href, "_blank");
+  } else {
+    await router.push(location);
+  }
 };
 
 // handleWebSocketMessage 已移除，消息处理由 tokenStore 负责

@@ -3,7 +3,7 @@
     <header class="panel-header">
       <div class="panel-heading">
         <strong>上号器</strong>
-        <span>{{ entries.length }} 个本机 BIN</span>
+        <span>{{ gameOptions.length }} 个已保存账号</span>
       </div>
       <button
         aria-label="关闭上号器"
@@ -18,10 +18,12 @@
 
     <div class="bin-manager-content">
       <label class="bin-target-field">
-        <span>目标窗口</span>
+        <span>选择账号</span>
         <select
+          :disabled="busy"
           :value="targetId"
           @change="$emit('update:targetId', $event.target.value)"
+          @focus="$emit('refreshAccounts')"
         >
           <option
             v-for="option in gameOptions"
@@ -34,66 +36,28 @@
       </label>
 
       <div class="bin-manager-actions">
-        <button type="button" @click="$emit('import')">
-          <CloudUploadOutline></CloudUploadOutline>
-          导入 BIN
-        </button>
-        <button type="button" @click="$emit('reload')">
-          <RefreshOutline></RefreshOutline>
-          刷新窗口
-        </button>
-        <button class="danger-action" type="button" @click="$emit('clear')">
-          <TrashOutline></TrashOutline>
-          清空 BIN
+        <button type="button" :disabled="busy || !targetId" @click="$emit('open')">
+          <LogInOutline></LogInOutline>
+          {{ busy ? "准备中…" : "在当前窗口打开" }}
         </button>
       </div>
-
-      <p v-if="status" class="bin-manager-status">{{ status }}</p>
-
-      <div class="bin-entry-list">
-        <div v-for="entry in entries" :key="entry.id" class="bin-entry">
-          <div>
-            <strong>{{ entry.name || entry.id }}</strong>
-            <small>{{ formatBinEntrySize(entry) }}</small>
-          </div>
-          <span v-if="entry.id === targetId">当前窗口</span>
-        </div>
-        <div v-if="!entries.length" class="panel-empty">暂无本机 BIN</div>
-      </div>
+      <p v-if="status" class="bin-manager-status" role="status">{{ status }}</p>
+      <div v-if="!gameOptions.length" class="panel-empty">暂无已保存账号，请先到账号管理添加</div>
     </div>
   </aside>
 </template>
 
 <script setup>
-import {
-  CloseOutline,
-  CloudUploadOutline,
-  RefreshOutline,
-  TrashOutline,
-} from "@vicons/ionicons5";
+import { CloseOutline, LogInOutline } from "@vicons/ionicons5";
 
 defineProps({
-  entries: { type: Array, default: () => [] },
   gameOptions: { type: Array, default: () => [] },
   status: { type: String, default: "" },
   targetId: { type: [String, Number], default: null },
+  busy: { type: Boolean, default: false },
 });
 
-defineEmits(["clear", "close", "import", "reload", "update:targetId"]);
-
-const formatBytes = (value = 0) => {
-  if (value < 1024)
-    return `${value} B`;
-  if (value < 1024 * 1024)
-    return `${(value / 1024).toFixed(1)} KB`;
-  return `${(value / 1024 / 1024).toFixed(1)} MB`;
-};
-
-const formatBinEntrySize = (entry) => {
-  if (typeof entry.size === "string" && /[a-z]/i.test(entry.size))
-    return entry.size;
-  return formatBytes(entry.byteLength || Number(entry.size) || 0);
-};
+defineEmits(["close", "open", "refreshAccounts", "update:targetId"]);
 </script>
 
 <style scoped>
@@ -208,10 +172,9 @@ const formatBinEntrySize = (entry) => {
   cursor: pointer;
 }
 
-.bin-manager-actions button.danger-action {
-  color: #ffaaa6;
-  background: #4b2828;
-  border-color: #8a4141;
+.bin-manager-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .bin-manager-actions svg {
@@ -221,45 +184,6 @@ const formatBinEntrySize = (entry) => {
 
 .bin-manager-status {
   margin: 0;
-}
-
-.bin-entry-list {
-  min-height: 80px;
-  overflow-y: auto;
-  border-top: 1px solid #303338;
-}
-
-.bin-entry {
-  display: flex;
-  min-height: 48px;
-  padding: 7px 2px;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  border-bottom: 1px solid #272a2e;
-}
-
-.bin-entry > div {
-  display: grid;
-  min-width: 0;
-  gap: 2px;
-}
-
-.bin-entry strong,
-.bin-entry small {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.bin-entry strong {
-  font-size: 12px;
-}
-
-.bin-entry small,
-.bin-entry > span {
-  color: #8e949c;
-  font-size: 10px;
 }
 
 .panel-empty {

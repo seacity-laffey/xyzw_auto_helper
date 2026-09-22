@@ -4,18 +4,29 @@ const { isLocal, isGame } = require('./policy.cjs');
 // 注册表只保存窗口归属，不接收或保存账号凭证。
 function createGameSessions() {
   const sessions = new Map();
+  const accounts = new Map();
   function assertOwner(event) {
     if (!event.senderFrame || event.senderFrame !== event.sender.mainFrame || !isLocal(event.senderFrame.url)) {
       throw new Error('Forbidden');
     }
   }
   return {
+    list(event) {
+      assertOwner(event);
+      return [...accounts].map(([origin, tokenId]) => ({ origin, tokenId, ownerId: sessions.get(origin), current: sessions.get(origin) === event.sender.id }));
+    },
     create(event, tokenId) {
       assertOwner(event);
       if (typeof tokenId !== 'string' || !tokenId || tokenId.length > 256) throw new Error('Invalid account');
+      for (const [origin, accountId] of accounts) {
+        if (accountId !== tokenId) continue;
+        if (sessions.get(origin) !== event.sender.id) throw new Error('账号已在其他窗口打开，请通过上号器确认转移');
+        return { origin, url: `${origin}/game/index.html?bin_id=${encodeURIComponent(tokenId)}` };
+      }
       if ([...sessions.values()].filter(id => id === event.sender.id).length >= 100) throw new Error('Too many game windows');
       const origin = `xyzw://game-${randomUUID()}`;
       sessions.set(origin, event.sender.id);
+      accounts.set(origin, tokenId);
       return { origin, url: `${origin}/game/index.html?bin_id=${encodeURIComponent(tokenId)}` };
     },
     has(url, ownerId) {
@@ -26,12 +37,13 @@ function createGameSessions() {
     release(event, origin) {
       assertOwner(event);
       if (sessions.get(origin) !== event.sender.id) return false;
+      accounts.delete(origin);
       return sessions.delete(origin);
     },
     releaseOwner(ownerId) {
       const origins = [];
       for (const [origin, owner] of sessions) {
-        if (owner === ownerId) { sessions.delete(origin); origins.push(origin); }
+        if (owner === ownerId) { sessions.delete(origin); accounts.delete(origin); origins.push(origin); }
       }
       return origins;
     },
