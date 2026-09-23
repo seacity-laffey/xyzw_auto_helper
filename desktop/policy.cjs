@@ -7,7 +7,7 @@ function isLocal(url) {
 function isGame(url) {
   try {
     const u = new URL(url);
-    return u.protocol === 'xyzw:' && /^game-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(u.hostname)
+    return u.protocol === 'xyzw:' && /^game-[0-9a-f]{40}$/.test(u.hostname)
       && !u.port && !u.username && !u.password;
   } catch { return false; }
 }

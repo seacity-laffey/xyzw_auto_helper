@@ -24,7 +24,7 @@ test('each game gets a separate origin and its lifetime belongs to the requestin
   assert.equal(sessions.release(second, duplicate.origin), true);
   assert.deepEqual(sessions.list(first), []);
   const reopened = sessions.create(second, 'a');
-  assert.notEqual(reopened.origin, a.origin);
+  assert.equal(reopened.origin, a.origin);
   assert.deepEqual(sessions.list(first), [{ tokenId: 'a', ownerId: 2, origin: reopened.origin, current: false }]);
   assert.equal(sessions.list(second)[0].current, true);
 });
@@ -41,4 +41,21 @@ test('child frames and external pages cannot create or revoke game sessions', ()
   event.senderFrame.url = 'https://example.com';
   assert.throws(() => sessions.create(event, 'account'), /Forbidden/);
   assert.throws(() => sessions.create(owner(2), {}), /Invalid account/);
+});
+
+test('account origins survive releases and registry restarts while ownership remains temporary', () => {
+  const first = owner(1), second = owner(2);
+  const sessions = createGameSessions();
+  const account = sessions.create(first, 'Account/中文?A');
+  assert.equal(sessions.has(account.url, 1), true);
+  assert.notEqual(sessions.create(first, 'account/中文?a').origin, account.origin);
+  assert.equal(sessions.release(first, account.origin), true);
+  assert.equal(sessions.has(account.url), false);
+  assert.deepEqual(sessions.create(second, 'Account/中文?A'), account);
+  assert.equal(sessions.has(account.url, 1), false);
+  assert.equal(sessions.has(account.url, 2), true);
+  assert.equal(sessions.release(first, account.origin), false);
+  const restarted = createGameSessions();
+  assert.equal(restarted.has(account.url), false);
+  assert.deepEqual(restarted.create(first, 'Account/中文?A'), account);
 });

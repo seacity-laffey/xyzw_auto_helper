@@ -299,7 +299,7 @@ import {
 } from "@/utils/protocolObserver.js";
 import {
   createGameInputControl,
-  createGameInputDispatch,
+  createGameInputScheduler,
   GAME_INPUT_SYNC_EVENT_TYPE,
   GAME_INPUT_SYNC_MESSAGE_SOURCE,
 } from "@/utils/gameInputSync.js";
@@ -334,6 +334,7 @@ const syncEnabled = ref(false);
 const syncMasterId = ref(null);
 const excludedSyncIds = ref([]);
 const gameFrames = new Map();
+const inputSchedulers = new Map();
 const gameGrid = ref(null);
 const mountedGameIds = ref([]);
 const editingOrder = ref(false);
@@ -714,6 +715,10 @@ const selectedEntryText = computed(() =>
 );
 
 const setGameFrame = (tokenId, element) => {
+  if (gameFrames.get(tokenId) !== element) {
+    inputSchedulers.get(tokenId)?.clear();
+    inputSchedulers.delete(tokenId);
+  }
   if (element)
     gameFrames.set(tokenId, element);
   else gameFrames.delete(tokenId);
@@ -758,6 +763,9 @@ const toggleAdvancedTools = () => {
 };
 
 const sendInputSyncControl = (targetFrame) => {
+  // 控制状态变化或游戏重新加载后，旧点击不能再进入新会话。
+  inputSchedulers.forEach((scheduler) => scheduler.clear());
+  inputSchedulers.clear();
   gameFrames.forEach((frame, tokenId) => {
     if (targetFrame && frame !== targetFrame)
       return;
@@ -867,12 +875,18 @@ const handleGameMessage = (event) => {
   if (message.type === GAME_INPUT_SYNC_EVENT_TYPE) {
     if (editingOrder.value || !syncEnabled.value || messageTokenId !== syncMasterId.value || !syncParticipantIds.value.includes(messageTokenId))
       return;
-    const dispatchMessage = createGameInputDispatch(message.input);
-    if (!dispatchMessage)
-      return;
     gameFrames.forEach((targetFrame, tokenId) => {
       if (tokenId !== syncMasterId.value && syncParticipantIds.value.includes(tokenId)) {
-        postToGame(targetFrame, dispatchMessage);
+        if (!inputSchedulers.has(tokenId)) {
+          inputSchedulers.set(tokenId, createGameInputScheduler((dispatchMessage) => {
+            if (!disposed && syncEnabled.value && !editingOrder.value
+              && syncParticipantIds.value.includes(tokenId) && tokenId !== syncMasterId.value
+              && gameFrames.get(tokenId) === targetFrame) {
+              postToGame(targetFrame, dispatchMessage);
+            }
+          }));
+        }
+        inputSchedulers.get(tokenId).push(message.input);
       }
     });
     return;

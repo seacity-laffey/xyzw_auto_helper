@@ -23,12 +23,16 @@ protocol.handle = (scheme, handler) => nativeHandle(scheme, async request => {
     const canvas = document.getElementById('GameCanvas');
     canvas.style.cssText = 'width:100%;height:100%;background:#263d4b';
     window.fixtureInputs = [];
+    window.fixtureInputTimes = [];
     for (const type of ['mousedown','mousemove','mouseup','touchstart','touchmove','touchend']) {
-      canvas.addEventListener(type, event => { if (type === 'mousedown' || type === 'touchstart') canvas.focus(); window.fixtureInputs.push(type); });
+      canvas.addEventListener(type, event => { if (type === 'mousemove' && event.buttons === 0) return; if (type === 'mousedown' || type === 'touchstart') canvas.focus(); window.fixtureInputs.push(type); window.fixtureInputTimes.push({type, at: Date.now()}); });
     }
     window.fixtureReady = true;
   };`;
-  return source === undefined ? response : new Response(source, { headers: response.headers });
+  if (source === undefined) return response;
+  const headers = new Headers(response.headers);
+  headers.set('Cache-Control', 'no-store');
+  return new Response(source, { headers });
 });
 require('../desktop/main.cjs');
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -82,6 +86,8 @@ app.whenReady().then(async () => {
       })()`);
       assert.deepEqual(state, { id, hex, other: null, tokens: null, secret: null, parentBlocked: true, node: 'undefined', bridge: 'undefined', list: [id], persistedBin: false });
     }
+    await a.executeJavaScript("localStorage.setItem('settings-test', 'account-a')");
+    assert.equal(await b.executeJavaScript("localStorage.getItem('settings-test')"), null, 'settings stay isolated by account');
     console.log('PASS: separate origins, own BIN only, helper storage/Node/preload denied, BIN remains in memory');
     assert.deepEqual(errors, [], 'helper and game bootstrap must not trigger CSP/runtime errors');
 
@@ -110,8 +116,22 @@ app.whenReady().then(async () => {
     await until(() => a.executeJavaScript('true'), 'sync controls');
     await pause(150);
     const scrollBefore = await js('({grid:document.querySelector(".game-grid").scrollTop,page:document.scrollingElement.scrollTop})');
-    await a.executeJavaScript(`(() => {const c=document.getElementById('GameCanvas'),r=c.getBoundingClientRect();for(const type of ['mousedown','mouseup'])c.dispatchEvent(new MouseEvent(type,{bubbles:true,clientX:r.left+r.width/2,clientY:r.top+r.height/2,button:0}));})()`);
-    await until(() => b.executeJavaScript('window.fixtureInputs.includes("mouseup")'), 'mouse sync');
+    const clickAt = await a.executeJavaScript(`(() => {const c=document.getElementById('GameCanvas'),r=c.getBoundingClientRect();for(const type of ['mousedown','mouseup'])c.dispatchEvent(new MouseEvent(type,{bubbles:true,clientX:r.left+r.width/2,clientY:r.top+r.height/2,button:0}));return Date.now();})()`);
+    for (const follower of [b, c]) {
+      await until(() => follower.executeJavaScript('window.fixtureInputs.includes("mouseup")'), 'delayed mouse sync');
+      const received = await follower.executeJavaScript('window.fixtureInputTimes');
+      const delay = received.find(event => event.type === 'mousedown').at - clickAt;
+      assert.ok(delay >= 490 && delay < 2000, `click delay including IPC overhead: ${delay}ms`);
+      assert.deepEqual(received.map(event => event.type), ['mousedown', 'mouseup']);
+      await follower.executeJavaScript('window.fixtureInputs = []; window.fixtureInputTimes = []');
+    }
+    const dragAt = await a.executeJavaScript(`(() => {const c=document.getElementById('GameCanvas'),r=c.getBoundingClientRect();for(const [type,offset,buttons] of [['mousedown',20,1],['mousemove',80,1],['mouseup',80,0]])c.dispatchEvent(new MouseEvent(type,{bubbles:true,clientX:r.left+offset,clientY:r.top+20,button:0,buttons}));return Date.now();})()`);
+    for (const follower of [b, c]) {
+      await until(() => follower.executeJavaScript('window.fixtureInputs.includes("mouseup")'), 'immediate drag sync');
+      const received = await follower.executeJavaScript('window.fixtureInputTimes');
+      assert.deepEqual(received.map(event => event.type), ['mousedown', 'mousemove', 'mouseup']);
+      assert.ok(received[2].at - dragAt < 500, 'drag bypasses random click delay');
+    }
     assert.deepEqual(await js('({grid:document.querySelector(".game-grid").scrollTop,page:document.scrollingElement.scrollTop})'), scrollBefore);
     await a.executeJavaScript(`(() => {const c=document.getElementById('GameCanvas'),r=c.getBoundingClientRect();for(const type of ['touchstart','touchend']){const t=new Touch({identifier:1,target:c,clientX:r.left+20,clientY:r.top+20});c.dispatchEvent(new TouchEvent(type,{bubbles:true,changedTouches:[t],touches:type==='touchend'?[]:[t],targetTouches:type==='touchend'?[]:[t]}));}})()`);
     await until(() => b.executeJavaScript('window.fixtureInputs.includes("touchend")'), 'touch sync');
@@ -122,6 +142,15 @@ app.whenReady().then(async () => {
     assert.equal(await js('document.querySelectorAll(".sync-selection input:checked").length'), 3);
     const clickSelection = id => js(`document.querySelector('[data-game-id="${id}"] .sync-selection input').click()`);
     const sendMouse = frame => frame.executeJavaScript(`(() => {const c=document.getElementById('GameCanvas'),r=c.getBoundingClientRect();for(const type of ['mousedown','mouseup'])c.dispatchEvent(new MouseEvent(type,{bubbles:true,clientX:r.left+20,clientY:r.top+20,button:0}));})()`);
+    await b.executeJavaScript('window.fixtureInputs = []');
+    await c.executeJavaScript('window.fixtureInputs = []');
+    await sendMouse(a);
+    await pause(100);
+    await js(`[...document.querySelectorAll('button')].find(b => b.textContent.trim() === '同步已开启').click()`);
+    await pause(1600);
+    assert.deepEqual(await b.executeJavaScript('window.fixtureInputs'), [], 'disabling sync cancels queued clicks');
+    assert.deepEqual(await c.executeJavaScript('window.fixtureInputs'), [], 'all followers cancel queued clicks');
+    await js(`[...document.querySelectorAll('button')].find(b => b.textContent.trim() === '同步操作').click()`);
     await clickSelection('c');
     await pause(150);
     await b.executeJavaScript('window.fixtureInputs = []');
@@ -186,6 +215,7 @@ app.whenReady().then(async () => {
     assert.equal(frames().length, 1, 'cancel preserves original game');
     assert.equal(await targetJs('document.querySelectorAll("[data-game-id]").length'), 0, 'cancel does not add a target tile');
     const oldB = frames()[0].url;
+    await frames()[0].executeJavaScript("localStorage.setItem('settings-test', 'muted')");
     await openChosen(targetJs);
     await until(() => targetJs('Boolean(document.querySelector(".n-dialog"))'), 'confirm transfer again');
     await confirmTransfer(targetJs);
@@ -195,8 +225,8 @@ app.whenReady().then(async () => {
     }, 'transferred game bootstrap');
     assert.equal(frames().length, 0);
     assert.equal(await js('document.querySelectorAll("[data-game-id]").length'), 0, 'source account removed');
-    assert.notEqual(target.webContents.mainFrame.frames[0].url, oldB, 'transfer creates a fresh game');
-    assert.equal((await session.defaultSession.fetch(oldB)).status, 403, 'old origin revoked');
+    assert.equal(target.webContents.mainFrame.frames[0].url, oldB, 'transfer reuses account storage');
+    assert.equal(await target.webContents.mainFrame.frames[0].executeJavaScript("localStorage.getItem('settings-test')"), 'muted');
     assert.equal(await target.webContents.mainFrame.frames[0].executeJavaScript('window.__binHex'), '05060708');
     await until(() => targetJs('!document.querySelector(".bin-manager-actions button").disabled'), 'target ready');
     await openChosen(targetJs);
@@ -217,7 +247,7 @@ app.whenReady().then(async () => {
     await until(() => target.webContents.mainFrame.frames.length === 1, 'open saved account without existing game');
     target.close();
     assert.equal(frames().length, 1, 'closing old window leaves new game intact');
-    console.log('PASS: native multi-window, saved-account picker, cancel, confirmed transfer, fresh origin, move back, last-account removal');
+    console.log('PASS: native multi-window, saved-account picker, cancel, confirmed transfer, persistent settings, move back, last-account removal');
 
     await win.loadURL('xyzw://app/about');
     await until(() => js('document.querySelector(".about-page")?.textContent.includes("w1249178256 / xyzw_web_helper")'), 'about route');
@@ -239,6 +269,7 @@ app.whenReady().then(async () => {
       try { return frame && await frame.executeJavaScript('window.HtmlIsLoaded === true && typeof window.boot === "function" && Boolean(window.cc)'); } catch { return false; }
     }, 'unmodified local game runtime');
     assert.equal(await frames()[0].executeJavaScript('window.__binHex'), '01020304');
+    assert.equal(await frames()[0].executeJavaScript("localStorage.getItem('settings-test')"), 'account-a', 'settings survive closing and reopening the account');
     console.log('PASS: all original local game scripts load under the isolated game CSP (external requests blocked)');
     assert.equal(await frames()[0].executeJavaScript(`getComputedStyle(document.getElementById('script-tool-toggle')).display`), 'none');
     await js(`document.querySelector('[aria-label="高级工具"]').click()`);

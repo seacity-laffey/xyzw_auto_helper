@@ -54,9 +54,6 @@ async function openGameSession(event, tokenId, confirmedOrigin) {
     openingAccounts.delete(tokenId);
   }
 }
-function clearGameStorage(origin) {
-  return session.defaultSession.clearStorageData({ origin }).catch(() => {});
-}
 function log(event, data = {}) {
   // 不记录请求、Token、游戏消息或页面控制台，避免凭证落盘。
   const file = path.join(app.getPath('userData'), 'desktop.log');
@@ -99,7 +96,7 @@ function createWindow(url = `${ORIGIN}/`, game = false) {
     event.preventDefault();
     win.setTitle(`${title} · 窗口 ${ownerId}`);
   });
-  const releaseGames = () => gameSessions.releaseOwner(ownerId).forEach(clearGameStorage);
+  const releaseGames = () => gameSessions.releaseOwner(ownerId);
   win.webContents.on('destroyed', releaseGames);
   win.webContents.on('did-start-navigation', (_event, _url, sameDocument, isMainFrame) => {
     if (isMainFrame && !sameDocument) releaseGames();
@@ -168,8 +165,8 @@ else {
     protocol.handle('xyzw', handleRequest);
     ipcMain.handle('game-session:list', event => gameSessions.list(event));
     ipcMain.handle('game-session:create', openGameSession);
-    ipcMain.handle('game-session:release', async (event, origin) => {
-      if (gameSessions.release(event, origin)) await clearGameStorage(origin);
+    ipcMain.handle('game-session:release', (event, origin) => {
+      gameSessions.release(event, origin);
     });
     ipcMain.handle('about:open-link', async (event, url) => {
       if (event.senderFrame !== event.sender.mainFrame || !isLocal(event.senderFrame?.url) || !isAllowedExternal(url)) throw new Error('Forbidden');

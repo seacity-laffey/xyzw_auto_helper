@@ -1,4 +1,4 @@
-const { randomUUID } = require('node:crypto');
+const { createHash } = require('node:crypto');
 const { isLocal, isGame } = require('./policy.cjs');
 
 // 注册表只保存窗口归属，不接收或保存账号凭证。
@@ -24,7 +24,9 @@ function createGameSessions() {
         return { origin, url: `${origin}/game/index.html?bin_id=${encodeURIComponent(tokenId)}` };
       }
       if ([...sessions.values()].filter(id => id === event.sender.id).length >= 100) throw new Error('Too many game windows');
-      const origin = `xyzw://game-${randomUUID()}`;
+      // 固定账号来源以保留设置；摘要避免将账号 ID 直接暴露在主机名中。
+      const accountKey = createHash('sha256').update(tokenId).digest('hex').slice(0, 40);
+      const origin = `xyzw://game-${accountKey}`;
       sessions.set(origin, event.sender.id);
       accounts.set(origin, tokenId);
       return { origin, url: `${origin}/game/index.html?bin_id=${encodeURIComponent(tokenId)}` };

@@ -62,8 +62,9 @@ the matching extension for its target. The browser favicon is configured separat
 ## Isolated game windows and attribution
 
 The helper keeps its existing `xyzw://app` profile. Each desktop game frame gets
-a new `xyzw://game-<UUID>` origin registered to its owning helper window. That
-origin serves only packaged game assets; helper pages and login proxy routes are
+a stable `xyzw://game-<account-hash>` origin registered to its owning helper window.
+The host uses the first 40 hexadecimal characters of the account ID's SHA-256
+digest. That origin serves only packaged game assets; helper pages and login proxy routes are
 unavailable there. The helper origin no longer serves `/game/` assets. Paths are
 normalized before checking this boundary, including repeated/encoded slashes.
 
@@ -75,9 +76,19 @@ Game code still receives its own login data. The main process registers origins
 but never receives the BIN through IPC. Mouse/touch synchronization and protocol
 observation use the same validated frame bindings.
 
-Closing a frame revokes its origin and clears its local storage; closing or
-reloading its helper window revokes all origins it owns. Reopening a game creates
-a fresh origin, so game-local cache and script-tool preferences are temporary.
+Synchronized mouse clicks and touch taps receive an independent random delay of
+500–1500 ms per receiving window, measured after release. Press and release are
+replayed together, and consecutive clicks retain their order. Drags are forwarded
+as soon as movement is detected without a random delay; wheel handling is unchanged.
+Clicks due during a drag wait until it finishes to avoid interrupting the gesture.
+Disabling synchronization, changing its participants or master, or reloading a
+game cancels queued clicks.
+
+Closing a frame revokes access to its origin without clearing its local storage;
+closing or reloading its helper window revokes all origins it owns. Reopening the
+same saved account reuses its origin, preserving game settings and script-tool
+preferences across window transfers and application restarts. Different accounts
+retain separate storage. Previously cleared settings cannot be recovered.
 The helper's accounts, schedules and configuration retain their existing storage.
 The game account picker opens accounts already saved in Account Management; it
 does not import, refresh, or clear BIN files. Opening games from the helper creates
@@ -206,3 +217,16 @@ The user accepted version 2.0.3 after testing on 2026-09-11. Automated tests cov
 reward eligibility, scheduling, storage and game-window isolation. The smoke
 commands use fresh temporary profiles and synthetic data, not real accounts;
 macOS smoke checks alone do not establish Windows or live game compatibility.
+
+Game settings regression checks (after a desktop build):
+
+```sh
+node --test test/desktopGameSessions.test.js test/desktopPolicy.test.js
+node test/desktop-settings.cjs
+./node_modules/.bin/electron test/desktop-isolation.cjs
+```
+
+The settings check starts two separate Electron processes with one temporary
+profile to verify persistence across application restarts. The isolation check
+also verifies settings after closing/reopening a game and transferring it between
+windows, without sharing settings across accounts.

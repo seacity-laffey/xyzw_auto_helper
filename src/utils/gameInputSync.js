@@ -80,3 +80,69 @@ export function createGameInputDispatch(input) {
     input: normalized,
   };
 }
+
+// 每个接收窗口单独调度；点击整体延迟，移动手势在首次位移时立即开始。
+export function createGameInputScheduler(send, {
+  random = Math.random,
+  setTimer = setTimeout,
+  clearTimer = clearTimeout,
+} = {}) {
+  let gesture = null;
+  const clicks = [];
+
+  const dispatch = (input) => send(createGameInputDispatch(input));
+  const drain = () => {
+    // 避免延迟点击插入正在执行的拖拽；连续点击仍按原始顺序执行。
+    while (!gesture?.dragging && clicks[0]?.ready) {
+      const click = clicks.shift();
+      click.inputs.forEach(dispatch);
+    }
+  };
+
+  return {
+    push(value) {
+      const input = normalizeGameInputEvent(value);
+      if (!input)
+        return;
+      const type = input.eventType;
+      if (type === "mousedown" || type === "touchstart") {
+        gesture = { start: input, dragging: false };
+        return;
+      }
+      if (!gesture || input.gestureId !== gesture.start.gestureId
+        || type.startsWith("touch") !== gesture.start.eventType.startsWith("touch")) {
+        return;
+      }
+      // 容忍点击时的小幅抖动，避免轻微移动绕过点击延迟。
+      const moved = Math.abs(input.xRatio - gesture.start.xRatio) > 0.005
+        || Math.abs(input.yRatio - gesture.start.yRatio) > 0.005;
+      if (moved && !gesture.dragging) {
+        gesture.dragging = true;
+        dispatch(gesture.start);
+      }
+      if (type === "mousemove" || type === "touchmove") {
+        if (gesture.dragging)
+          dispatch(input);
+        return;
+      }
+      if (gesture.dragging) {
+        dispatch(input);
+      } else if (type !== "touchcancel") {
+        const click = { inputs: [gesture.start, input], ready: false, timer: null };
+        clicks.push(click);
+        click.timer = setTimer(() => {
+          click.ready = true;
+          drain();
+        }, 500 + Math.floor(random() * 1001));
+      }
+      gesture = null;
+      drain();
+    },
+    clear() {
+      for (const click of clicks)
+        clearTimer(click.timer);
+      clicks.length = 0;
+      gesture = null;
+    },
+  };
+}

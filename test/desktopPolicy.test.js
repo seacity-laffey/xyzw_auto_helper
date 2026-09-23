@@ -11,16 +11,16 @@ test('desktop asset resolver preserves iframe assets and SPA deep links', () => 
   for (const pathname of ['/GAME/index.html', '/Game/index.html', '/game./index.html', '/game%20/index.html', '/game::$INDEX_ALLOCATION/index.html']) {
     assert.equal(assetPath('xyzw://app' + pathname, '/bundle'), null, pathname);
   }
-  assert.equal(assetPath('xyzw://game-00000000-0000-4000-8000-000000000000/game/index.html?bin_id=1', '/bundle'), '/bundle/game/index.html');
+  assert.equal(assetPath('xyzw://game-0000000000000000000000000000000000000000/game/index.html?bin_id=1', '/bundle'), '/bundle/game/index.html');
 });
 test('game hosts cannot load helper pages, APIs, or helper bundles', () => {
-  const origin = 'xyzw://game-00000000-0000-4000-8000-000000000000';
+  const origin = 'xyzw://game-0000000000000000000000000000000000000000';
   for (const suffix of ['/index.html', '/tokens', '/migration.html', '/assets/index.js', '/api/game-login/authuser', '/game/%2e%2e%2findex.html']) {
     assert.equal(assetPath(origin + suffix, '/bundle'), null);
     assert.equal(loginTarget(origin + suffix, 'POST'), null);
   }
   assert.equal(policy.isGame('xyzw://game-invalid/game/index.html'), false);
-  assert.equal(policy.isGame('xyzw://user@game-00000000-0000-4000-8000-000000000000/game/index.html'), false);
+  assert.equal(policy.isGame('xyzw://user@game-0000000000000000000000000000000000000000/game/index.html'), false);
 });
 test('about links use an exact allowlist and CSP separates helper from game scripts', () => {
   assert.equal(policy.isAllowedExternal('https://github.com/w1249178256/xyzw_web_helper'), true);
