@@ -2,17 +2,18 @@
   <div class="status-card tower-status">
     <div class="card-header">
       <img
-        src="/icons/1733492491706148.png"
         alt="爬塔图标"
         class="status-icon"
-      />
+        src="/icons/1733492491706148.png"
+      >
       <div class="status-info">
         <h3>咸将塔</h3>
         <p>一个不小心就过了</p>
       </div>
       <div class="energy-display">
-        <img src="/icons/xiaoyugan.png" alt="小鱼干" class="energy-icon" />
+        <img alt="小鱼干" class="energy-icon" src="/icons/xiaoyugan.png" >
         <span class="energy-count">{{ towerEnergy }}</span>
+        <TowerEnergyPurchase :disabled="isClimbing" @busy="buyingEnergy = $event" @purchased="getTowerInfo" ></TowerEnergyPurchase>
       </div>
     </div>
 
@@ -25,8 +26,8 @@
 
     <div class="card-actions">
       <button
+        class="climb-button"
         :class="[
-          'climb-button',
           {
             active: canClimb,
             disabled: !canClimb,
@@ -49,6 +50,10 @@
 </template>
 
 <script setup>
+import TowerEnergyPurchase from "./TowerEnergyPurchase.vue";
+import { computed, onMounted, ref, watch } from "vue";
+import { useTokenStore } from "@/stores/tokenStore";
+import { useMessage } from "naive-ui";
 // 停止批量爬塔操作
 let stopFlag = false;
 
@@ -61,15 +66,13 @@ const stopClimbing = () => {
   isClimbing.value = false;
   message.info("已手动停止批量爬塔");
 };
-import { computed, onMounted, ref, watch } from "vue";
-import { useTokenStore } from "@/stores/tokenStore";
-import { useMessage } from "naive-ui";
 
 const tokenStore = useTokenStore();
 const message = useMessage();
 
 // 响应式数据
 const isClimbing = ref(false);
+const buyingEnergy = ref(false);
 const climbTimeout = ref(null); // 用于超时重置状态
 const lastClimbResult = ref(null); // 最后一次爬塔结果
 
@@ -105,12 +108,14 @@ const towerEnergy = computed(() => {
 
 const canClimb = computed(() => {
   const hasEnergy = towerEnergy.value > 0;
-  const notClimbing = !isClimbing.value;
+  const notClimbing = !isClimbing.value && !buyingEnergy.value;
   return hasEnergy && notClimbing;
 });
 
 // 方法
 const startTowerClimb = async () => {
+  if (buyingEnergy.value)
+    return;
   if (!tokenStore.selectedToken) {
     message.warning("请先选择Token");
     return;
@@ -130,7 +135,7 @@ const startTowerClimb = async () => {
   isClimbing.value = true;
   stopFlag = false;
   let climbCount = 0;
-  let maxClimb = 100; // 最多批量次数，防止死循环
+  const maxClimb = 100; // 最多批量次数，防止死循环
   // 设置超时保护，60秒后自动重置状态
   climbTimeout.value = setTimeout(() => {
     isClimbing.value = false;
@@ -142,12 +147,14 @@ const startTowerClimb = async () => {
   try {
     const tokenId = tokenStore.selectedToken.id;
     for (let i = 0; i < maxClimb; i++) {
-      if (stopFlag) break;
+      if (stopFlag)
+        break;
       await getTowerInfo();
       // 体力判断必须每次都刷新
       const tower = roleInfo.value?.role?.tower;
       const energy = tower?.energy || 0;
-      if (energy <= 0) break;
+      if (energy <= 0)
+        break;
       await tokenStore.sendMessageWithPromise(
         tokenId,
         "fight_starttower",
@@ -160,7 +167,7 @@ const startTowerClimb = async () => {
     }
     message.success(`已自动爬塔${climbCount}次，体力已耗尽或达到上限。`);
   } catch (error) {
-    message.error("批量爬塔失败: " + (error.message || "未知错误"));
+    message.error(`批量爬塔失败: ${error.message || "未知错误"}`);
   }
 
   // 清除超时并重置状态
@@ -207,7 +214,8 @@ const getTowerInfo = async () => {
 
 // 监听WebSocket连接状态变化
 const wsStatus = computed(() => {
-  if (!tokenStore.selectedToken) return "disconnected";
+  if (!tokenStore.selectedToken)
+    return "disconnected";
   return tokenStore.getWebSocketStatus(tokenStore.selectedToken.id);
 });
 

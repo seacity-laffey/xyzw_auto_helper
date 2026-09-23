@@ -30,6 +30,11 @@ export const bossTimesOptions = [0, 1, 2, 3, 4].map((v) => ({
 
 // 可用的定时任务列表
 export const availableTasks = [
+  { label: "逐鹿盐山竞猜", value: "batchApexGuess" },
+  { label: "玄武赐福（抽奖1次）", value: "batchXuanwuBlessing" },
+  { label: "营地挑战（最多3次）", value: "batchCampChallenge" },
+  { label: "营地宠物挑战（3轮）", value: "batchCampChallengePet" },
+  { label: "领取营地任务", value: "batchCampClaimTasks" },
   { label: "执行账号日常模板", value: "startBatch" },
   { label: "领取挂机", value: "claimHangUpRewards" },
   { label: "一键加钟", value: "batchAddHangUpTime" },

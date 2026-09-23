@@ -40,7 +40,7 @@ export class GameCommands {
     return {
       cmd: "role_getroleinfo",
       body: this.g_utils.bon.encode({
-        clientVersion: "2.21.2-fa918e1997301834-wx",
+        clientVersion: "2.43.4-a7db1319a3025acb-wx",
         inviteUid: 0,
         platform: "hortor",
         platformExt: "mix",
@@ -535,7 +535,7 @@ export class GameCommands {
   legionmatch_rolesignup(ack = 0, seq = 0, params = {}) {
     return {
       ack,
-      body: this.g_utils.bon.encode({}),
+      body: this.g_utils.bon.encode(params),
       cmd: "legionmatch_rolesignup",
       seq,
       time: Date.now(),

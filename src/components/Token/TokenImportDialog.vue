@@ -24,6 +24,7 @@
       </div>
       <ManualTokenForm v-if="importMethod === 'manual'" @cancel="close" @ok="close"></ManualTokenForm>
       <WxQrcodeForm v-else-if="importMethod === 'wxQrcode'" @cancel="close" @ok="close"></WxQrcodeForm>
+      <MobileTokenForm v-else-if="importMethod === 'mobile'" @cancel="close" @ok="close"></MobileTokenForm>
       <BinTokenForm v-else-if="importMethod === 'bin'" @cancel="close" @ok="close"></BinTokenForm>
       <SingleBinTokenForm v-else @cancel="close" @ok="close"></SingleBinTokenForm>
     </DialogContent>
@@ -32,6 +33,7 @@
 
 <script setup>
 import { ref } from "vue";
+import MobileTokenForm from "@/views/TokenImport/mobile.vue";
 import BinTokenForm from "@/views/TokenImport/bin.vue";
 import ManualTokenForm from "@/views/TokenImport/manual.vue";
 import SingleBinTokenForm from "@/views/TokenImport/singlebin.vue";
@@ -51,6 +53,7 @@ const importMethod = ref("manual");
 const importMethodOptions = [
   { label: "手动输入", value: "manual" },
   { label: "微信扫码", value: "wxQrcode" },
+  { label: "手机号登录", value: "mobile" },
   { label: "BIN 多角色", value: "bin" },
   { label: "BIN 单角色", value: "singlebin" },
 ];

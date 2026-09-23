@@ -1,6 +1,7 @@
 /**
  * XYZW 游戏自动化后端 - Express + Supabase + Render
  */
+import { requireApiKey } from "./lib/apiAuth.js";
 import dotenv from "dotenv";
 import express from "express";
 import cors from "cors";
@@ -18,6 +19,7 @@ function sleep(ms) {
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use("/api", requireApiKey);
 
 // ==================== Supabase 客户端 ====================
 const supabase = createClient(
@@ -67,14 +69,6 @@ const TASK_DEFINITIONS = {
   claimMail: {
     name: "领取邮件附件",
     commands: [{ cmd: "mail_claimallattachment", params: { category: 0 } }],
-  },
-  claimCar: {
-    name: "领取车辆",
-    commands: [{ cmd: "car_getrolecar", params: {} }],
-  },
-  refreshCar: {
-    name: "刷新车辆",
-    commands: [{ cmd: "car_refresh", params: {} }],
   },
   legacyHangup: {
     name: "功法挂机",

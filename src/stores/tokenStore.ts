@@ -1,3 +1,4 @@
+import { refreshTokenFromCombUser } from "@/utils/wechatForceLogout";
 import { useLocalStorage } from "@vueuse/core";
 import { defineStore } from "pinia";
 import { computed, ref, watch } from "vue";
@@ -34,13 +35,16 @@ declare interface TokenData {
   wsUrl: string | null; // 可选的自定义WebSocket URL
   server: string;
   serverId?: string | number;
+  roleId?: string | number;
+  roleIndex?: number;
+  combUser?: Record<string, any>;
   remark?: string; // 备注信息
   level?: number;
   profession?: string;
   createdAt?: string;
   lastUsed?: string;
   isActive?: boolean;
-  importMethod?: "manual" | "bin" | "url" | "wxQrcode"; // 导入方式：manual（手动）、bin文件或url链接
+  importMethod?: "manual" | "bin" | "url" | "wxQrcode" | "mobile"; // 导入方式：manual（手动）、bin文件或url链接
   sourceUrl?: string | null; // 当importMethod为url时，存储url链接
   avatar?: string; // 用户头像URL
   upgradedToPermanent?: boolean; // 是否升级为长期有效
@@ -298,6 +302,9 @@ export const useTokenStore = defineStore("tokens", () => {
       wsUrl: tokenData.wsUrl || null, // 可选的自定义WebSocket URL
       server: tokenData.server || "",
       serverId: tokenData.serverId,
+      roleId: tokenData.roleId,
+      roleIndex: tokenData.roleIndex,
+      combUser: tokenData.combUser,
       remark: tokenData.remark || "", // 备注信息
       level: tokenData.level || 1,
       profession: tokenData.profession || "",
@@ -467,9 +474,16 @@ export const useTokenStore = defineStore("tokens", () => {
           wsLogger.info(`从URL获取token成功: ${gameToken.name}`);
           refreshSuccess = true;
         }
+      } else if (gameToken.combUser) {
+        const refreshed = await refreshTokenFromCombUser(gameToken.combUser as any, gameToken);
+        if (!await storeArrayBuffer(tokenId, refreshed.bin))
+          throw new Error("保存刷新后的 BIN 失败");
+        updateToken(tokenId, { token: refreshed.token, serverId: refreshed.role.serverId, roleId: refreshed.role.roleId });
+        refreshSuccess = true;
       } else if (
         gameToken.importMethod === "bin"
         || gameToken.importMethod === "wxQrcode"
+        || gameToken.importMethod === "mobile"
       ) {
         // Bin形式token刷新
         let userToken: ArrayBuffer | null = await getArrayBuffer(tokenId);
@@ -1341,6 +1355,7 @@ export const useTokenStore = defineStore("tokens", () => {
         token.importMethod === "url"
         || token.importMethod === "bin"
         || token.importMethod === "wxQrcode"
+        || token.importMethod === "mobile"
         || token.upgradedToPermanent
       ) {
         return false;
@@ -1369,6 +1384,7 @@ export const useTokenStore = defineStore("tokens", () => {
       && token.importMethod !== "url"
       && token.importMethod !== "bin"
       && token.importMethod !== "wxQrcode"
+      && token.importMethod !== "mobile"
     ) {
       updateToken(tokenId, {
         upgradedToPermanent: true,

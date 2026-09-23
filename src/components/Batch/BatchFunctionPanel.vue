@@ -6,8 +6,8 @@
       <Button
         class="ml-auto"
         size="sm"
-        variant="outline"
         title="重新检查活动开放状态"
+        variant="outline"
         @click="refreshAvailability"
       >
         <RefreshCw :size="14"></RefreshCw>
@@ -76,7 +76,8 @@ type FunctionTab
     | "weirdTower"
     | "resource"
     | "legacy"
-    | "monthly";
+    | "monthly"
+    | "activity";
 
 interface ActionItem {
   action: string;
@@ -109,6 +110,7 @@ const tabs: Array<{ label: string; value: FunctionTab }> = [
   { label: "资源", value: "resource" },
   { label: "功法", value: "legacy" },
   { label: "月度", value: "monthly" },
+  { label: "活动", value: "activity" },
 ];
 
 const activeTab = ref<FunctionTab>("daily");
@@ -143,6 +145,9 @@ const activeActions = computed<ActionItem[]>(() => {
       { action: "batchUseGachaCoins", label: "一键使用扭蛋币", disabled: common },
     ],
     dungeon: [
+      { action: "batchCampChallenge", label: "营地挑战（最多3次）", disabled: common },
+      { action: "batchCampChallengePet", label: "营地宠物（3轮）", disabled: common },
+      { action: "batchCampClaimTasks", label: "领取营地任务", disabled: common },
       { action: "climbTower", label: "一键爬塔", disabled: common },
       {
         action: "batchmengjing",
@@ -194,6 +199,10 @@ const activeActions = computed<ActionItem[]>(() => {
     legacy: [
       { action: "claimLegacy", label: "批量功法残卷领取", disabled: common },
       { action: "openLegacyGift", label: "批量功法残卷赠送", disabled: common },
+    ],
+    activity: [
+      { action: "batchApexGuess", label: "逐鹿盐山竞猜", disabled: common, title: "按当前赛程检测开放阶段" },
+      { action: "batchXuanwuBlessing", label: "玄武赐福（抽奖1次）", disabled: common, title: "领取任务、通行证、免费珍宝、点卯，并消耗抽奖券抽奖1次" },
     ],
     monthly: [
       { action: "topUpFish", label: "一键钓鱼补齐", disabled: common },

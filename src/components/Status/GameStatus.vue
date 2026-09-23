@@ -74,10 +74,16 @@
 
     <!-- 消耗活动进度（提取组件） -->
     <ConsumptionProgressCard v-if="activeSection === 'tools'"></ConsumptionProgressCard>
+    <nav v-if="activeSection === 'club'" aria-label="俱乐部视图" class="sub-tabs col-span-full">
+      <button :class="{ active: clubTab === 'overview' }" @click="clubTab = 'overview'">俱乐部概览 / 今日篝火</button>
+      <button :class="{ active: clubTab === 'camp' }" @click="clubTab = 'camp'">营地挑战</button>
+    </nav>
+    <CampChallenge v-if="activeSection === 'club' && clubTab === 'camp'" ></CampChallenge>
     <!-- 俱乐部信息与今日俱乐部战统计 -->
-    <ClubInfo v-if="activeSection === 'club'"></ClubInfo>
-    <ClubDailyBattleStats v-if="activeSection === 'club'"></ClubDailyBattleStats>
+    <ClubInfo v-if="activeSection === 'club' && clubTab === 'overview'"></ClubInfo>
+    <ClubDailyBattleStats v-if="activeSection === 'club' && clubTab === 'overview'"></ClubDailyBattleStats>
 
+    <ApexChallenge v-if="activeSection === 'activity'" ></ApexChallenge>
     <!-- 月度任务进度（提取组件） -->
     <MonthlyTasksCard v-if="activeSection === 'activity'"></MonthlyTasksCard>
 
@@ -212,6 +218,9 @@ import { computed, defineAsyncComponent, ref } from "vue";
 import { useTokenStore } from "@/stores/tokenStore";
 import IdentityCard from "../Common/IdentityCard.vue";
 
+const clubTab = ref("overview");
+const ApexChallenge = defineAsyncComponent(() => import("../Apex/ApexChallenge.vue"));
+const CampChallenge = defineAsyncComponent(() => import("../Club/CampChallenge.vue"));
 const TeamFormation = defineAsyncComponent(
   () => import("../Team/TeamFormation.vue"),
 );

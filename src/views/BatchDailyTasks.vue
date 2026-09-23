@@ -435,6 +435,7 @@ const currentSettingsTokenId = ref(null);
 const currentSettingsTokenName = ref("");
 const currentSettings = reactive({
   templateId: SYSTEM_TEMPLATE_ID,
+  campFormation: 1,
   arenaFormation: 1,
   towerFormation: 1,
   bossFormation: 1,
@@ -922,6 +923,7 @@ const handleBatchFunctionAction = (action) => {
 
 const getScheduledTaskFunction = (taskName) => {
   const taskRegistry = {
+    ...taskModules,
     startBatch,
     claimHangUpRewards,
     batchAddHangUpTime,

@@ -10,18 +10,19 @@
           系统将获取<strong color="red">该微信下所有角色</strong>的Token信息
         </li>
       </ol>
+      <n-checkbox v-model:checked="saveCombUser">保存登录凭据以支持自动刷新</n-checkbox>
     </div>
 
     <!-- 二维码显示区域 -->
     <div class="qrcode-container">
-      <div v-if="!qrcodeUrl" id="qr-placeholder" class="qr-placeholder" @click="generateQRCode">
-        <n-icon size="48" color="var(--text-tertiary)">
-          <Scan />
+      <div id="qr-placeholder" v-if="!qrcodeUrl" class="qr-placeholder" @click="generateQRCode">
+        <NIcon color="var(--text-tertiary)" size="48">
+          <Scan ></Scan>
           <!-- 使用扫码图标 -->
-        </n-icon>
+        </NIcon>
         <p>点击获取微信登录二维码</p>
       </div>
-      <img v-else id="qr-image" :src="qrcodeUrl" alt="微信登录二维码" class="qr-image" />
+      <img id="qr-image" v-else alt="微信登录二维码" class="qr-image" :src="qrcodeUrl" >
 
       <!-- 状态信息 -->
       <div id="qr-status" class="qr-status" :class="statusType">
@@ -31,84 +32,90 @@
 
     <!-- 操作按钮 -->
     <div class="form-actions">
-      <n-button type="primary" block @click="generateQRCode" :loading="isProcessing">
+      <NButton block type="primary" :loading="isProcessing" @click="generateQRCode">
         <template #icon>
-          <n-icon>
-            <Refresh />
-          </n-icon>
+          <NIcon>
+            <Refresh ></Refresh>
+          </NIcon>
         </template>
         {{ qrcodeUrl ? "刷新二维码" : "获取二维码" }}
-      </n-button>
+      </NButton>
     </div>
 
     <!-- 角色命名格式配置 -->
-    <n-form :model="importForm" label-placement="top" :show-label="true" style="margin-top: 16px;">
-      <n-form-item label="角色命名格式" :show-label="true">
-        <n-input v-model:value="importForm.nameTemplate" placeholder="{name}-{index}-{id}" />
+    <NForm label-placement="top" style="margin-top: 16px;" :model="importForm" :show-label="true">
+      <NFormItem label="角色命名格式" :show-label="true">
+        <NInput placeholder="{name}-{index}-{id}" v-model:value="importForm.nameTemplate" ></NInput>
         <template #feedback>
           支持变量: {name}角色名, {id}角色ID, {index}角色序号, {server}区服
         </template>
-      </n-form-item>
-    </n-form>
+      </NFormItem>
+    </NForm>
 
     <!-- 服务器角色列表 -->
     <ServerRoleList
-      :data="serverListData"
-      server-column-title="区服ID"
       max-height="50vh"
+      server-column-title="区服ID"
+      :data="serverListData"
       @add="addSelectedRole"
       @download="handleDownload"
-    />
+    ></ServerRoleList>
 
     <a-list>
       <a-list-item v-for="(role, index) in roleList" :key="index">
         <div style="display: flex; justify-content: space-between; align-items: center; width: 100%">
           <div>
-            <strong>角色名称:</strong> {{ role.name || "未命名角色" }}<br />
+            <strong>角色名称:</strong> {{ role.name || "未命名角色" }}<br >
             <strong>Token:</strong>
-            <span style="word-break: break-all">{{ role.token }}</span><br />
-            <strong>服务器:</strong> {{ role.server || "未指定" }}<br />
+            <span style="word-break: break-all">{{ role.token }}</span><br >
+            <strong>服务器:</strong> {{ role.server || "未指定" }}<br >
             <strong>角色序号:</strong> {{ role.roleIndex }}
           </div>
-          <n-button type="error" size="small" @click="removeRole(index)">
+          <NButton size="small" type="error" @click="removeRole(index)">
             删除
-          </n-button>
+          </NButton>
         </div>
       </a-list-item>
     </a-list>
 
     <!-- 操作按钮 -->
     <div class="form-actions">
-      <n-button type="primary" size="large" block :loading="isImporting" @click="handleImport">
+      <NButton block size="large" type="primary" :loading="isImporting" @click="handleImport">
         <template #icon>
-          <n-icon>
-            <CloudUpload />
-          </n-icon>
+          <NIcon>
+            <CloudUpload ></CloudUpload>
+          </NIcon>
         </template>
         添加Token
-      </n-button>
+      </NButton>
 
-      <n-button block @click="$emit('cancel')" :disabled="isProcessing">
+      <NButton block :disabled="isProcessing" @click="$emit('cancel')">
         <template #icon>
-          <n-icon>
-            <Close />
-          </n-icon>
+          <NIcon>
+            <Close ></Close>
+          </NIcon>
         </template>
         取消
-      </n-button>
+      </NButton>
     </div>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted, onUnmounted, reactive } from "vue";
-import { Scan, Refresh, Close, CloudUpload } from "@vicons/ionicons5";
-import { NIcon, useMessage, NButton, NForm, NFormItem, NInput } from "naive-ui";
-import { getTokenId, transformToken, getServerList } from "@/utils/token";
+import { onMounted, onUnmounted, reactive, ref } from "vue";
+import { Close, CloudUpload, Refresh, Scan } from "@vicons/ionicons5";
+import { NButton, NForm, NFormItem, NIcon, NInput, useMessage } from "naive-ui";
+import { getServerList, getTokenId, transformToken } from "@/utils/token";
 import useIndexedDB from "@/hooks/useIndexedDB";
+import { buildRoleBin, downloadBinFile, getRoleBinFileName } from "@/utils/binFile";
 import { g_utils } from "@/utils/bonProtocol";
 import { useTokenStore } from "@/stores/tokenStore";
+
+// 定义事件
+const emit = defineEmits(["cancel", "ok"]);
 const tokenStore = useTokenStore();
+const currentCombUser = ref<any>(null);
+const saveCombUser = ref(false);
 const { storeArrayBuffer } = useIndexedDB();
 
 const message = useMessage();
@@ -119,9 +126,6 @@ const importForm = reactive({
   wsUrl: "",
   nameTemplate: "{name}-{index}-{id}",
 });
-
-// 定义事件
-const emit = defineEmits(["cancel", "ok"]);
 
 const removeRole = (index: number) => {
   roleList.value.splice(index, 1);
@@ -151,6 +155,7 @@ const roleList = ref<
     token: string;
     server: string;
     serverId?: string;
+    combUser?: Record<string, unknown>;
     roleIndex?: number;
     wsUrl: string;
     importMethod: string;
@@ -163,30 +168,15 @@ const handleDownload = (roleInfo: any) => {
     return;
   }
   try {
-    const newData = { ...originalBinData.value };
-    newData.serverId = roleInfo.serverId; // 确保类型一致
-    const newBinBuffer = g_utils.encode(newData) as ArrayBuffer;
-    
-    // 构造文件名: bin-{server}-0-{roleId}-{name}.bin
-    let sid = Number(roleInfo.serverId);
-    let roleIndex = 0;
-    
-    if (sid >= 2000000) {
-      roleIndex = 2;
-      sid -= 2000000;
-    } else if (sid >= 1000000) {
-      roleIndex = 1;
-      sid -= 1000000;
-    }
-    
-    const serverNum = sid - 27;
-    const fileName = `bin-${serverNum}服-${roleIndex}-${roleInfo.roleId}-${roleInfo.name}.bin`;
-    
+    const newBinBuffer = buildRoleBin(originalBinData.value, roleInfo.serverId);
+
+    const fileName = getRoleBinFileName(roleInfo);
+
     downloadBinFile(fileName, newBinBuffer);
     message.success(`已开始下载: ${fileName}`);
   } catch (e: any) {
     console.error("下载失败", e);
-    message.error("下载失败: " + e.message);
+    message.error(`下载失败: ${e.message}`);
   }
 };
 
@@ -197,15 +187,14 @@ const addSelectedRole = async (roleInfo: any) => {
   }
 
   try {
-    const newData = { ...originalBinData.value };
-    newData.serverId = roleInfo.serverId; // 确保类型一致
-    const newBinBuffer = g_utils.encode(newData) as ArrayBuffer;
+    const newBinBuffer = buildRoleBin(originalBinData.value, roleInfo.serverId);
     const tokenId = getTokenId(newBinBuffer);
     const roleToken = await transformToken(newBinBuffer);
     const roleName = roleInfo.name || `角色_${roleInfo.roleId}`;
 
     // 刷新indexDB数据库token数据 (保存原始bin)
-    storeArrayBuffer(tokenId, newBinBuffer);
+    if (!await storeArrayBuffer(tokenId, newBinBuffer))
+      throw new Error("保存 BIN 失败");
 
     let sid = Number(roleInfo.serverId);
     let roleIndex = 0;
@@ -220,14 +209,14 @@ const addSelectedRole = async (roleInfo: any) => {
 
     const template = importForm.nameTemplate || "{name}-{index}-{id}";
     const finalName = template
-      .replace(/{name}/g, () => roleName)
-      .replace(/{index}/g, () => String(roleIndex))
-      .replace(/{id}/g, () => String(roleInfo.roleId))
-      .replace(/{server}/g, () => String(serverNum) + "服");
+      .replace(/\{name\}/g, () => roleName)
+      .replace(/\{index\}/g, () => String(roleIndex))
+      .replace(/\{id\}/g, () => String(roleInfo.roleId))
+      .replace(/\{server\}/g, () => `${String(serverNum)}服`);
 
     // 检查是否已存在相同配置 (根据角色名称和roleId)
     const exists = roleList.value.some(
-      (r) => r.roleId === roleInfo.roleId && r.name === finalName
+      (r) => r.roleId === roleInfo.roleId && r.name === finalName,
     );
 
     if (exists) {
@@ -240,21 +229,20 @@ const addSelectedRole = async (roleInfo: any) => {
       roleId: roleInfo.roleId,
       token: roleToken,
       name: finalName,
-      server: String(serverNum) + "服",
+      server: `${String(serverNum)}服`,
       serverId: String(roleInfo.serverId),
-      roleIndex: roleIndex,
+      roleIndex,
       wsUrl: importForm.wsUrl || "",
       importMethod: "wxQrcode",
+      combUser: saveCombUser.value ? currentCombUser.value : undefined,
     });
 
     message.success(`已添加角色: ${finalName}`);
-
   } catch (e: any) {
     console.error("添加角色失败", e);
-    message.error("添加角色失败: " + e.message);
+    message.error(`添加角色失败: ${e.message}`);
   }
 };
-
 
 /**
  * 生成微信登录二维码
@@ -270,7 +258,7 @@ const generateQRCode = async () => {
     // 调用获取二维码接口
     await tryGetWeixinQR();
   } catch (error) {
-    updateStatus("二维码获取失败：" + error.message, "error");
+    updateStatus(`二维码获取失败：${error.message}`, "error");
     console.error("获取二维码失败:", error);
   } finally {
     isProcessing.value = false;
@@ -282,12 +270,12 @@ const generateQRCode = async () => {
  */
 const tryGetWeixinQR = async () => {
   try {
-    const qrPageUrl =
-      "/api/weixin/connect/app/qrconnect" +
-      "?appid=wxfb0d5667e5cb1c44" +
-      "&bundleid=com.hortor.games.xyzw" +
-      "&scope=snsapi_base,snsapi_userinfo,snsapi_friend,snsapi_message" +
-      "&state=weixin";
+    const qrPageUrl
+      = "/api/weixin/connect/app/qrconnect"
+        + "?appid=wxfb0d5667e5cb1c44"
+        + "&bundleid=com.hortor.games.xyzw"
+        + "&scope=snsapi_base,snsapi_userinfo,snsapi_friend,snsapi_message"
+        + "&state=weixin";
 
     const response = await new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
@@ -301,7 +289,7 @@ const tryGetWeixinQR = async () => {
     });
 
     if (response.status !== 200) {
-      throw new Error("HTTP 状态码：" + response.status);
+      throw new Error(`HTTP 状态码：${response.status}`);
     }
 
     const html = response.responseText;
@@ -311,7 +299,8 @@ const tryGetWeixinQR = async () => {
 
     if (!qrUrl) {
       const m = html.match(/https:\/\/[^"']*qrcode[^"']*/i);
-      if (m) qrUrl = m[0];
+      if (m)
+        qrUrl = m[0];
     }
 
     if (!qrUrl) {
@@ -342,7 +331,8 @@ const tryGetWeixinQR = async () => {
  * 开始轮询扫码状态
  */
 const startScanMonitoring = () => {
-  if (isScanning.value) return;
+  if (isScanning.value)
+    return;
 
   isScanning.value = true;
   startTime.value = Date.now();
@@ -357,7 +347,8 @@ const startScanMonitoring = () => {
  */
 const checkScanStatus = async () => {
   try {
-    if (!qrcodeUUID.value) return;
+    if (!qrcodeUUID.value)
+      return;
 
     const elapsed = Date.now() - startTime.value;
     if (elapsed > timeout) {
@@ -368,11 +359,11 @@ const checkScanStatus = async () => {
     }
 
     // 使用微信官方推荐的扫码状态轮询路径
-    const url =
-      "/api/weixin/connect/l/qrconnect?uuid=" +
-      qrcodeUUID.value +
-      "&f=url&_=" +
-      Date.now();
+    const url
+      = `/api/weixin/connect/l/qrconnect?uuid=${
+        qrcodeUUID.value
+      }&f=url&_=${
+        Date.now()}`;
 
     const res = await new Promise((resolve) => {
       const xhr = new XMLHttpRequest();
@@ -456,7 +447,7 @@ const handleScanSuccess = async (code: string, nickname = "") => {
       await saveAccount(encrypted.buffer, nickname);
     }
   } catch (err: any) {
-    updateStatus("处理失败：" + err.message, "error");
+    updateStatus(`处理失败：${err.message}`, "error");
     console.error("扫码处理失败:", err);
   } finally {
     isProcessing.value = false;
@@ -472,7 +463,7 @@ const getEncryptedData = async (code) => {
     code,
     gameTp: "app",
     sysInfo:
-      '{"system":"Android","hortorSDKVersion":"4.0.6-cn","model":"22081212C","brand":"Redmi"}',
+      "{\"system\":\"Android\",\"hortorSDKVersion\":\"4.0.6-cn\",\"model\":\"22081212C\",\"brand\":\"Redmi\"}",
     channel: "android",
     appFrom: "com.tencent.mm",
     noLogin: "2",
@@ -494,16 +485,16 @@ const getEncryptedData = async (code) => {
     console.log("解密:", decodePayload(encoded));
   } catch (err) { }
 
-  const loginUrl =
-    "/api/hortor/comb-login-server/api/v1/login" +
-    "?gameId=xyzwapp" +
-    "&timestamp=" +
-    Date.now() +
-    "&version=android-4.2.1-cn-release" +
-    "&cryptVersion=1.1.0" +
-    "&gameTp=app&system=android" +
-    "&deviceUniqueId=DID-0e782e88-2f3b-4f5b-9020-47f5e5a5a026" +
-    "&packageName=com.hortorgames.xyzw";
+  const loginUrl
+    = `/api/hortor/comb-login-server/api/v1/login`
+      + `?gameId=xyzwapp`
+      + `&timestamp=${
+        Date.now()
+      }&version=android-4.2.1-cn-release`
+      + `&cryptVersion=1.1.0`
+      + `&gameTp=app&system=android`
+      + `&deviceUniqueId=DID-0e782e88-2f3b-4f5b-9020-47f5e5a5a026`
+      + `&packageName=com.hortorgames.xyzw`;
 
   const res = await new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
@@ -518,19 +509,19 @@ const getEncryptedData = async (code) => {
   });
 
   if (res.status !== 200) {
-    throw new Error("HTTP 状态码：" + res.status);
+    throw new Error(`HTTP 状态码：${res.status}`);
   }
 
   const json = JSON.parse(res.responseText);
   if (json.meta?.errCode !== 0) {
-    throw new Error("登录失败：" + json.meta?.errMsg);
+    throw new Error(`登录失败：${json.meta?.errMsg}`);
   }
 
   const combUser = json.data?.combUser;
   if (!combUser) {
     throw new Error("登录响应结构异常");
   }
-  console.log("combUser:", combUser);
+  currentCombUser.value = combUser;
 
   // 这里简化处理，实际应该调用游戏加密模块生成bin
   // 由于是前端环境，我们模拟生成一个token
@@ -558,8 +549,8 @@ const getEncryptedData = async (code) => {
  */
 const encodePayload = (text) => {
   // 注意：这个超长字符串必须和原脚本里的一模一样！
-  const cipherTable =
-    "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";
+  const cipherTable
+    = "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";
 
   const xorShift = 1;
   const shuffleTimes = 6;
@@ -567,7 +558,7 @@ const encodePayload = (text) => {
 
   console.log("原始文本长度:", text.length);
   const mid = codeBase64(text, cipherTable, shuffleTimes, step, xorShift);
-  console.log("codeBase64:", mid?.substring(0, 100) + "...");
+  console.log("codeBase64:", `${mid?.substring(0, 100)}...`);
   const final = encodeBase64(mid);
   console.log("编码结果长度:", final?.length);
   return final;
@@ -600,13 +591,16 @@ const codeBase64 = (text, cipherTable, shuffleTimes, step, xorShift) => {
 };
 
 const encodeBase64 = (text) => {
-  if (!text) return null;
+  if (!text)
+    return null;
   return btoa(unescape(encodeURIComponent(text)));
 };
 
 const transCode = (str, times) => {
-  if (times <= 0) return str;
-  if (str.length % 2 !== 0) return null;
+  if (times <= 0)
+    return str;
+  if (str.length % 2 !== 0)
+    return null;
 
   const right = rightSide(str);
   const left = leftSide(str);
@@ -614,12 +608,14 @@ const transCode = (str, times) => {
 };
 
 const rightSide = (str) => {
-  if (str.length % 2 !== 0) return null;
+  if (str.length % 2 !== 0)
+    return null;
   return str.substring(Math.floor(str.length / 2));
 };
 
 const leftSide = (str) => {
-  if (str.length % 2 !== 0) return null;
+  if (str.length % 2 !== 0)
+    return null;
   return str.substring(0, Math.floor(str.length / 2));
 };
 
@@ -634,15 +630,17 @@ const getCodeKey = (str, step) => {
 };
 
 const dealWithString = (src, key, shift) => {
-  if (!src || !key) return null;
+  if (!src || !key)
+    return null;
 
   const v = src.split("");
   const w = key.split("");
-  const out = new Array(v.length);
+  const out = Array.from({ length: v.length });
 
   let idx = w.length >> shift;
   for (let i = 0; i < v.length; i++) {
-    if (idx >= w.length) idx = 0;
+    if (idx >= w.length)
+      idx = 0;
     out[i] = String.fromCharCode(v[i].charCodeAt(0) ^ w[idx].charCodeAt(0));
     idx++;
   }
@@ -653,7 +651,7 @@ const dealWithString = (src, key, shift) => {
  * 保存账号
  */
 const saveAccount = async (arrBuf: ArrayBuffer, nickname = "") => {
-  let name = accountName.value?.trim();
+  const name = accountName.value?.trim();
 
   console.log("name:", name);
 
@@ -665,7 +663,7 @@ const saveAccount = async (arrBuf: ArrayBuffer, nickname = "") => {
     const listStr = await getServerList(bin.buffer);
     const parsedList = JSON.parse(listStr);
     // 转换为数组并排序
-    if (parsedList && typeof parsedList === 'object') {
+    if (parsedList && typeof parsedList === "object") {
       serverListData.value = Object.values(parsedList).sort((a: any, b: any) => b.power - a.power);
     } else {
       serverListData.value = [];
@@ -691,7 +689,7 @@ const saveAccount = async (arrBuf: ArrayBuffer, nickname = "") => {
     originalBinData.value = binData;
   } catch (err: any) {
     console.error("Bin文件解析失败", err);
-    binDecodedResult.value = "Bin文件解析失败: " + (err.message || err);
+    binDecodedResult.value = `Bin文件解析失败: ${err.message || err}`;
   }
 };
 
@@ -704,7 +702,6 @@ const handleImport = async () => {
     // tokenStore.gameTokens中发现已存在的重复名称，则移出token后重新添加
     const gameToken = tokenStore.gameTokens.find((t) => t.id === role.id);
     if (gameToken) {
-      console.log("移除同名token:", gameToken);
       // tokenStore.removeToken(gameToken.id);
       tokenStore.updateToken(gameToken.id, {
         ...role,
@@ -715,27 +712,10 @@ const handleImport = async () => {
       });
     }
   });
-  console.log("当前Token列表:", tokenStore.gameTokens);
+
   message.success("Token添加成功");
   roleList.value = [];
   emit("ok");
-};
-
-const downloadBinFile = (fileName, bin) => {
-  const blob = new Blob([new Uint8Array(bin)], {
-    type: "application/octet-stream",
-  });
-
-  const url = URL.createObjectURL(blob);
-
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = fileName;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-
-  URL.revokeObjectURL(url);
 };
 
 /**

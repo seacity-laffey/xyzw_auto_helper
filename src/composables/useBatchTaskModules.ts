@@ -1,16 +1,20 @@
+import type { BatchTaskDeps } from "@/utils/batch/types";
 import {
+  createTasksApex,
   createTasksArena,
   createTasksBottle,
+  createTasksCampChallenge,
   createTasksDungeon,
   createTasksHangUp,
   createTasksItem,
   createTasksLegacy,
   createTasksStore,
   createTasksTower,
+  createTasksXuanwuBlessing,
 } from "@/utils/batch";
 
 interface TaskModuleOptions {
-  createTaskDeps: () => Record<string, any>;
+  createTaskDeps: () => BatchTaskDeps;
   openHelperModal: (type: string) => void;
   openLegacyGift: () => void;
   openWarGuessModal: () => void;
@@ -63,7 +67,13 @@ export const useBatchTaskModules = ({
   } = createTasksStore(createTaskDeps());
   const { batchLegacyClaim, batchLegacyGiftSendEnhanced } = createTasksLegacy(createTaskDeps());
 
+  const activityActions = {
+    ...createTasksApex(createTaskDeps()),
+    ...createTasksCampChallenge(createTaskDeps()),
+    ...createTasksXuanwuBlessing(createTaskDeps()),
+  };
   const batchFunctionActions = {
+    ...activityActions,
     claimHangUpRewards,
     batchAddHangUpTime,
     resetBottles,

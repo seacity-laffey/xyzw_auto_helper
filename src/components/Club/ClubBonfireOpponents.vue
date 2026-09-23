@@ -46,15 +46,16 @@ import { Button } from "@/components/ui/button";
 import { useTokenStore } from "@/stores/tokenStore";
 import { HERO_DICT } from "@/utils/heroList";
 
-const props = defineProps({ response: Object, tokenId: String });
+const props = defineProps({ response: Object, tokenId: String, matchDate: Date });
 const store = useTokenStore();
 const now = ref(new Date());
 const clock = window.setInterval(() => {
   now.value = new Date();
 }, 30000);
-const dayKey = computed(() => getClubBattleDayKey(now.value));
-const displayDate = computed(() => new Intl.DateTimeFormat("zh-CN", { timeZone: "Asia/Shanghai", month: "2-digit", day: "2-digit" }).format(now.value));
-const activeClub = computed(() => getTodayClubBattleOpponent(props.response, now.value));
+const effectiveDate = computed(() => props.matchDate || now.value);
+const dayKey = computed(() => getClubBattleDayKey(effectiveDate.value));
+const displayDate = computed(() => new Intl.DateTimeFormat("zh-CN", { timeZone: "Asia/Shanghai", month: "2-digit", day: "2-digit" }).format(effectiveDate.value));
+const activeClub = computed(() => getTodayClubBattleOpponent(props.response, effectiveDate.value));
 const results = ref({});
 let requestVersion = 0;
 const useFallbackImage = (event) => {

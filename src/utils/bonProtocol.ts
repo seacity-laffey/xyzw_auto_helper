@@ -858,9 +858,9 @@ export function getEnc(name: string): EncImpl {
 export function encode(obj: unknown, enc: EncImpl) {
   let bytes = bon.encode(obj, false);
   const out = enc.encrypt(bytes);
-  return out.buffer.byteLength === out.length
+  return out.buffer.byteLength === out.length && out.byteOffset === 0
     ? out.buffer
-    : out.buffer.slice(0, out.length);
+    : out.buffer.slice(out.byteOffset, out.byteOffset + out.length);
 }
 
 /** 对外：parse（解密 → bon.decode → ProtoMsg） */
@@ -901,7 +901,7 @@ export const GameMessages = {
     cmd: "role_getroleinfo",
     body: encode(
       {
-        clientVersion: "2.21.2-fa918e1997301834-wx",
+        clientVersion: "2.43.4-a7db1319a3025acb-wx",
         inviteUid: 0,
         platform: "hortor",
         platformExt: "mix",

@@ -162,7 +162,7 @@ const statusClass = (tokenId) => {
     return "bg-tertiary";
   return "bg-error";
 };
-const isPermanent = (token) => ["url", "bin", "wxQrcode"].includes(token.importMethod) || token.upgradedToPermanent;
+const isPermanent = (token) => ["url", "bin", "wxQrcode", "mobile"].includes(token.importMethod) || token.upgradedToPermanent;
 const maskToken = (token) => token?.length > 8 ? `${token.slice(0, 4)}***${token.slice(-4)}` : token || "";
 const formatTime = (timestamp) => new Date(timestamp).toLocaleString("zh-CN");
 const startRemark = (token) => {

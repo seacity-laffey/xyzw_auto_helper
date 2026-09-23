@@ -115,12 +115,12 @@ export function getClubBattleTargetIds(response) {
 
 const memberKey = (member) => `${member.roleId}${member.mirror === true ? ":mirror" : ""}`;
 
-export function getClubBattleRecordTargets(members) {
+export function getClubBattleRecordTargets(members, { includeIdle = false } = {}) {
   const targets = new Map();
   for (const member of Object.values(members || {})) {
     if (!member?.roleId)
       continue;
-    if (Number(member.challengeCnt) > 0 || Number(member.failCnt) > 0 || member.defeated === true) {
+    if (includeIdle || Number(member.challengeCnt) > 0 || Number(member.failCnt) > 0 || member.defeated === true) {
       targets.set(memberKey(member), { targetId: String(member.roleId), targetIsMirror: member.mirror === true });
     }
   }

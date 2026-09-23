@@ -177,6 +177,7 @@ interface TaskSettings {
   templateId?: string;
   arenaEnable: boolean;
   arenaFormation: number;
+  campFormation: number;
   blackMarketPurchase: boolean;
   bossFormation: number;
   bossTimes: number;
@@ -190,7 +191,7 @@ interface TaskSettings {
   dreamPurchaseList?: string[] | null;
 }
 
-type NumberField = "arenaFormation" | "towerFormation" | "bossFormation" | "bossTimes";
+type NumberField = "campFormation" | "arenaFormation" | "towerFormation" | "bossFormation" | "bossTimes";
 type BooleanField = Exclude<keyof TaskSettings, NumberField | "dreamPurchaseList">;
 
 const props = withDefaults(defineProps<{
@@ -238,6 +239,7 @@ const selectFields: Array<{
   label: string;
   options: SelectOption[];
 }> = [
+  { key: "campFormation", label: "营地挑战阵容", options: props.formationOptions },
   { key: "arenaFormation", label: "竞技场阵容", options: props.formationOptions },
   { key: "towerFormation", label: "爬塔阵容", options: props.formationOptions },
   { key: "bossFormation", label: "BOSS阵容", options: props.formationOptions },

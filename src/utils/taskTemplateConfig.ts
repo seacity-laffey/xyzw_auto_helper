@@ -39,6 +39,7 @@ export const createDefaultTemplateSettings = () => ({
   ...Object.fromEntries(TEMPLATE_TASK_FIELDS.map(({ key }) => [key, key !== "dreamPurchaseEnable"])),
   arenaEnable: true,
   arenaFormation: 1,
+  campFormation: 1,
   towerFormation: 1,
   bossFormation: 1,
   bossTimes: 2,

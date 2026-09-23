@@ -42,6 +42,7 @@ function loginTarget(url, method) {
   if (!isLocal(url)) return null;
   const u = new URL(url);
   const endpoints = {
+    '/api/hortor-ucenter/ucenter-app-server/api/v1/login/verify/code': ['POST', 'https://comb-platform.hortorgames.com/ucenter-app-server/api/v1/login/verify/code'],
     '/api/weixin/connect/app/qrconnect': ['GET', 'https://open.weixin.qq.com/connect/app/qrconnect'],
     '/api/weixin/connect/l/qrconnect': ['GET', 'https://open.weixin.qq.com/connect/l/qrconnect'],
     '/api/weixin-long/connect/l/qrconnect': ['GET', 'https://long.open.weixin.qq.com/connect/l/qrconnect'],
@@ -65,6 +66,11 @@ function loginHeaders(target, accept, contentType) {
     headers['User-Agent'] = 'Mozilla/5.0 (Linux; Android 12; 23117RK66C Build/V417IR; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/95.0.4638.74 Mobile Safari/537.36';
     headers.Origin = 'https://open.weixin.qq.com';
     headers.Referer = 'https://open.weixin.qq.com/';
+  }
+  if (new URL(target).pathname === '/ucenter-app-server/api/v1/login/verify/code') {
+    headers.Host = 'ucenter-app-server.hortorgames.com';
+    headers['Content-Type'] = 'application/json; charset=utf-8';
+    headers['User-Agent'] = 'Mozilla/5.0 (Linux; Android 12; ALN-AL80 Build/HUAWEIALN-AL80; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/114.0.5735.196 Mobile Safari/537.36';
   }
   return headers;
 }

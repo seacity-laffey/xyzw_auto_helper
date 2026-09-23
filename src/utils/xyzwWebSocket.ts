@@ -79,8 +79,6 @@ const errorCodeMap = {
   1500020: "能量不足",
   2300070: "未加入俱乐部",
   3500020: "没有可领取的奖励",
-  12000050: "今日发车次数已达上限",
-  12000060: "不在发车时间内",
   400190: "没有可领取的签到奖励",
   1000020: "今天已经领取过奖励了",
   3300050: "购买数量超出限制",
@@ -94,6 +92,9 @@ const errorCodeMap = {
   200330: "无效的ID",
   1500040: "上座塔的奖励未领取",
   1500010: "已经全部通关",
+  4800080: "不在规定时间内或未到报名阶段",
+  4800040: "俱乐部没有报名",
+  2100010: "活动未开放",
 };
 
 // 事件节流定义表，根据实际需要调整命令和节流时间
@@ -205,7 +206,7 @@ export function registerDefaultCommands(reg: CommandRegistry) {
     .registerHeartbeat()
     // 角色/系统
     .register("role_getroleinfo", {
-      clientVersion: "2.21.2-fa918e1997301834-wx",
+      clientVersion: "2.43.4-a7db1319a3025acb-wx",
       inviteUid: 0,
       platform: "hortor",
       platformExt: "mix",
@@ -446,6 +447,33 @@ export function registerDefaultCommands(reg: CommandRegistry) {
     .register("activity_actegamestageclaim", { actId: 0 })
 
     // 逐鹿盐山竞猜
+    .register("club_attack")
+    .register("club_attackmonster")
+    .register("club_taskclaim")
+    .register("club_getattackrecord")
+    .register("club_getgrouprank")
+    .register("club_getrolerank")
+    .register("evotower_buyenergy", { energy: 1 })
+    .register("tower_buyenergy", { buyNum: 1 })
+    .register("legionmatch_signup")
+    .register("legionmatch_getrank")
+    .register("legionmatch_getbattlerecord")
+    .register("bosstower_gethelprank")
+    .register("activity_warorderget")
+    .register("activity_warordertaskclaim")
+    .register("activity_warorderrewardclaim")
+    .register("activity_getlotteryinfo")
+    .register("activity_lottery")
+    .register("activity_claimsignreward")
+    .register("activity_commonbuygoods")
+    .register("matchteam_getroleteaminfo")
+    .register("bosstower_getinfo")
+    .register("bosstower_startboss")
+    .register("bosstower_startbox")
+    .register("saltcup26_getbetinfo")
+    .register("saltcup26_placebet", { matchId: "", pick: 0 })
+    .register("apex_getvotelist")
+    .register("apex_vote", { round: 0, teamId: "" })
     .register("apex_getroleinfo")
     .register("apex_getguesslist", { scheduleId: 0, idx: 0 })
     .register("apex_guess", { teamId: "" })
@@ -1169,6 +1197,23 @@ export class XyzwWebSocketClient {
       fight_levelresp: "fight_level",
       studyresp: "study_startgame",
       role_getroleinforesp: "role_getroleinfo",
+      club_getattackrecordresp: "club_getattackrecord",
+      club_getgrouprankresp: "club_getgrouprank",
+      club_getrolerankresp: "club_getrolerank",
+      club_attackresp: "club_attack",
+      club_attackmonsterresp: "club_attackmonster",
+      club_taskclaimresp: "club_taskclaim",
+      tower_buyenergyresp: "tower_buyenergy",
+      evotower_buyenergyresp: "evotower_buyenergy",
+      apex_getvotelistresp: "apex_getvotelist",
+      apex_voteresp: "apex_vote",
+      legionmatch_rolesignupresp: "legionmatch_rolesignup",
+      legionmatch_signupresp: "legionmatch_signup",
+      legionmatch_getrankresp: "legionmatch_getrank",
+      legionmatch_getbattlerecordresp: "legionmatch_getbattlerecord",
+      activity_warordergetresp: "activity_warorderget",
+      activity_getlotteryinforesp: "activity_getlotteryinfo",
+      activity_lotteryresp: "activity_lottery",
       apex_getroleinforesp: "apex_getroleinfo",
       apex_getguesslistresp: "apex_getguesslist",
       apex_guessresp: "apex_guess",
@@ -1239,7 +1284,7 @@ export class XyzwWebSocketClient {
       club_getdefenserecordresp: "club_getdefenserecord",
       club_gettargetteamresp: "club_gettargetteam",
       role_gettargetteamresp: "role_gettargetteam",
-      activity_warorderclaimresp: "activity_recyclewarorderrewardclaim",
+      activity_warorderclaimresp: ["activity_warorderrewardclaim", "activity_warordertaskclaim", "activity_recyclewarorderrewardclaim"],
       // 功法相关响应映射
       legacy_getinforesp: "legacy_getinfo",
       legacy_claimhangupresp: "legacy_claimhangup",
@@ -1265,7 +1310,9 @@ export class XyzwWebSocketClient {
         "hero_gobackbattle",
         "lordweapon_changedefaultweapon",
       ],
+      activity_rewardresp: "activity_claimsignreward",
       syncrewardresp: [
+        "activity_commonbuygoods",
         "system_buygold",
         "discount_claimreward",
         "card_claimreward",
